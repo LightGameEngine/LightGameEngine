@@ -1,35 +1,38 @@
 const fs = require("fs");
 const fetch = require("node-fetch");
 const oldChanges = require("./.changes.json");
+const Logger = require("./Logger");
 const lightRoamingPath = process.env.HOME.replaceAll("\\", "/") + "/AppData/Roaming/lightge";
 if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
 
+Logger.debugging = false;
+
 (async () => {
-    console.log("Checking updates...");
+    Logger.info("Checking updates...");
     try {
         const currentVersion = oldChanges.length * 1;
         const response = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/.changes.json");
         const body = await response.text();
         if (currentVersion < JSON.parse(body).length) {
             const files = Array.from(new Set([].concat(...JSON.parse(body).slice(currentVersion))));
-            console.log("Update detected!");
-            console.log("Updating...");
+            Logger.warning("Update detected!");
+            Logger.info("Updating...");
             for (let i = 0; i < files.length; i++) {
                 const f = files[i];
-                console.log("Loading '" + f + "'...");
+                Logger.debug("Loading '" + f + "'...");
                 const file = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + f);
                 fs.writeFileSync("./" + f, await file.text());
-                console.log("Loaded '" + f + "'!");
+                Logger.debug("Loaded '" + f + "'!");
             }
-            console.log("Update completed, please restart.");
+            Logger.info("Update completed, please restart.");
             fs.writeFileSync("./.changes.json", body);
             process.exit();
         } else {
-            console.log("No update found.");
+            Logger.info("Perfect, engine is up to date!");
             require("./resources/index");
         }
     } catch (e) {
-        console.log("Update failed.");
+        Logger.alert("Update failed.");
         require("./resources/index");
     }
 })();

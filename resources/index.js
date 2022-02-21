@@ -4,6 +4,7 @@ const {app, BrowserWindow, globalShortcut} = electron;
 const lightRoamingPath = process.env.HOME.replaceAll("\\", "/") + "/AppData/Roaming/lightge";
 if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
 const cachePath = lightRoamingPath + "/.cache";
+const Logger = require("../Logger");
 
 if (!fs.existsSync(lightRoamingPath + "/languages")) {
     fs.mkdirSync(lightRoamingPath + "/languages");
@@ -150,18 +151,18 @@ if (!fs.existsSync(lightRoamingPath + "/themes")) {
     }));
 }
 const themes = {};
-console.log("Reading themes from " + lightRoamingPath + "/themes");
+Logger.debug("Reading themes from " + lightRoamingPath + "/themes");
 fs.readdirSync(lightRoamingPath + "/themes").forEach(i => {
-    console.log("Loading theme " + i.split(".")[0] + "...");
+    Logger.debug("Loading theme " + i.split(".")[0] + "...");
     themes[i.split(".")[0]] = JSON.parse(fs.readFileSync(lightRoamingPath + "/themes/" + i).toString());
-    console.log("Loaded theme " + i.split(".")[0] + ".");
+    Logger.debug("Loaded theme " + i.split(".")[0] + ".");
 });
 const languages = {};
-console.log("Reading languages from " + lightRoamingPath + "/languages");
+Logger.debug("Reading languages from " + lightRoamingPath + "/languages");
 fs.readdirSync(lightRoamingPath + "/languages").forEach(i => {
-    console.log("Loading language " + i.split(".")[0] + "...");
+    Logger.debug("Loading language " + i.split(".")[0] + "...");
     languages[i.split(".")[0]] = JSON.parse(fs.readFileSync(lightRoamingPath + "/languages/" + i).toString());
-    console.log("Loaded language " + i.split(".")[0] + ".");
+    Logger.debug("Loaded language " + i.split(".")[0] + ".");
 });
 
 if (!fs.existsSync(cachePath)) {
@@ -390,7 +391,7 @@ const create_window = async () => {
 
 app.whenReady().then(async () => {
     await create_window();
-    globalShortcut.register("F5", console.log);
+    globalShortcut.register("F5", Logger.debug);
     globalShortcut.unregister("F5");
     globalShortcut.register("CommandOrControl+R", () => global.browser.reload());
     globalShortcut.register("CommandOrControl+D", () => global.browser.webContents.openDevTools());
@@ -398,6 +399,6 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-    console.log("Closing Light...");
+    Logger.alert("Closing Light...");
     if (process.platform !== "darwin") app.quit();
 });
