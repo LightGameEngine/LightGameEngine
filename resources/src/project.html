@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title id="title">Light</title>
+    <link href="styles/project.css" rel="stylesheet">
+    <script src="scripts/connectionManager.js"></script>
+    <script src="scripts/lang.js"></script>
+    <script src="scripts/themeManager.js"></script>
+</head>
+<body>
+<div class="body">
+    <div class="bar">
+        <a onclick="main_menu()" id="lC-cb">
+            Close
+            <script>lU(() => document.getElementById("lC-cb").innerHTML = m("close-button"))</script>
+        </a>
+    </div>
+    <div style="position: absolute; left: 78%; top: 0.8%; width: 5%">
+        <img onclick="setSceneType('game')" id="start_btn" src="../assets/start.png" style="position: absolute; top: -0.2%; cursor: pointer" hidden>
+        <img onclick="setSceneType('editor')" id="stop_btn" src="../assets/stop.png" style="position: absolute; cursor: pointer" hidden>
+    </div>
+    <div class="left_container">
+        <div class="left_container_bar"></div>
+    </div>
+    <div class="right_container">
+        <div class="property">
+            <span class="property_name">Test</span>
+            <input class="property_value" value="test">
+        </div>
+    </div>
+    <div class="console"></div>
+    <canvas class="canvas" id="canvas"></canvas>
+</div>
+</body>
+<script src="scripts/engine.js"></script>
+<script>
+    /*** @type {HTMLCanvasElement} */
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const start_btn = document.getElementById("start_btn");
+    const stop_btn = document.getElementById("stop_btn");
+
+    let project = {};
+    addWSListener("get_language", () => setLanguage(lang, false));
+    addWSListener("get_projects", ({projects}) => {
+        project = projects[query.path];
+        document.getElementById("title").innerHTML = "Light - " + project.name;
+    });
+    ws.sendPacket("get_projects");
+    let gameScene;
+    /*** @type {"editor" | "game"} */
+    let sceneType;
+
+    window.on_editor = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function setSceneType(type) {
+        sceneType = type;
+        switch (sceneType) {
+            case "editor":
+                Scene.ctx = null;
+                Scene.instance = null;
+                gameScene = null;
+                start_btn.hidden = undefined;
+                stop_btn.hidden = true;
+                break;
+            case "game":
+                Scene.ctx = ctx;
+                gameScene = Scene.getInstance();
+                let e = new Entity(10, 10);
+                e.setModel(new RectangleModel(10, 10, "#000000"));
+                start_btn.hidden = true;
+                stop_btn.hidden = undefined;
+                break;
+        }
+    }
+
+    setSceneType("editor");
+
+    function main_menu() {
+        window.location.href = "index.html";
+        ws.sendPacket("main_menu");
+    }
+
+    const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
+    const query = {};
+    _query.forEach(i => query[i[0]] = i[1]);
+
+    setInterval(() => {
+        const canvas = document.getElementById("canvas");
+        if (canvas.width !== Math.floor(window.innerWidth * 0.601)) canvas.width = Math.floor(window.innerWidth * 0.601);
+        if (canvas.height !== Math.floor(window.innerHeight * 0.751)) canvas.height = Math.floor(window.innerHeight * 0.751);
+    });
+
+    addWSListener("get_file", ({path, exists, type}) => {
+        if (path === query.path && (!exists || type !== "folder")) main_menu();
+    });
+
+    function checkProjectExists() {
+        ws.sendPacket("get_file", {path: query.path});
+    }
+
+    window.addEventListener("blur", checkProjectExists);
+</script>
+</html>

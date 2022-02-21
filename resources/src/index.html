@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Light</title>
+    <link href="styles/style.css" rel="stylesheet">
+    <script src="scripts/connectionManager.js"></script>
+    <script src="scripts/lang.js"></script>
+</head>
+<body style="background: var(--background)">
+<img draggable="false" src="../assets/search.png" style="width: 15px;margin-top: 10px;">
+<img draggable="false" src="../assets/language.png"
+     style="position:absolute;right:35px;width: 15px;margin-top: 10px;cursor: pointer" id="change_language"
+     onclick="change_language()">
+<img draggable="false" src="../assets/theme.png"
+     style="position:absolute;right:55px;width: 15px;margin-top: 10px;cursor: pointer" id="change_theme"
+     onclick="change_theme()">
+<div id="language_display" class="language_display" hidden></div>
+<div id="theme_display" class="theme_display" hidden></div>
+<img draggable="false" src="../assets/settings.png"
+     style="position:absolute;right:15px;width: 15px;margin-top: 10px;cursor: pointer" onclick="open_settings()">
+<input id="search" spellcheck="false" class="search" placeholder="">
+<script>lU(() => document.getElementById("search").placeholder = m("search-placeholder"))</script>
+<button class="btn new-project" onclick="new_project()" id="lC-npb">
+    <script>lU(() => document.getElementById("lC-npb").innerHTML = m("new-project-button"))</script>
+</button>
+<button class="btn open" onclick="open_project()" id="lC-opb">
+    <script>lU(() => document.getElementById("lC-opb").innerHTML = m("open-project-button"))</script>
+</button>
+<hr style="margin-top: 13px;">
+<div id="projects"></div>
+<div class="popup-container" id="popup" hidden>
+    <div class="popup">
+        <div class="popup-contents">
+            <div style="text-align: center" id="popup-content"></div>
+            <svg onclick="close_popup()" width="50" height="35" class="popup-close">
+                <path d="M20 12 L30 22 Z" stroke="white"></path>
+                <path d="M30 12 L20 22 Z" stroke="white"></path>
+            </svg>
+        </div>
+    </div>
+</div>
+</body>
+<script src="scripts/fileExplorer.js"></script>
+<script src="scripts/themeManager.js"></script>
+<script>
+    let is_settings_open = false;
+    const popup = document.getElementById("popup");
+    /*** @type {Object<string, {name: string, path: string, createdTimestamp: number, lastOpenTimestamp: number, valid: boolean}>}} */
+    let projects = {};
+    const languageNames = {
+        tr_TR: "Türkçe",
+        en_US: "English"
+    };
+    const ch_l = document.getElementById("change_language");
+    const language_display = document.getElementById("language_display");
+
+    function change_language(to = null, save = true) {
+        if (!to) to = Object.keys(languages)[Object.keys(languages).indexOf(lang) + 1] || Object.keys(languages)[0];
+        setLanguage(to, save);
+        language_display.innerHTML = Object.keys(languages).map(i => lang === i ? `<span style="background: var(--btn-hover-background)">${languageNames[i]}</span>` : languageNames[i]).join("<br>");
+    }
+
+    addWSListener("get_language", () => {
+        if (lang) change_language(lang, false);
+    });
+
+    ch_l.addEventListener("mouseover", () => language_display.hidden = undefined);
+    ch_l.addEventListener("mouseout", () => language_display.hidden = true);
+
+    const ch_t = document.getElementById("change_theme");
+    const theme_display = document.getElementById("theme_display");
+
+    function change_theme(to = null) {
+        if (!to) to = Object.keys(themes)[Object.keys(themes).indexOf(theme) + 1] || Object.keys(themes)[0];
+        setTheme(to);
+        theme_display.innerHTML = Object.keys(themes).map(i => i === theme.id ? `<span style="background: var(--btn-hover-background)">${themes[i].name[lang] || themes[i].name}</span>` : themes[i].name[lang] || themes[i].name).join("<br>");
+    }
+
+    addWSListener("get_theme", () => {
+        if (theme) change_theme(theme);
+    });
+
+    ch_t.addEventListener("mouseover", () => theme_display.hidden = undefined);
+    ch_t.addEventListener("mouseout", () => theme_display.hidden = true);
+    addWSListener("invalid_project_folder", () => set_default_project_folder(null, false));
+    addWSListener("project_folder", ({folder}) => set_default_project_folder(folder, false));
+    addWSOnceListener("connected", () => ws.sendPacket("project_folder"));
+    const set_default_project_folder = (folder, save = true) => {
+        default_project_folder = folder;
+        if (save) ws.sendPacket("set_project_folder", {folder});
+        if (is_settings_open) open_settings();
+    }
+    let default_project_folder;
+    const create_project = () => {
+        const err = document.getElementById("create_error");
+        const input = document.getElementById("project_name").value;
+        if (!input) return err ? err.innerHTML = m("project-name-empty") + "<br>" : null;
+        if (input.split("").some(i => !/\w|\d/.test(i))) return err ? err.innerHTML = m("project-name-invalid") + "<br>" : null;
+        if (!default_project_folder) return err ? err.innerHTML = m("should-define-project-folder") : null;
+        ws.sendPacket("create_project", {
+            name: input
+        });
+        close_popup();
+    }
+
+    addWSListener("open_project", ({name, path}) => {
+        window.location.href = `project.html?name=${encodeURI(name)}&path=${encodeURI(path)}`;
+    });
+
+    addWSListener("project_exists", ({name}) => create_popup(m("project-exists").replace("%0", name)));
+
+    const select_default_project_folder = () => {
+        openFileExplorerPopup(null, true, file => {
+            set_default_project_folder(file.file);
+            ws.sendPacket("project_folder", {folder: default_project_folder});
+            closeFileExplorerPopup();
+        });
+    }
+
+    const open_settings = () => {
+        is_settings_open = true;
+        create_popup(`<h1>Settings</h1>Default project folder: <span style="opacity: 50%;cursor: pointer;width: 200px" onclick="select_default_project_folder()">${default_project_folder || "Not selected"}</span>`);
+    }
+
+    const create_popup = content => {
+        document.getElementById("popup-content").innerHTML = content;
+        popup.hidden = undefined;
+    }
+
+    const close_popup = () => {
+        is_settings_open = false;
+        popup.hidden = true;
+    }
+
+    const open_project = () => {
+        openFileExplorerPopup(null, true, file => {
+            ws.sendPacket("open_project", {path: file.file});
+            closeFileExplorerPopup();
+        });
+    }
+
+    const new_project = () => {
+        create_popup(`
+<h1>${m("create-project-title")}</h1>
+<span id="create_error" style="color:red"></span>
+<input spellcheck="false" id="project_name" maxlength="16" style="text-align:center;color:var(--popup-input-color);width: 110px;border:none;background:none;border-radius:3px;padding:4px;outline:none" placeholder="${m("project-name-input")}"><br><br>
+<button class="btn" onclick="create_project()">${m("create-button")}</button>
+`);
+        document.getElementById("project_name").addEventListener("keydown", ev => ev.key === "Enter" ? create_project() : null);
+    }
+
+    setInterval(() => {
+        const input = document.getElementById("project_name");
+        if (input) {
+            const should = input.value.split("").filter(i => /\w|\d/.test(i)).join("");
+            if (input.value !== should) input.value = should;
+        }
+    });
+
+    const open_project_by_path = path => {
+        ws.sendPacket("open_project", {path: path});
+    }
+
+    function update_projects() {
+        ws.sendPacket("get_projects");
+    }
+
+    function update_projects_manually() {
+        const s = document.getElementById("search").value;
+        document.getElementById("projects").innerHTML = Object.values(projects)
+            .sort((a, b) => {
+                if (!b) return 1;
+                if (!a) return -1;
+                return b.lastOpenTimestamp - a.lastOpenTimestamp;
+            })
+            .filter(i => i.valid && (!s || i.name.includes(s || "") || (s || "").includes(i.name)))
+            .map(i => `
+    <div class="project" onclick="open_project_by_path('${i.path}')">
+        <div class="name">${i.name}</div>
+        <div class="path">${i.path.startsWith(default_project_folder) ? "~" + i.path.substring(default_project_folder.length) : i.path}</div>
+    </div>`)
+            .join("");
+        b = s;
+    }
+
+    addWSListener("get_projects", a => {
+        projects = a.projects;
+        update_projects_manually();
+    });
+
+    update_projects();
+
+    window.addEventListener("blur", update_projects);
+    window.addEventListener("focus", update_projects);
+
+    let b = null;
+
+    setInterval(() => b !== document.getElementById("search").value ? update_projects_manually() : null);
+
+</script>
+</html>

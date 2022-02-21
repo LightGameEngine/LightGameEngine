@@ -1,0 +1,28 @@
+{
+  "name": "lightge",
+  "version": "1.0.0",
+  "description": "Light Game Engine",
+  "main": "start.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LightGameEngine/LightGameEngine.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LightGameEngine/LightGameEngine/issues"
+  },
+  "homepage": "https://github.com/LightGameEngine/LightGameEngine#readme",
+  "devDependencies": {
+    "electron": "^16.0.5",
+    "express": "^4.17.2"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7",
+    "ws": "^8.4.2"
+  }
+}
