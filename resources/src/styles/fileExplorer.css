@@ -1,0 +1,91 @@
+.file_close {
+    position: absolute;
+    right: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.file_close:hover {
+    background: var(--file-close-hover);
+}
+
+.file_search {
+    position: absolute;
+    width: 330px;
+    left: 15px;
+    top: 10px;
+    background: var(--file-search-background);
+    border-radius: 5px;
+    padding: 1px 1px 1px;
+}
+
+.file_explorer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.file_explorer_back {
+    position: absolute;
+    left: 125px;
+    top: 120px;
+    width: 432px;
+    height: 360px;
+    border-radius: 4px;
+    background: var(--file-explorer-background);
+}
+
+.file_list {
+    position: absolute;
+    left: 110px;
+    top: 40px;
+    min-width: 302px;
+    max-width: 302px;
+    height: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.fav_list {
+    position: absolute;
+    left: 10px;
+    top: 40px;
+    min-width: 100px;
+    max-width: 100px;
+    height: 280px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.file_element {
+    margin-top: 3px;
+    padding: 3px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.file_element:hover {
+    background: var(--file-element-hover-background);
+}
+
+.file_element_selected {
+    background: var(--file-element-selected-background);
+}
+
+.file_element_selected:hover {
+    background: var(--file-element-selected-hover-background);
+}
+
+.file_ok_btn {
+    position: absolute;
+    bottom: 10px;
+    right: 125px;
+}
+
+.file_cancel_btn {
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+}

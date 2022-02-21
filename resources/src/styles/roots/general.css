@@ -1,0 +1,36 @@
+:root {
+    --background: #3a3737;
+    --file-explorer-background: rgba(0, 0, 0, 0.2);
+    --file-search-background: #444141;
+    --file-search-input-color: #9d9c9c;
+    --file-element-color: white;
+    --file-element-hover-background: #5d6060;
+    --file-element-selected-background: #4b6eaf;
+    --file-element-selected-hover-background: #4b6eaf;
+    --file-close-hover: red;
+    --bar-a-hover: #6a97ea;
+    --body-background: #232323;
+    --canvas-background: #3a3737;
+    --right-container-background: #494545;
+    --console-background: #595454;
+    --general-color: white;
+    --webkit-scrollbar-track: white;
+    --scrollbar-thumb: #888888;
+    --scrollbar-thumb-hover: #555555;
+    --project-hover: #232323;
+    --code: #212020;
+    --popup: #333131;
+    --search: #9d9c9c;
+    --btn-border: #5d6060;
+    --btn-background: #515557;
+    --btn-color: #ada3a3;
+    --btn-okay-border: #4c708c;
+    --btn-okay-background: #365880;
+    --btn-okay-color: #babaa7;
+    --btn-hover-background: #484c4d;
+    --hr: #565050;
+    --popup-input-color: #ffffff;
+    --bar-color: white;
+    --popup-close-hover-background: red;
+    --property-name-color: white;
+}
