@@ -4,7 +4,7 @@
   "description": "Light Game Engine",
   "main": "start.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron . | more"
   },
   "repository": {
     "type": "git",

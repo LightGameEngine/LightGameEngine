@@ -1,7 +1,5 @@
 - **Plugins**
-    - Default plugins
-        - Display scripts on vsc in app
-
+    - Not sure what will it be able to do
 ***
 
 - **Engine API**
