@@ -21,8 +21,11 @@ Logger.debugging = false;
                 const f = files[i];
                 Logger.debug("Loading '" + f + "'...");
                 const file = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + f);
-                fs.writeFileSync("./" + f, await file.text());
-                Logger.debug("Loaded '" + f + "'!");
+                const con = await file.text();
+                if (con !== "404: Not Found") {
+                    fs.writeFileSync("./" + f, con);
+                    Logger.debug("Loaded '" + f + "'!");
+                }
             }
             Logger.info("Update completed, please restart.");
             fs.writeFileSync("./.changes.json", body);
