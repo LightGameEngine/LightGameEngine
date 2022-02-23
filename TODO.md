@@ -1,9 +1,5 @@
 - **Plugins**
     - Not sure what will it be able to do
-***
-
-- **Engine API**
-    - 2D Pathfinder
 
 ***
 
