@@ -46,12 +46,11 @@
 .left_container {
     position: absolute;
     left: 0;
-    top: 3%;
-    resize: horizontal;
+    top: 6%;
     overflow: auto;
     background: var(--right-container-background);
     width: 20%;
-    height: 97%;
+    height: 94%;
     max-width: 20%;
     max-height: 97%;
 }
@@ -65,6 +64,54 @@
     height: 22%;
 }
 
+.property {
+    position: absolute;
+    left: 0;
+    height: 3%;
+    width: 100%;
+    border: 1px solid white;
+}
+
 .property_name {
     color: var(--property-name-color);
+    background: var(--btn-background);
+    height: 200%;
+}
+
+.property_value {
+}
+
+.left_container_nav {
+    background: var(--left-container-nav-background);
+    margin-top: 1.6%;
+}
+
+.left_nav_add {
+    cursor: pointer;
+    margin-top: 3px;
+    margin-left: 5px;
+    width: 1.2%;
+}
+
+.objects {
+    margin-top: 10px;
+}
+
+.object {
+    cursor: pointer;
+}
+
+.object:hover {
+    background: var(--object-hover-background);
+}
+
+.object_name {
+    color: var(--property-name-color);
+    position: absolute;
+    margin-top: 3px;
+}
+
+.object_image {
+    margin-top: 3px;
+    width: 20px;
 }

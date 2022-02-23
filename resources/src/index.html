@@ -59,6 +59,7 @@
         if (!to) to = Object.keys(languages)[Object.keys(languages).indexOf(lang) + 1] || Object.keys(languages)[0];
         setLanguage(to, save);
         language_display.innerHTML = Object.keys(languages).map(i => lang === i ? `<span style="background: var(--btn-hover-background)">${languageNames[i]}</span>` : languageNames[i]).join("<br>");
+        if (theme) change_theme(theme);
     }
 
     addWSListener("get_language", () => {
@@ -74,7 +75,7 @@
     function change_theme(to = null) {
         if (!to) to = Object.keys(themes)[Object.keys(themes).indexOf(theme) + 1] || Object.keys(themes)[0];
         setTheme(to);
-        theme_display.innerHTML = Object.keys(themes).map(i => i === theme.id ? `<span style="background: var(--btn-hover-background)">${themes[i].name[lang] || themes[i].name}</span>` : themes[i].name[lang] || themes[i].name).join("<br>");
+        theme_display.innerHTML = Object.keys(themes).map(i => i === theme.id ? `<span style="background: var(--btn-hover-background)">${themes[i].name[lang] || themes[i].name["en_US"] || themes[i].name}</span>` : (themes[i].name[lang] || themes[i].name["en_US"] || themes[i].name)).join("<br>");
     }
 
     addWSListener("get_theme", () => {
@@ -111,10 +112,10 @@
     addWSListener("project_exists", ({name}) => create_popup(m("project-exists").replace("%0", name)));
 
     const select_default_project_folder = () => {
-        openFileExplorerPopup(null, true, file => {
-            set_default_project_folder(file.file);
+        file_explorer.open("folder").then(folder => {
+            console.log(folder)
+            set_default_project_folder(folder.path);
             ws.sendPacket("project_folder", {folder: default_project_folder});
-            closeFileExplorerPopup();
         });
     }
 
@@ -134,9 +135,8 @@
     }
 
     const open_project = () => {
-        openFileExplorerPopup(null, true, file => {
-            ws.sendPacket("open_project", {path: file.file});
-            closeFileExplorerPopup();
+        file_explorer.open("folder").then(folder => {
+            ws.sendPacket("open_project", {path: folder.path});
         });
     }
 

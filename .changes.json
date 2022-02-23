@@ -1,1 +1,14 @@
-[]
+[
+  [
+    "resources/assets/add.png",
+    "resources/src/styles/fileExplorer.css",
+    "resources/src/scripts/fileExplorer.js",
+    "resources/src/styles/roots/general.css",
+    "resources/src/index.html",
+    "resources/index.js",
+    "Logger.js",
+    "package.json",
+    "resources/src/styles/project.css",
+    "resources/src/project.html"
+  ]
+]

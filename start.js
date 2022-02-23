@@ -5,7 +5,7 @@ const Logger = require("./Logger");
 const lightRoamingPath = process.env.HOME.replaceAll("\\", "/") + "/AppData/Roaming/lightge";
 if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
 
-Logger.debugging = false;
+Logger.debugging = true;
 
 (async () => {
     Logger.info("Checking updates...");
@@ -25,7 +25,7 @@ Logger.debugging = false;
                 if (con !== "404: Not Found") {
                     fs.writeFileSync("./" + f, con);
                     Logger.debug("Loaded '" + f + "'!");
-                }
+                } else if (fs.existsSync("./" + f)) fs.unlinkSync("./" + f);
             }
             Logger.info("Update completed, please restart.");
             fs.writeFileSync("./.changes.json", body);

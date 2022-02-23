@@ -6,150 +6,119 @@ if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
 const cachePath = lightRoamingPath + "/.cache";
 const Logger = require("../Logger");
 
-if (!fs.existsSync(lightRoamingPath + "/languages")) {
-    fs.mkdirSync(lightRoamingPath + "/languages");
-    fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
-        "search-placeholder": "Search project",
-        "new-project-button": "New Project",
-        "create-project-title": "Create Project",
-        "project-name-input": "Enter project name...",
-        "create-button": "Create",
-        "open-project-button": "Open Project",
-        "file-explorer-placeholder": "Path",
-        "okay-button": "OK",
-        "cancel-button": "Cancel",
-        "settings-title": "Settings",
-        "default-project-folder": "Default project folder",
-        "close-button": "Close",
-        "default-folder-dont-exist": "Default project folder doesn't exist!",
-        "should-define-project-folder": "You should have defined the default project folder in settings",
-        "project-exists": "Project %0 already exists!",
-        "project-name-invalid": "Project name should not include invalid characters.",
-        "project-name-empty": "Project name should have been filled.",
-        "file-Documents": "Documents",
-        "file-Downloads": "Downloads",
-        "file-Desktop": "Desktop",
-        "file-Music": "Music",
-        "file-Pictures": "Pictures",
-        "file-Videos": "Videos",
-        "file-home": "Local User"
-    }));
-    fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
-        "search-placeholder": "Proje ara",
-        "new-project-button": "Yeni Proje",
-        "create-project-title": "Proje Oluştur",
-        "project-name-input": "Proje ismi girin...",
-        "create-button": "Oluştur",
-        "open-project-button": "Proje Aç",
-        "file-explorer-placeholder": "Yol",
-        "okay-button": "Tamam",
-        "cancel-button": "İptal",
-        "settings-title": "Ayarlar",
-        "default-project-folder": "Varsayılan proje klasörü",
-        "close-button": "Kapat",
-        "default-folder-dont-exist": "Varsayılan proje klasörü bulunamadı!",
-        "should-define-project-folder": "Ayarlardan varsayılan proje klasörünü ayarlamalıydın",
-        "project-exists": "%0 adlı proje bulunuyor!",
-        "project-name-invalid": "Proje adı geçersiz karakter içermemeli.",
-        "project-name-empty": "Proje adını doldurmalısın.",
-        "file-Documents": "Belgeler",
-        "file-Downloads": "İndirilenler",
-        "file-Desktop": "Masaüstü",
-        "file-Music": "Müzikler",
-        "file-Pictures": "Resimler",
-        "file-Videos": "Videolar",
-        "file-home": "Yerel Kullanıcı"
-    }));
-}
-if (!fs.existsSync(lightRoamingPath + "/themes")) {
-    fs.mkdirSync(lightRoamingPath + "/themes");
-    fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
-        id: "dark",
-        name: {
-            "tr_TR": "Karanlık",
-            "en_US": "Dark"
-        },
-        json: {
-            "background": "#3a3737",
-            "file-explorer-background": "rgba(0,0,0,0.2)",
-            "file-search-background": "#444141",
-            "file-search-input-color": "#9d9c9c",
-            "file-element-color": "white",
-            "file-element-hover-background": "#5d6060",
-            "file-element-selected-background": "#4b6eaf",
-            "file-element-selected-hover-background": "#4b6eaf",
-            "file-close-hover": "red",
-            "bar-a-hover": "#6a97ea",
-            "body-background": "#232323",
-            "canvas-background": "#3a3737",
-            "right-container-background": "#494545",
-            "console-background": "#595454",
-            "general-color": "white",
-            "webkit-scrollbar-track": "white",
-            "scrollbar-thumb": "#888888",
-            "scrollbar-thumb-hover": "#555555",
-            "project-hover": "#232323",
-            "code": "#212020",
-            "popup": "#333131",
-            "search": "#9d9c9c",
-            "btn-border": "#5d6060",
-            "btn-background": "#515557",
-            "btn-color": "#ada3a3",
-            "btn-okay-border": "#4c708c",
-            "btn-okay-background": "#365880",
-            "btn-okay-color": "#babaa7",
-            "btn-hover-background": "#484c4d",
-            "hr": "#565050",
-            "popup-input-color": "#ffffff",
-            "bar-color": "white",
-            "popup-close-hover-background": "red",
-            "property-name-color": "white"
-        }
-    }));
-    fs.writeFileSync(lightRoamingPath + "/themes/light.json", JSON.stringify({
-        id: "light",
-        name: {
-            "tr_TR": "Açık",
-            "en_US": "Light"
-        },
-        json: {
-            "background": "#faf8f8",
-            "file-explorer-background": "rgba(203,203,203,0.4)",
-            "file-search-background": "#b2b2b2",
-            "file-search-input-color": "#4f4f4f",
-            "file-element-color": "#4f4f4f",
-            "file-element-hover-background": "#858585",
-            "file-element-selected-background": "#4b6eaf",
-            "file-element-selected-hover-background": "#4b6eaf",
-            "file-close-hover": "red",
-            "bar-a-hover": "#6a97ea",
-            "body-background": "#c7c7c7",
-            "canvas-background": "#eaeaea",
-            "right-container-background": "#afa5a5",
-            "console-background": "#8f8585",
-            "general-color": "black",
-            "webkit-scrollbar-track": "white",
-            "scrollbar-thumb": "#888888",
-            "scrollbar-thumb-hover": "#555555",
-            "project-hover": "#c0c0c0",
-            "code": "#d5d5d5",
-            "popup": "#e1e1e1",
-            "search": "#9d9c9c",
-            "btn-border": "#8f9a9a",
-            "btn-background": "#cbcbcb",
-            "btn-color": "#575050",
-            "btn-okay-border": "#718ea8",
-            "btn-okay-background": "#507398",
-            "btn-okay-color": "#babaa7",
-            "btn-hover-background": "#dae3e5",
-            "hr": "#565050",
-            "popup-input-color": "#504f4f",
-            "bar-color": "black",
-            "popup-close-hover-background": "red",
-            "property-name-color": "white"
-        }
-    }));
-}
+if (!fs.existsSync(lightRoamingPath + "/languages")) fs.mkdirSync(lightRoamingPath + "/languages");
+fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
+    "search-placeholder": "Search project",
+    "new-project-button": "New Project",
+    "create-project-title": "Create Project",
+    "project-name-input": "Enter project name...",
+    "create-button": "Create",
+    "open-project-button": "Open Project",
+    "okay-button": "OK",
+    "cancel-button": "Cancel",
+    "settings-title": "Settings",
+    "default-project-folder": "Default project folder",
+    "close-button": "Close",
+    "default-folder-dont-exist": "Default project folder doesn't exist!",
+    "should-define-project-folder": "You should have defined the default project folder in settings",
+    "project-exists": "Project %0 already exists!",
+    "project-name-invalid": "Project name should not include invalid characters.",
+    "project-name-empty": "Project name should have been filled."
+}));
+fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
+    "search-placeholder": "Proje ara",
+    "new-project-button": "Yeni Proje",
+    "create-project-title": "Proje Oluştur",
+    "project-name-input": "Proje ismi girin...",
+    "create-button": "Oluştur",
+    "open-project-button": "Proje Aç",
+    "okay-button": "Tamam",
+    "cancel-button": "İptal",
+    "settings-title": "Ayarlar",
+    "default-project-folder": "Varsayılan proje klasörü",
+    "close-button": "Kapat",
+    "default-folder-dont-exist": "Varsayılan proje klasörü bulunamadı!",
+    "should-define-project-folder": "Ayarlardan varsayılan proje klasörünü ayarlamalıydın",
+    "project-exists": "%0 adlı proje bulunuyor!",
+    "project-name-invalid": "Proje adı geçersiz karakter içermemeli.",
+    "project-name-empty": "Proje adını doldurmalısın."
+}));
+if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
+fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
+    id: "dark",
+    name: {
+        "tr_TR": "Karanlık",
+        "en_US": "Dark"
+    },
+    json: {
+        "background": "#3a3737",
+        "bar-a-hover": "#6a97ea",
+        "body-background": "#232323",
+        "canvas-background": "#3a3737",
+        "right-container-background": "#494545",
+        "console-background": "#595454",
+        "general-color": "white",
+        "webkit-scrollbar-track": "white",
+        "scrollbar-thumb": "#888888",
+        "scrollbar-thumb-hover": "#555555",
+        "project-hover": "#232323",
+        "code": "#212020",
+        "popup": "#333131",
+        "search": "#9d9c9c",
+        "btn-border": "#5d6060",
+        "btn-background": "#515557",
+        "btn-color": "#ada3a3",
+        "btn-okay-border": "#4c708c",
+        "btn-okay-background": "#365880",
+        "btn-okay-color": "#babaa7",
+        "btn-hover-background": "#484c4d",
+        "hr": "#565050",
+        "popup-input-color": "#ffffff",
+        "bar-color": "white",
+        "popup-close-hover-background": "red",
+        "property-name-color": "white",
+        "object-hover-background": "rgba(169, 159, 159, 0.5)",
+        "left-container-nav-background": "#5b5b5b"
+    }
+}));
+fs.writeFileSync(lightRoamingPath + "/themes/light.json", JSON.stringify({
+    id: "light",
+    name: {
+        "tr_TR": "Açık",
+        "en_US": "Light"
+    },
+    json: {
+        "background": "#faf8f8",
+        "bar-a-hover": "#6a97ea",
+        "body-background": "#c7c7c7",
+        "canvas-background": "#eaeaea",
+        "right-container-background": "#afa5a5",
+        "console-background": "#8f8585",
+        "general-color": "black",
+        "webkit-scrollbar-track": "white",
+        "scrollbar-thumb": "#888888",
+        "scrollbar-thumb-hover": "#555555",
+        "project-hover": "#c0c0c0",
+        "code": "#d5d5d5",
+        "popup": "#e1e1e1",
+        "search": "#9d9c9c",
+        "btn-border": "#8f9a9a",
+        "btn-background": "#cbcbcb",
+        "btn-color": "#575050",
+        "btn-okay-border": "#718ea8",
+        "btn-okay-background": "#507398",
+        "btn-okay-color": "#babaa7",
+        "btn-hover-background": "#dae3e5",
+        "hr": "#565050",
+        "popup-input-color": "#504f4f",
+        "bar-color": "black",
+        "popup-close-hover-background": "red",
+        "property-name-color": "#000000",
+        "object-hover-background": "rgba(169, 159, 159, 0.5)",
+        "left-container-nav-background": "#868686"
+    }
+}));
+
 const themes = {};
 Logger.debug("Reading themes from " + lightRoamingPath + "/themes");
 fs.readdirSync(lightRoamingPath + "/themes").forEach(i => {
@@ -380,7 +349,7 @@ const create_window = async () => {
     }
     browser.setPositionLimits();
     browser.hide();
-    browser.setIcon("./icon.png");
+    browser.setIcon(__dirname + "/icon.png");
     browser.setMenu(null);
     browser.setTitle("Light");
     await browser.loadFile(__dirname + "/src/index.html");
