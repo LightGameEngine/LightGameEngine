@@ -17,11 +17,50 @@
         </a>
     </div>
     <div style="position: absolute; left: 78%; top: 0.8%; width: 5%">
-        <img onclick="setSceneType('game')" id="start_btn" src="../assets/start.png" style="position: absolute; top: -0.2%; cursor: pointer" hidden>
-        <img onclick="setSceneType('editor')" id="stop_btn" src="../assets/stop.png" style="position: absolute; cursor: pointer" hidden>
+        <img draggable="false" onclick="setSceneType('game')" id="start_btn" src="../assets/start.png" style="position: absolute; top: -0.2%; cursor: pointer" hidden>
+        <img draggable="false" onclick="setSceneType('editor')" id="stop_btn" src="../assets/stop.png" style="position: absolute; cursor: pointer" hidden>
+    </div>
+    <div class="left_container_nav">
+        <img draggable="false" onclick="open_node_menu()" class="left_nav_add" src="../assets/add.png">
     </div>
     <div class="left_container">
-        <div class="left_container_bar"></div>
+        <div class="left_container_bar">
+            <div class="objects" id="objects">
+                <div class="object">
+                    <img draggable="false" class="object_image" src="../assets/file.png">
+                    <span class="object_name">My Entity</span>
+                </div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
+            </div>
+        </div>
     </div>
     <div class="right_container">
         <div class="property">

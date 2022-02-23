@@ -1,13 +1,5 @@
 :root {
     --background: #3a3737;
-    --file-explorer-background: rgba(0, 0, 0, 0.2);
-    --file-search-background: #444141;
-    --file-search-input-color: #9d9c9c;
-    --file-element-color: white;
-    --file-element-hover-background: #5d6060;
-    --file-element-selected-background: #4b6eaf;
-    --file-element-selected-hover-background: #4b6eaf;
-    --file-close-hover: red;
     --bar-a-hover: #6a97ea;
     --body-background: #232323;
     --canvas-background: #3a3737;
@@ -33,4 +25,6 @@
     --bar-color: white;
     --popup-close-hover-background: red;
     --property-name-color: white;
+    --object-hover-background: rgba(169, 159, 159, 0.5);
+    --left-container-nav-background: #868686;
 }
