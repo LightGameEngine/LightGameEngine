@@ -380,6 +380,7 @@ const create_window = async () => {
     }
     browser.setPositionLimits();
     browser.hide();
+    browser.setIcon("./icon.png");
     browser.setMenu(null);
     browser.setTitle("Light");
     await browser.loadFile(__dirname + "/src/index.html");
