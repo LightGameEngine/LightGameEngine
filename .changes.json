@@ -1,14 +1,29 @@
 [
   [
-    "resources/assets/add.png",
-    "resources/src/styles/fileExplorer.css",
-    "resources/src/scripts/fileExplorer.js",
-    "resources/src/styles/roots/general.css",
-    "resources/src/index.html",
-    "resources/index.js",
     "Logger.js",
     "package.json",
+    "resources/assets/add.png",
+    "resources/assets/file.png",
+    "resources/assets/folder.png",
+    "resources/assets/language.png",
+    "resources/assets/refresh.png",
+    "resources/assets/search.png",
+    "resources/assets/settings.png",
+    "resources/assets/start.png",
+    "resources/assets/stop.png",
+    "resources/assets/theme.png",
+    "resources/icon.png",
+    "resources/index.js",
+    "resources/src/index.html",
+    "resources/src/project.html",
+    "resources/src/scripts/connectionManager.js",
+    "resources/src/scripts/engine.js",
+    "resources/src/scripts/fileExplorer.js",
+    "resources/src/scripts/lang.js",
+    "resources/src/scripts/PathFinder.js",
+    "resources/src/scripts/themeManager.js",
     "resources/src/styles/project.css",
-    "resources/src/project.html"
+    "resources/src/styles/roots/general.css",
+    "resources/src/styles/style.css"
   ]
 ]
