@@ -17,59 +17,42 @@
         </a>
     </div>
     <div style="position: absolute; left: 78%; top: 0.8%; width: 5%">
-        <img draggable="false" onclick="setSceneType('game')" id="start_btn" src="../assets/start.png" style="position: absolute; top: -0.2%; cursor: pointer" hidden>
-        <img draggable="false" onclick="setSceneType('editor')" id="stop_btn" src="../assets/stop.png" style="position: absolute; cursor: pointer" hidden>
+        <img draggable="false" onclick="setSceneType('game')" id="start_btn" src="../assets/start.png"
+             style="position: absolute; top: -0.2%; cursor: pointer" hidden>
+        <img draggable="false" onclick="setSceneType('editor')" id="stop_btn" src="../assets/stop.png"
+             style="position: absolute; cursor: pointer" hidden>
     </div>
     <div class="left_container_nav">
-        <img draggable="false" onclick="open_node_menu()" class="left_nav_add" src="../assets/add.png">
+        <img draggable="false" onclick="open_node_menu()" id="left_nav_add" class="left_nav_add"
+             src="../assets/add.png">
     </div>
     <div class="left_container">
         <div class="left_container_bar">
-            <div class="objects" id="objects">
-                <div class="object">
-                    <img draggable="false" class="object_image" src="../assets/file.png">
-                    <span class="object_name">My Entity</span>
-                </div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-                <div class="object"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">My Entity</span></div>
-            </div>
+            <div class="objects" id="objects"></div>
+        </div>
+    </div>
+    <span id="node_menu" class="node_menu" hidden></span>
+    <div class="right_container_nav">
+        <div style="text-align: center; color: var(--general-color)" id="lC-prp">
+            <script>lU(() => document.getElementById("lC-prp").innerHTML = m("properties-title"))</script>
         </div>
     </div>
     <div class="right_container">
         <div class="property">
-            <span class="property_name">Test</span>
+            <span class="property_name">gravity</span>
             <input class="property_value" value="test">
         </div>
     </div>
     <div class="console"></div>
     <canvas class="canvas" id="canvas"></canvas>
+</div>
+<div id="prompt" hidden
+     style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2)">
+    <div style="position: absolute; left: 30%; padding: 15%; width: 10%; top: 25%; height: 1%; background: rgba(0, 0, 0, 0.2)">
+        <span id="prompt-text"></span>
+        <input id="prompt-input">
+        <button onclick="end_prompt(document.getElementById('prompt-input').value)">Submit</button>
+    </div>
 </div>
 </body>
 <script src="scripts/engine.js"></script>
@@ -82,11 +65,56 @@
     const start_btn = document.getElementById("start_btn");
     const stop_btn = document.getElementById("stop_btn");
 
+    function open_node_menu() {
+        document.getElementById("node_menu").innerHTML = ["entity", "collision", "tile", "tile-map"].map(i => `<span onclick="open_add_node_menu('${i}')" class="object_select">${languages[lang]["object-" + i]}</span>`).join("<br>");
+        document.getElementById("node_menu").hidden = undefined;
+    }
+
+    let _p_c = null;
+
+    function end_prompt(res) {
+        if (_p_c) _p_c(res);
+        _p_c = null;
+        document.getElementById("prompt").hidden = true;
+    }
+
+    function prompt(text) {
+        return new Promise(r => {
+            document.getElementById("prompt-text").innerHTML = text;
+            document.getElementById("prompt-input").value = "";
+            document.getElementById("prompt").hidden = undefined;
+            _p_c = r;
+        });
+    }
+
+    function open_add_node_menu(type) {
+        prompt("Enter node name:")
+            .then(res => {
+                add_node(type, res);
+            });
+    }
+
+    function add_node(type, name) {
+        ws.sendPacket("add_node", {path: project.path, node: {name, type}});
+        project.json.objects[name] = {name, type};
+        refresh_nodes();
+    }
+
+    addEventListener("click", ev => {
+        if (!ev.path.some(i => i.id === "node_menu" || i.id === "left_nav_add"))
+            document.getElementById("node_menu").hidden = true;
+    });
+
+    function refresh_nodes() {
+        document.getElementById("objects").innerHTML = Object.values(project.json.objects).map(i => `<div class="object" onclick="select_node('${i.name}')"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">${i.name}</span></div>`).join("");
+    }
+
     let project = {};
     addWSListener("get_language", () => setLanguage(lang, false));
     addWSListener("get_projects", ({projects}) => {
         project = projects[query.path];
         document.getElementById("title").innerHTML = "Light - " + project.name;
+        refresh_nodes();
     });
     ws.sendPacket("get_projects");
     let gameScene;
@@ -111,7 +139,7 @@
                 Scene.ctx = ctx;
                 gameScene = Scene.getInstance();
                 let e = new Entity(10, 10);
-                e.setModel(new RectangleModel(10, 10, "#000000"));
+                e.setModel(new RectangleModel(10, 10, "sa"));
                 start_btn.hidden = true;
                 stop_btn.hidden = undefined;
                 break;

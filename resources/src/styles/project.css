@@ -37,10 +37,10 @@
 .right_container {
     position: absolute;
     right: 0;
-    top: 3%;
+    top: 6%;
     background: var(--right-container-background);
     width: 20%;
-    height: 97%;
+    height: 94%;
 }
 
 .left_container {
@@ -69,28 +69,72 @@
     left: 0;
     height: 3%;
     width: 100%;
-    border: 1px solid white;
 }
 
 .property_name {
+    position: absolute;
     color: var(--property-name-color);
     background: var(--btn-background);
-    height: 200%;
+    width: 30%;
+    left: 0;
+    text-align: center;
+    height: 100%;
 }
 
 .property_value {
+    position: absolute;
+    color: var(--property-name-color);
+    background: var(--btn-hover-background);
+    outline: none;
+    border: none;
+    width: 65%;
+    left: 30%;
+    padding-left: 4%;
+    height: 90%;
 }
 
 .left_container_nav {
-    background: var(--left-container-nav-background);
-    margin-top: 1.6%;
+    background: var(--container-nav-background);
+    position: absolute;
+    left: 0;
+    width: 20%;
+    height: 3%;
+    top: 3%;
+}
+
+.right_container_nav {
+    background: var(--container-nav-background);
+    position: absolute;
+    right: 0;
+    width: 20%;
+    height: 3%;
+    top: 3%;
 }
 
 .left_nav_add {
+    position: absolute;
     cursor: pointer;
-    margin-top: 3px;
-    margin-left: 5px;
-    width: 1.2%;
+    margin-left: 1%;
+    margin-top: 1%;
+    width: 7%;
+}
+
+.object_select {
+    cursor: pointer;
+}
+
+.object_select:hover {
+    background: var(--btn-hover-background);
+}
+
+.node_menu {
+    position: absolute;
+    top: 6%;
+    left: 1%;
+    color: var(--general-color);
+    border: 1px solid var(--background);
+    padding: 0.7%;
+    background: var(--node-menu-background);
 }
 
 .objects {
@@ -103,6 +147,14 @@
 
 .object:hover {
     background: var(--object-hover-background);
+}
+
+.object_selected {
+    background: var(--object-selected-background);
+}
+
+.object_selected:hover {
+    background: var(--object-selected-hover-background);
 }
 
 .object_name {
