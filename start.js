@@ -23,8 +23,9 @@ Logger.debugging = true;
                 const file = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + f);
                 const con = await file.text();
                 if (con !== "404: Not Found") {
-                    f.split("/").forEach((j, d) => {
-                        const dir = f.split("/").slice(0, d + 1).join("/");
+                    const dirs = f.split("/").reverse().slice(1).reverse();
+                    dirs.forEach((j, d) => {
+                        const dir = dirs.slice(0, d + 1).join("/");
                         if (!fs.existsSync("./" + dir)) {
                             Logger.debug("Directory '" + dir + "' not found, creating directory...");
                             fs.mkdirSync("./" + dir);
@@ -43,6 +44,7 @@ Logger.debugging = true;
             require("./resources/index");
         }
     } catch (e) {
+        console.log(e);
         Logger.alert("Update failed.");
         require("./resources/index");
     }

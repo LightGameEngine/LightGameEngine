@@ -1,17 +1,6 @@
 [
   [
     "Logger.js",
-    "resources/assets/add.png",
-    "resources/assets/file.png",
-    "resources/assets/folder.png",
-    "resources/assets/language.png",
-    "resources/assets/refresh.png",
-    "resources/assets/search.png",
-    "resources/assets/settings.png",
-    "resources/assets/start.png",
-    "resources/assets/stop.png",
-    "resources/assets/theme.png",
-    "resources/icon.png",
     "resources/index.js",
     "resources/src/index.html",
     "resources/src/project.html",
