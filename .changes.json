@@ -13,5 +13,12 @@
     "resources/src/styles/project.css",
     "resources/src/styles/roots/general.css",
     "resources/src/styles/style.css"
+  ],
+  [
+    "resources/src/scripts/engine.js",
+    "resources/src/styles/roots/general.css",
+    "resources/index.js",
+    "resources/src/styles/project.css",
+    "resources/src/project.html"
   ]
 ]

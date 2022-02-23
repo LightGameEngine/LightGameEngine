@@ -26,5 +26,8 @@
     --popup-close-hover-background: red;
     --property-name-color: white;
     --object-hover-background: rgba(169, 159, 159, 0.5);
-    --left-container-nav-background: #868686;
+    --container-nav-background: #868686;
+    --object-selected-background: #4a7aa9;
+    --object-selected-hover-background: #5e95cb;
+    --node-menu-background: #545454;
 }

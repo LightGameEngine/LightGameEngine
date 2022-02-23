@@ -23,7 +23,12 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "should-define-project-folder": "You should have defined the default project folder in settings",
     "project-exists": "Project %0 already exists!",
     "project-name-invalid": "Project name should not include invalid characters.",
-    "project-name-empty": "Project name should have been filled."
+    "project-name-empty": "Project name should have been filled.",
+    "properties-title": "Properties",
+    "object-entity": "Entity",
+    "object-collision": "Collision",
+    "object-tile": "Tile",
+    "object-tile-map": "Tile Map"
 }));
 fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
@@ -41,7 +46,12 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "should-define-project-folder": "Ayarlardan varsayılan proje klasörünü ayarlamalıydın",
     "project-exists": "%0 adlı proje bulunuyor!",
     "project-name-invalid": "Proje adı geçersiz karakter içermemeli.",
-    "project-name-empty": "Proje adını doldurmalısın."
+    "project-name-empty": "Proje adını doldurmalısın.",
+    "properties-title": "Özellikler",
+    "object-entity": "Canlı",
+    "object-collision": "Çarpışma Kutusu",
+    "object-tile": "Nesne",
+    "object-tile-map": "Nesne Haritası"
 }));
 if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
 fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
@@ -78,7 +88,10 @@ fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
         "popup-close-hover-background": "red",
         "property-name-color": "white",
         "object-hover-background": "rgba(169, 159, 159, 0.5)",
-        "left-container-nav-background": "#5b5b5b"
+        "container-nav-background": "#5b5b5b",
+        "object-selected-background": "#4a7aa9",
+        "object-selected-hover-background": "#5e95cb",
+        "node-menu-background": "#545454"
     }
 }));
 fs.writeFileSync(lightRoamingPath + "/themes/light.json", JSON.stringify({
@@ -115,7 +128,10 @@ fs.writeFileSync(lightRoamingPath + "/themes/light.json", JSON.stringify({
         "popup-close-hover-background": "red",
         "property-name-color": "#000000",
         "object-hover-background": "rgba(169, 159, 159, 0.5)",
-        "left-container-nav-background": "#868686"
+        "container-nav-background": "#868686",
+        "object-selected-background": "#4a7aa9",
+        "object-selected-hover-background": "#5e95cb",
+        "node-menu-background": "#7a7a7a"
     }
 }));
 
@@ -170,7 +186,7 @@ class CacheManager {
             name: path.split("/").reverse()[0],
             path,
             json: {
-                objects: []
+                objects: {}
             },
             createdTimestamp: Date.now(),
             lastOpenTimestamp: 0
@@ -320,6 +336,11 @@ wss.on("connection", async socket => {
                         id: json.data.id,
                         code: fs.readFileSync(json.data.file).toString()
                     });
+                    break;
+                case "add_node":
+                    if(!CacheManager.existsProjectPath(json.data.path)) return;
+                    cache.projects[json.data.path].json.objects[json.data.node.name] = json.data.node;
+                    CacheManager.save();
                     break;
                 case "main_menu":
                     browser.setPositionLimits();

@@ -131,41 +131,6 @@ const check_var = {
     }
 };
 
-class Scene {
-    /*** @type {HTMLCanvasElement | null} */
-    canvas = null;
-    /*** @type {CanvasRenderingContext2D | null} */
-    ctx = null;
-    /*** @type {Entity[]} */
-    entities = [];
-    /*** @type {CanvasRenderingContext2D | null} */
-    static ctx = null;
-    /*** @type {Scene | null} */
-    static instance = null;
-
-    /*** @returns {Scene} */
-    static getInstance() {
-        return Scene.instance = Scene.instance || new Scene();
-    }
-
-    constructor() {
-        this.ctx = Scene.ctx;
-        this.canvas = this.ctx?.canvas;
-        if (!this.ctx) throw new Error("No context found!");
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-
-    update() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.entities.forEach(i => {
-            i.update();
-            if (i.model) i.model.draw(this.ctx, i, i.clone());
-        });
-    }
-}
-
-setInterval(() => Scene.ctx ? Scene.getInstance().update() : (window.on_editor ? window.on_editor() : null), 10);
-
 class Vector2 {
     /*** @type {number} */
     x;
@@ -315,7 +280,7 @@ class ImageModel extends Model {
      * @param {number} height
      * @param {number} opacity
      */
-    constructor(width, height, opacity) {
+    constructor(width, height, opacity = 1.0) {
         super(opacity)
             .setWidth(width)
             .setHeight(height);
@@ -384,11 +349,11 @@ class TextModel extends Model {
      * @param {string} text
      * @param {string} font
      * @param {number} size
-     * @param {number} color
-     * @param {number} maxWidth
+     * @param {string} color
+     * @param {number | null} maxWidth
      * @param {number} opacity
      */
-    constructor(text, font, size, color, maxWidth, opacity) {
+    constructor(text, font = "Calibri", size = 16, color = "#000000", maxWidth = null, opacity = 1.0) {
         super(opacity)
             .setText(text)
             .setFont(font || "Calibri")
@@ -480,11 +445,11 @@ class PathModel extends Model {
 
     /**
      * @param {{offsetX: number, offsetY: number}[]} path
-     * @param {string?} fillColor
-     * @param {string?} strokeColor
+     * @param {string | null} fillColor
+     * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(path, fillColor, strokeColor, opacity) {
+    constructor(path, fillColor = null, strokeColor = null, opacity = 1.0) {
         super(opacity)
             .setPath(path)
             .setFillColor(fillColor)
@@ -548,11 +513,11 @@ class RectangleModel extends PathModel {
     /**
      * @param {number} width
      * @param {number} height
-     * @param {string?} fillColor
-     * @param {string?} strokeColor
+     * @param {string | null} fillColor
+     * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(width, height, fillColor, strokeColor, opacity) {
+    constructor(width, height, fillColor = null, strokeColor = null, opacity = 1.0) {
         super([
             {offsetX: 0, offsetY: 0},
             {offsetX: width, offsetY: 0},
@@ -599,11 +564,11 @@ class CircleModel extends Model {
 
     /**
      * @param {number} radius
-     * @param {string?} fillColor
-     * @param {string?} strokeColor
+     * @param {string | null} fillColor
+     * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(radius, fillColor, strokeColor, opacity) {
+    constructor(radius, fillColor = null, strokeColor = null, opacity = 1.0) {
         super(opacity)
             .setRadius(radius)
             .setFillColor(fillColor)
@@ -850,26 +815,75 @@ class Entity extends Vector2 {
     }
 }
 
+class Tile extends Entity {
+    gravityEnabled = false;
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     */
+    constructor(x, y) {
+        super(x, y);
+    }
+}
+
+class Scene {
+    /*** @type {HTMLCanvasElement | null} */
+    canvas = null;
+    /*** @type {CanvasRenderingContext2D | null} */
+    ctx = null;
+    /*** @type {Entity[]} */
+    entities = [];
+    /*** @type {Worker[]} */
+    static scripts = [];
+    /*** @type {CanvasRenderingContext2D | null} */
+    static ctx = null;
+    /*** @type {Scene | null} */
+    static instance = null;
+
+    /*** @returns {Scene} */
+    static getInstance() {
+        return Scene.instance = Scene.instance || new Scene();
+    }
+
+    constructor() {
+        this.ctx = Scene.ctx;
+        this.canvas = this.ctx?.canvas;
+        if (!this.ctx) throw new Error("No context found!");
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    update() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.entities.forEach(i => {
+            i.update();
+            if (i.model) i.model.draw(this.ctx, i, i.clone());
+        });
+    }
+
+    addScript(file) {
+        let id = _script_id++;
+        return new Promise(r => {
+            document._load_script[id] = code => {
+                this.code = code;
+                delete document._load_script[id];
+                r(code);
+            }
+            ws.sendPacket("load_script", {file, id});
+        });
+    }
+
+    destroy() {
+        Scene.instance = null;
+        Scene.scripts.forEach(worker => {
+            worker.terminate();
+        });
+        Scene.scripts = [];
+    }
+}
+
+setInterval(() => Scene.ctx ? Scene.getInstance().update() : (window.on_editor ? window.on_editor() : null), 10);
 document._load_script = {};
 let _script_id = 0;
 
 addWSListener("load_script", ({id, code}) => document._load_script[id](code));
-
-class Script {
-    /*** @param {string} file */
-    constructor(file) {
-        this.file = file.replaceAll("\\", "/");
-        this.id = _script_id++;
-    }
-
-    queryCode() {
-        return new Promise(r => {
-            document._load_script[this.id] = code => {
-                this.code = code;
-                delete document._load_script[this.id];
-                r(code);
-            }
-            ws.sendPacket("load_script", {file: this.file, id: this.id});
-        });
-    }
-}
