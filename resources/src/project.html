@@ -25,6 +25,9 @@
     <div class="left_container_nav">
         <img draggable="false" onclick="open_node_menu()" id="left_nav_add" class="left_nav_add"
              src="../assets/add.png">
+        <div style="text-align: center;color: var(--general-color)" id="lC-node">
+            <script>lU(() => document.getElementById("lC-node").innerHTML = m("nodes-title"))</script>
+        </div>
     </div>
     <div class="left_container">
         <div class="left_container_bar">
@@ -33,6 +36,8 @@
     </div>
     <span id="node_menu" class="node_menu" hidden></span>
     <div class="right_container_nav">
+        <img draggable="false" onclick="open_property_menu()" id="right_nav_add" class="right_nav_add"
+             src="../assets/add.png">
         <div style="text-align: center; color: var(--general-color)" id="lC-prp">
             <script>lU(() => document.getElementById("lC-prp").innerHTML = m("properties-title"))</script>
         </div>
@@ -48,16 +53,30 @@
 </div>
 <div id="prompt" hidden
      style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2)">
-    <div style="position: absolute; left: 30%; padding: 15%; width: 10%; top: 25%; height: 1%; background: rgba(0, 0, 0, 0.2)">
-        <span id="prompt-text"></span>
-        <input id="prompt-input">
-        <button onclick="end_prompt(document.getElementById('prompt-input').value)">Submit</button>
+    <div style="position: absolute; left: 30%; padding: 2% 15% 15%;width: 10%; top: 25%; min-height: 10%; height: 10%; background: rgba(0, 0, 0, 0.2)">
+        <svg onclick="end_prompt(null)" width="50" height="35" class="prompt_close">
+            <path d="M20 12 L30 22 Z" stroke="white"></path>
+            <path d="M30 12 L20 22 Z" stroke="white"></path>
+        </svg>
+        <h1 id="prompt-title" style="color: var(--general-color); text-align: center"></h1>
+        <div style="text-align: center;"><span id="prompt-error" style="color: red; text-align: center"></span></div>
+        <br>
+        <div style="text-align: center;"><span id="prompt-text"
+                                               style="color: var(--general-color); text-align: center"></span></div>
+        <br>
+        <div style="text-align: center;"><input maxlength="16" id="prompt-input" class="prompt_input"></div>
+        <br>
+        <div style="text-align: center;">
+            <button class="btn" id="prompt-button"
+                    onclick="end_prompt(document.getElementById('prompt-input').value)"></button>
+        </div>
     </div>
 </div>
 </body>
 <script src="scripts/engine.js"></script>
 <script src="scripts/PathFinder.js"></script>
 <script>
+    document.getElementById("prompt-input").addEventListener("keydown", ev => ev.key === "Enter" ? document.getElementById("prompt-button").click() : null);
     /*** @type {HTMLCanvasElement} */
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -66,7 +85,7 @@
     const stop_btn = document.getElementById("stop_btn");
 
     function open_node_menu() {
-        document.getElementById("node_menu").innerHTML = ["entity", "collision", "tile", "tile-map"].map(i => `<span onclick="open_add_node_menu('${i}')" class="object_select">${languages[lang]["object-" + i]}</span>`).join("<br>");
+        document.getElementById("node_menu").innerHTML = ["entity", "model", "collision", "tile", "tile-map"].map(i => `<span onclick="open_add_node_menu('${i}')" class="object_select">${languages[lang]["object-" + i]}</span>`).join("<br>");
         document.getElementById("node_menu").hidden = undefined;
     }
 
@@ -78,25 +97,57 @@
         document.getElementById("prompt").hidden = true;
     }
 
-    function prompt(text) {
+    function prompt(title, text, button, input = true) {
         return new Promise(r => {
+            document.getElementById("prompt-title").innerHTML = title;
             document.getElementById("prompt-text").innerHTML = text;
             document.getElementById("prompt-input").value = "";
+            document.getElementById("prompt-input").hidden = input ? undefined : true;
+            document.getElementById("prompt-button").innerHTML = button;
+            document.getElementById("prompt-error").innerHTML = "";
             document.getElementById("prompt").hidden = undefined;
             _p_c = r;
         });
     }
 
     function open_add_node_menu(type) {
-        prompt("Enter node name:")
-            .then(res => {
+        prompt(
+            languages[lang]["add-node-title"],
+            languages[lang]["enter-node-name"] + ":",
+            languages[lang]["add-node-button"]
+        ).then(res => {
+            if (res) {
                 add_node(type, res);
-            });
+            } else if (res !== null) {
+                open_add_node_menu(type);
+                document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
+            }
+        });
     }
 
     function add_node(type, name) {
+        if (project.json.objects[name]) {
+            open_add_node_menu(type);
+            document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
+            return;
+        }
         ws.sendPacket("add_node", {path: project.path, node: {name, type}});
         project.json.objects[name] = {name, type};
+        refresh_nodes();
+    }
+
+    function open_remove_node_menu(name) {
+        prompt(
+            languages[lang]["remove-node-title"],
+            languages[lang]["node-remove-text"].replace("%0", name),
+            languages[lang]["remove-node-button"],
+            false
+        ).then(r => r === "" && remove_node(name));
+    }
+
+    function remove_node(name) {
+        ws.sendPacket("remove_node", {path: project.path, name});
+        delete project.json.objects[name];
         refresh_nodes();
     }
 
@@ -105,8 +156,23 @@
             document.getElementById("node_menu").hidden = true;
     });
 
+    let selected_node = null;
+
     function refresh_nodes() {
-        document.getElementById("objects").innerHTML = Object.values(project.json.objects).map(i => `<div class="object" onclick="select_node('${i.name}')"><img draggable="false" class="object_image" src="../assets/file.png"><span class="object_name">${i.name}</span></div>`).join("");
+        document.getElementById("objects").innerHTML = Object.values(project.json.objects).map(i => `
+<div>
+    <div class="object${selected_node === i.name ? " object_selected" : ""}" onclick="select_node('${i.name}')">
+        <img draggable="false" class="object_image" src="../assets/${i.type.replaceAll("-", "_")}.png">
+        <span class="object_name">${i.name}</span>
+    </div>
+    <div onclick="open_remove_node_menu('${i.name}')" class="remove_node"></div>
+</div>
+`).join("");
+    }
+
+    function select_node(name) {
+        selected_node = name;
+        refresh_nodes();
     }
 
     let project = {};

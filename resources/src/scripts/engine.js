@@ -827,6 +827,39 @@ class Tile extends Entity {
     }
 }
 
+class TileMapModel extends Model {
+    /*** @type {{x: number, y: number, model: Model}[]} */
+    subModels = [];
+
+    /*** @param {number} opacity */
+    constructor(opacity) {
+        super(opacity);
+    }
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {Model} model
+     */
+    addModel(x, y, model) {
+        this.subModels.push({x, y, model});
+    }
+
+    draw(ctx, entity, position) {
+        this.subModels.forEach(i => i.model !== this ? i.model.draw(ctx, entity, position) : null);
+    }
+}
+
+class TileMap extends Entity {
+    /**
+     * @param {number} offsetX
+     * @param {number} offsetY
+     */
+    constructor(offsetX, offsetY) {
+        super(offsetX, offsetY);
+    }
+}
+
 class Scene {
     /*** @type {HTMLCanvasElement | null} */
     canvas = null;

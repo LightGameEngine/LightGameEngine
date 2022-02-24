@@ -1,6 +1,7 @@
 [
   [
     "Logger.js",
+    "resources/icon.png",
     "resources/index.js",
     "resources/src/index.html",
     "resources/src/project.html",
@@ -12,7 +13,17 @@
     "resources/src/scripts/themeManager.js",
     "resources/src/styles/project.css",
     "resources/src/styles/roots/general.css",
-    "resources/src/styles/style.css"
+    "resources/src/styles/style.css",
+    "resources/assets/add.png",
+    "resources/assets/file.png",
+    "resources/assets/folder.png",
+    "resources/assets/language.png",
+    "resources/assets/refresh.png",
+    "resources/assets/search.png",
+    "resources/assets/settings.png",
+    "resources/assets/start.png",
+    "resources/assets/stop.png",
+    "resources/assets/theme.png"
   ],
   [
     "resources/src/scripts/engine.js",

@@ -18,6 +18,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "cancel-button": "Cancel",
     "settings-title": "Settings",
     "default-project-folder": "Default project folder",
+    "not-selected": "Not selected",
     "close-button": "Close",
     "default-folder-dont-exist": "Default project folder doesn't exist!",
     "should-define-project-folder": "You should have defined the default project folder in settings",
@@ -26,9 +27,22 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "project-name-empty": "Project name should have been filled.",
     "properties-title": "Properties",
     "object-entity": "Entity",
+    "object-model": "Model",
     "object-collision": "Collision",
     "object-tile": "Tile",
-    "object-tile-map": "Tile Map"
+    "object-tile-map": "Tile Map",
+    "enter-node-name": "Enter node name",
+    "add-node-title": "Add Node",
+    "add-node-button": "Add",
+    "remove-project-menu-title": "Remove Project",
+    "remove-project-menu-content": "Are you sure to remove project %0?",
+    "remove-project-menu-button": "Remove",
+    "invalid-node": "Invalid node name!",
+    "node-exists": "This node already exists!",
+    "remove-node-title": "Remove Node",
+    "node-remove-text": "Are you sure to remove node %0?",
+    "remove-node-button": "Remove",
+    "nodes-title": "Nodes"
 }));
 fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
@@ -41,6 +55,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "cancel-button": "İptal",
     "settings-title": "Ayarlar",
     "default-project-folder": "Varsayılan proje klasörü",
+    "not-selected": "Seçilmedi",
     "close-button": "Kapat",
     "default-folder-dont-exist": "Varsayılan proje klasörü bulunamadı!",
     "should-define-project-folder": "Ayarlardan varsayılan proje klasörünü ayarlamalıydın",
@@ -49,9 +64,22 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "project-name-empty": "Proje adını doldurmalısın.",
     "properties-title": "Özellikler",
     "object-entity": "Canlı",
+    "object-model": "Model",
     "object-collision": "Çarpışma Kutusu",
     "object-tile": "Nesne",
-    "object-tile-map": "Nesne Haritası"
+    "object-tile-map": "Nesne Haritası",
+    "enter-node-name": "Nesne adını girin",
+    "add-node-title": "Nesne Ekle",
+    "add-node-button": "Ekle",
+    "remove-project-menu-title": "Projeyi Sil",
+    "remove-project-menu-content": "%0 adlı projeyi silmek istediğinden emin misin?",
+    "remove-project-menu-button": "Sil",
+    "invalid-node": "Geçersiz nesne adı!",
+    "node-exists": "Bu nesne zaten var!",
+    "remove-node-title": "Nesneyi Kaldır",
+    "node-remove-text": "%0 nesnesini silmek istediğinden emin misin?",
+    "remove-node-button": "Kaldır",
+    "nodes-title": "Nesneler"
 }));
 if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
 fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
@@ -159,7 +187,7 @@ if (!fs.existsSync(cachePath)) {
         default_project_folder: null
     }));
 }
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {objects: {type: number, properties: Array}[]}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
+/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {objects: Object<string, {type: number, properties: Object<string, number | string>}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
 const cache = JSON.parse(fs.readFileSync(cachePath).toString());
 
 class CacheManager {
@@ -242,10 +270,196 @@ class CacheManager {
     }
 }
 
-const wss = new (require("ws")).Server({port: 9009});
+const wss = new (require("ws"))["Server"]({port: 9009});
 let socketClients = [];
 
 const is_folder = path => new Promise(r => fs.readFile(path, err => err ? r(true) : r(false)));
+
+const property_list = {
+    model: {
+        type: {
+            type: "string",
+            options: [
+                "image",
+                "text",
+                //"path",
+                "rectangle",
+                "circle"
+            ],
+            value: "rectangle",
+            default: "rectangle",
+            isDefaultProperty: true
+        }
+    },
+    collision: {
+        offsetX: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        offsetY: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        width: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        height: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        }
+    },
+    entity: {
+        rotation: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        model: {
+            type: "model",
+            value: null,
+            default: null,
+            isDefaultProperty: true
+        },
+        gravityEnabled: {
+            type: "boolean",
+            value: true,
+            default: true,
+            isDefaultProperty: true
+        },
+        gravity: {
+            type: "number",
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        },
+        gravityVelocity: {
+            value: 1,
+            default: 1,
+            visible: false,
+            isDefaultProperty: true
+        },
+        terminalGravityVelocity: {
+            type: "number",
+            value: 128,
+            default: 128,
+            isDefaultProperty: true
+        },
+        fallDistance: {
+            value: 0,
+            default: 0,
+            visible: false,
+            isDefaultProperty: true
+        },
+        onGround: {
+            value: false,
+            default: false,
+            visible: false,
+            isDefaultProperty: true
+        },
+        motion: {
+            value: [0, 0],
+            default: [0, 0],
+            visible: false,
+            isDefaultProperty: true
+        },
+        motionDivision: {
+            type: "number",
+            array: 2,
+            value: [10, 10],
+            default: [10, 10],
+            isDefaultProperty: true
+        },
+        collisions: {
+            type: "collision",
+            array: -1,
+            value: [],
+            default: [],
+            isDefaultProperty: true
+        }
+    }
+};
+
+property_list.tile = property_list.entity;
+property_list.tile.gravityEnabled.visible = false;
+property_list.tile.gravity.visible = false;
+property_list.tile.gravityVelocity.visible = false;
+property_list.tile.terminalGravityVelocity.visible = false;
+property_list["tile-map"] = property_list.tile;
+property_list["tile-map"].subModels = {
+    value: [],
+    default: [],
+    visible: false
+};
+
+const model_properties = {
+    width: {
+        type: "number",
+        value: 0,
+        default: 0,
+        isDefaultProperty: true
+    },
+    height: {
+        type: "number",
+        value: 0,
+        default: 0,
+        isDefaultProperty: true
+    },
+    text: {
+        type: "string",
+        value: "",
+        default: "",
+        isDefaultProperty: true
+    },
+    font: {
+        type: "string",
+        value: "Calibri",
+        default: "Calibri",
+        isDefaultProperty: true
+    },
+    size: {
+        type: "number",
+        value: 12,
+        default: 12,
+        isDefaultProperty: true
+    },
+    color: {
+        type: "color",
+        value: "#000000",
+        default: "#000000",
+        isDefaultProperty: true
+    },
+    maxWidth: {
+        type: "number",
+        nullAllowed: true,
+        value: null,
+        default: null,
+        isDefaultProperty: true
+    },
+    fillColor: {
+        type: "color",
+        nullAllowed: true,
+        value: "#000000",
+        default: "#000000",
+        isDefaultProperty: true
+    },
+    strokeColor: {
+        type: "color",
+        nullAllowed: true,
+        value: "#000000",
+        default: "#000000",
+        isDefaultProperty: true
+    }
+};
 
 wss.on("connection", async socket => {
     if (socket._socket.address().address !== "::1") return socket.close();
@@ -320,6 +534,10 @@ wss.on("connection", async socket => {
                     if (!fs.existsSync(json.data.path) || !(await is_folder(json.data.path))) return;
                     CacheManager.openProject(socket, json.data.path);
                     break;
+                case "remove_project":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.removeProject(json.data.path);
+                    break;
                 case "get_file":
                     const exists = fs.existsSync(json.data.path);
                     const is_folderA = await is_folder(json.data.path);
@@ -338,8 +556,15 @@ wss.on("connection", async socket => {
                     });
                     break;
                 case "add_node":
-                    if(!CacheManager.existsProjectPath(json.data.path)) return;
-                    cache.projects[json.data.path].json.objects[json.data.node.name] = json.data.node;
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    cache.projects[json.data.path].json.objects[json.data.node.name] = {
+                        type: json.data.node.type, properties: property_list[json.data.node.type]
+                    };
+                    CacheManager.save();
+                    break;
+                case "remove_node":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    delete cache.projects[json.data.path].json.objects[json.data.name];
                     CacheManager.save();
                     break;
                 case "main_menu":

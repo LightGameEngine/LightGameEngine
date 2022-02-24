@@ -156,3 +156,18 @@ hr {
     border: none;
     border-top: 1px solid var(--hr);
 }
+
+.remove_project {
+    background-image: url("../../assets/trash_closed.png");
+    background-size: 15px 19px;
+    width: 15px;
+    height: 19px;
+    cursor: pointer;
+    position: absolute;
+    margin-top: -41px;
+    right: 14px;
+}
+
+.remove_project:hover {
+    background-image: url("../../assets/trash_open.png");
+}
