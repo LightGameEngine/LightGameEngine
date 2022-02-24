@@ -159,13 +159,13 @@
     let selected_node = null;
 
     function refresh_nodes() {
-        document.getElementById("objects").innerHTML = Object.values(project.json.objects).map(i => `
+        document.getElementById("objects").innerHTML = Object.keys(project.json.objects).map(key => `
 <div>
-    <div class="object${selected_node === i.name ? " object_selected" : ""}" onclick="select_node('${i.name}')">
-        <img draggable="false" class="object_image" src="../assets/${i.type.replaceAll("-", "_")}.png">
-        <span class="object_name">${i.name}</span>
+    <div class="object${selected_node === key ? " object_selected" : ""}" onclick="select_node('${key}')">
+        <img draggable="false" class="object_image" src="../assets/${project.json.objects[key].type.replaceAll("-", "_")}.png">
+        <span class="object_name">${key}</span>
     </div>
-    <div onclick="open_remove_node_menu('${i.name}')" class="remove_node"></div>
+    <div onclick="open_remove_node_menu('${key}')" class="remove_node"></div>
 </div>
 `).join("");
     }
