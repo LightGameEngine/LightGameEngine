@@ -3,5 +3,10 @@
 
 ***
 
+- **Engine API**
+    - Sound API
+
+***
+
 - **Executable setup**
     - [Todo](https://npmcompare.com/compare/electron-builder,electron-forge,electron-winstaller)
