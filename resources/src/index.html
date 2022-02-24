@@ -98,7 +98,7 @@
         const input = document.getElementById("project_name").value;
         if (!input) return err ? err.innerHTML = m("project-name-empty") + "<br>" : null;
         if (input.split("").some(i => !/\w|\d/.test(i))) return err ? err.innerHTML = m("project-name-invalid") + "<br>" : null;
-        if (!default_project_folder) return err ? err.innerHTML = m("should-define-project-folder") : null;
+        if (!default_project_folder) return err ? err.innerHTML = m("should-define-project-folder") + "<br>" : null;
         ws.sendPacket("create_project", {
             name: input
         });
@@ -113,7 +113,6 @@
 
     const select_default_project_folder = () => {
         file_explorer.open("folder").then(folder => {
-            console.log(folder)
             set_default_project_folder(folder.path);
             ws.sendPacket("project_folder", {folder: default_project_folder});
         });
@@ -121,7 +120,7 @@
 
     const open_settings = () => {
         is_settings_open = true;
-        create_popup(`<h1>Settings</h1>Default project folder: <span style="opacity: 50%;cursor: pointer;width: 200px" onclick="select_default_project_folder()">${default_project_folder || "Not selected"}</span>`);
+        create_popup(`<h1>${languages[lang]["settings-title"]}</h1>${languages[lang]["default-project-folder"]}: <span style="opacity: 50%;cursor: pointer;width: 200px" onclick="select_default_project_folder()">${default_project_folder || languages[lang]["not-selected"]}</span>`);
     }
 
     const create_popup = content => {
@@ -130,6 +129,7 @@
     }
 
     const close_popup = () => {
+        remove_menu = false;
         is_settings_open = false;
         popup.hidden = true;
     }
@@ -176,16 +176,34 @@
             })
             .filter(i => i.valid && (!s || i.name.includes(s || "") || (s || "").includes(i.name)))
             .map(i => `
-    <div class="project" onclick="open_project_by_path('${i.path}')">
-        <div class="name">${i.name}</div>
-        <div class="path">${i.path.startsWith(default_project_folder) ? "~" + i.path.substring(default_project_folder.length) : i.path}</div>
+    <div>
+        <div class="project" onclick="open_project_by_path('${i.path}')">
+            <div class="name">${i.name}</div>
+            <div class="path">${i.path.startsWith(default_project_folder) ? "~" + i.path.substring(default_project_folder.length) : i.path}</div>
+        </div>
+        <div class="remove_project" onclick="open_remove_project_menu('${i.path}', '${i.name}')"></div>
     </div>`)
             .join("");
         b = s;
     }
 
+    let remove_menu = false;
+
+    function open_remove_project_menu(path, name) {
+        remove_menu = true;
+        create_popup(`<h1>${m("remove-project-menu-title")}</h1>
+<span>${m("remove-project-menu-content").replace("%0", name)}</span><br><br>
+<button class="btn" onclick="remove_project('${path}')">${m("remove-project-menu-button")}</button>`)
+    }
+
+    function remove_project(path) {
+        ws.sendPacket("remove_project", {path});
+        ws.sendPacket("get_projects");
+    }
+
     addWSListener("get_projects", a => {
         projects = a.projects;
+        if (remove_menu) close_popup();
         update_projects_manually();
     });
 

@@ -114,9 +114,17 @@
 .left_nav_add {
     position: absolute;
     cursor: pointer;
-    margin-left: 1%;
+    margin-left: 3%;
     margin-top: 1%;
-    width: 7%;
+    width: 6%;
+}
+
+.right_nav_add {
+    position: absolute;
+    cursor: pointer;
+    margin-left: 4%;
+    margin-top: 1%;
+    width: 6%;
 }
 
 .object_select {
@@ -160,10 +168,65 @@
 .object_name {
     color: var(--property-name-color);
     position: absolute;
+    margin-left: 4px;
     margin-top: 3px;
 }
 
 .object_image {
+    margin-left: 2px;
     margin-top: 3px;
-    width: 20px;
+    width: 18px;
+}
+
+.prompt_input {
+    color: var(--property-name-color);
+    background: none;
+    outline: none;
+    border: 1px solid var(--container-nav-background);
+    border-radius: 2px;
+    padding-left: 4%;
+}
+
+.btn:hover {
+    background: var(--btn-hover-background);
+}
+
+.btn {
+    border: 1px solid var(--btn-border);
+    background: var(--btn-background);
+    border-radius: 3px;
+    outline: none;
+    color: var(--btn-color);
+    cursor: pointer;
+    min-width: 20px;
+    padding-left: 30px;
+    padding-right: 30px;
+    height: 25px;
+}
+
+.prompt_close {
+    position: absolute;
+    right: 0;
+    top: 0;
+    cursor: pointer;
+}
+
+.prompt_close:hover {
+    background: var(--popup-close-hover-background);
+}
+
+.remove_node {
+    position: absolute;
+    background: url("../../assets/trash_closed.png");
+    background-size: 15px 19px;
+    width: 15px;
+    height: 19px;
+    cursor: pointer;
+    right: 5px;
+    margin-top: -22px;
+}
+
+.remove_node:hover {
+    background: url("../../assets/trash_open.png");
+    background-size: 15px 19px;
 }
