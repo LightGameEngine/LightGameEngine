@@ -31,5 +31,21 @@
     "resources/index.js",
     "resources/src/styles/project.css",
     "resources/src/project.html"
+  ],
+  [
+    "resources/icon.png",
+    "resources/assets/collision.png",
+    "resources/assets/entity.png",
+    "resources/assets/model.png",
+    "resources/assets/tile.png",
+    "resources/assets/tile_map.png",
+    "resources/assets/trash_closed.png",
+    "resources/assets/trash_open.png",
+    "resources/index.js",
+    "resources/src/index.html",
+    "resources/src/project.html",
+    "resources/src/scripts/engine.js",
+    "resources/src/styles/project.css",
+    "resources/src/styles/style.css"
   ]
 ]
