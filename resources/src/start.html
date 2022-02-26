@@ -1,0 +1,16 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Light</title>
+    <script src="scripts/connectionManager.js"></script>
+</head>
+<body>
+<img draggable="false" style="user-select: none; position: absolute; left: 0; top: 0" src="../assets/start.gif">
+<script>
+    ws.sendPacket("screen_info", {width: screen.width, height: screen.height});
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@ const lightRoamingPath = process.env.HOME.replaceAll("\\", "/") + "/AppData/Roam
 if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
 const cachePath = lightRoamingPath + "/.cache";
 const Logger = require("../Logger");
+let screen_info;
 
 if (!fs.existsSync(lightRoamingPath + "/languages")) fs.mkdirSync(lightRoamingPath + "/languages");
 fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
@@ -42,7 +43,41 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "remove-node-title": "Remove Node",
     "node-remove-text": "Are you sure to remove node %0?",
     "remove-node-button": "Remove",
-    "nodes-title": "Nodes"
+    "nodes-title": "Nodes",
+    "add-property-title": "Add Property",
+    "property-name": "Property name",
+    "property-type": "Property type",
+    "add-button": "Add",
+    "invalid-property-name": "Invalid property name!",
+    "property-exists": "This property already exists!",
+    "node-not-selected": "You should have selected a node!",
+    "property--name": "Name",
+    "property--width": "Width",
+    "property--height": "Height",
+    "property--text": "Text",
+    "property--font": "Text Font",
+    "property--size": "Font Size",
+    "property--color": "Color",
+    "property--maxWidth": "Max Width",
+    "property--x": "X",
+    "property--y": "Y",
+    "property--fillColor": "Fill Color",
+    "property--strokeColor": "Stroke Color",
+    "property--rotation": "Rotation",
+    "property--model": "Model",
+    "property--motionDivision": "Motion Multiplier",
+    "property--collisions": "Collisions",
+    "property--image": "Image",
+    "property--opacity": "Opaklık",
+    "property--gravity": "Gravity Multiplier",
+    "property--gravityEnabled": "Gravity",
+    "property--terminalGravityVelocity": "Max Gravity",
+    "none": "none",
+    "model-type-image": "Image",
+    "model-type-text": "Text",
+    "model-type-rectangle": "Rectangle",
+    "model-type-circle": "Circle",
+    "select-model-type": "Select model type"
 }));
 fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
@@ -79,7 +114,40 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "remove-node-title": "Nesneyi Kaldır",
     "node-remove-text": "%0 nesnesini silmek istediğinden emin misin?",
     "remove-node-button": "Kaldır",
-    "nodes-title": "Nesneler"
+    "nodes-title": "Nesneler",
+    "add-property-title": "Özellik Ekle",
+    "property-name": "Özellik adı",
+    "property-type": "Özellik türü",
+    "add-button": "Ekle",
+    "invalid-property-name": "Geçersiz özellik adı!",
+    "property-exists": "Bu özellik zaten var!",
+    "node-not-selected": "Bir nesne seçmeliydin!",
+    "property--width": "Uzunluk",
+    "property--height": "Yükseklik",
+    "property--text": "Yazı",
+    "property--font": "Yazı Tipi",
+    "property--size": "Büyüklük",
+    "property--color": "Renk",
+    "property--maxWidth": "Max Uzunluk",
+    "property--x": "X",
+    "property--y": "Y",
+    "property--fillColor": "Doldurma Rengi",
+    "property--strokeColor": "Çevre Rengi",
+    "property--rotation": "Yön",
+    "property--model": "Model",
+    "property--motionDivision": "Hareket Oranı",
+    "property--collisions": "Çarpışma Kutuları",
+    "property--image": "Resim",
+    "property--opacity": "Opaklık",
+    "property--gravity": "Yer Çekimi İvmesi",
+    "property--gravityEnabled": "Yer Çekimi",
+    "property--terminalGravityVelocity": "Max Yer Çekimi",
+    "none": "yok",
+    "model-type-image": "Resim",
+    "model-type-text": "Yazı",
+    "model-type-rectangle": "Kare",
+    "model-type-circle": "Yuvarlak",
+    "select-model-type": "Model türü seç"
 }));
 if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
 fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
@@ -187,7 +255,7 @@ if (!fs.existsSync(cachePath)) {
         default_project_folder: null
     }));
 }
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {objects: Object<string, {type: number, properties: Object<string, number | string>}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
+/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {objects: Object<string, {type: number, properties: Object<string, number | string>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
 const cache = JSON.parse(fs.readFileSync(cachePath).toString());
 
 class CacheManager {
@@ -245,6 +313,15 @@ class CacheManager {
         this.save();
     }
 
+    static getNode(path, node) {
+        return cache.projects[path].json.objects[node];
+    }
+
+    static setNodePosition(path, node, position) {
+        cache.projects[path].json.objects[node].position = position;
+        this.save();
+    }
+
     static getDefaultProjectFolder() {
         if (!fs.existsSync(cache.default_project_folder)) cache.default_project_folder = null;
         return cache.default_project_folder;
@@ -276,29 +353,14 @@ let socketClients = [];
 const is_folder = path => new Promise(r => fs.readFile(path, err => err ? r(true) : r(false)));
 
 const property_list = {
-    model: {
-        type: {
-            type: "string",
-            options: [
-                "image",
-                "text",
-                //"path",
-                "rectangle",
-                "circle"
-            ],
-            value: "rectangle",
-            default: "rectangle",
-            isDefaultProperty: true
-        }
-    },
-    collision: {
-        offsetX: {
+    "model-image": {
+        x: {
             type: "number",
             value: 0,
             default: 0,
             isDefaultProperty: true
         },
-        offsetY: {
+        y: {
             type: "number",
             value: 0,
             default: 0,
@@ -306,18 +368,268 @@ const property_list = {
         },
         width: {
             type: "number",
-            value: 0,
-            default: 0,
+            value: 1,
+            default: 1,
             isDefaultProperty: true
         },
         height: {
             type: "number",
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        },
+        image: {
+            type: "string",
+            value: "../assets/icon.png",
+            default: "../assets/icon.png",
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "number",
+            value: 1,
+            default: 1,
+            rad: [0, 1, 0.1],
+            isDefaultProperty: true
+        }
+    },
+    "model-text": {
+        x: {
+            type: "number",
             value: 0,
             default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        text: {
+            type: "string",
+            value: "Light",
+            default: "Light",
+            isDefaultProperty: true
+        },
+        font: {
+            type: "string",
+            value: "Calibri",
+            default: "Calibri",
+            isDefaultProperty: true
+        },
+        size: {
+            type: "number",
+            value: 12,
+            default: 12,
+            isDefaultProperty: true
+        },
+        color: {
+            type: "color",
+            value: "#000000",
+            default: "#000000",
+            isDefaultProperty: true
+        },
+        maxWidth: {
+            type: "number",
+            nullAllowed: true,
+            value: null,
+            default: null,
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "number",
+            value: 1,
+            default: 1,
+            rad: [0, 1, 0.1],
+            isDefaultProperty: true
+        }
+    },
+    "model-rectangle": {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        fillColor: {
+            type: "color",
+            nullAllowed: true,
+            value: "#000000",
+            default: "#000000",
+            isDefaultProperty: true
+        },
+        strokeColor: {
+            type: "color",
+            nullAllowed: true,
+            value: "#000000",
+            default: "#000000",
+            isDefaultProperty: true
+        },
+        width: {
+            type: "number",
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        },
+        height: {
+            type: "number",
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "number",
+            value: 1,
+            default: 1,
+            rad: [0, 1, 0.1],
+            isDefaultProperty: true
+        }
+    },
+    "model-circle": {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        fillColor: {
+            type: "color",
+            nullAllowed: true,
+            value: "#000000",
+            default: "#000000",
+            isDefaultProperty: true
+        },
+        strokeColor: {
+            type: "color",
+            nullAllowed: true,
+            value: "#000000",
+            default: "#000000",
+            isDefaultProperty: true
+        },
+        radius: {
+            type: "number",
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "number",
+            value: 0,
+            default: 0,
+            rad: [0, 1, 0.1],
+            isDefaultProperty: true
+        }
+    },
+    text: {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        text: {
+            type: "string",
+            value: "Light",
+            default: "Light",
+            isDefaultProperty: true
+        },
+        font: {
+            type: "string",
+            value: "Calibri",
+            default: "Calibri",
+            isDefaultProperty: true
+        },
+        size: {
+            type: "number",
+            value: 12,
+            default: 12,
+            isDefaultProperty: true
+        },
+        color: {
+            type: "color",
+            value: "#000000",
+            default: "#000000",
+            isDefaultProperty: true
+        },
+        maxWidth: {
+            type: "number",
+            nullAllowed: true,
+            value: null,
+            default: null,
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "number",
+            value: 0,
+            default: 0,
+            rad: [0, 1, 0.1],
+            isDefaultProperty: true
+        }
+    },
+    collision: {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        width: {
+            type: "number",
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        },
+        height: {
+            type: "number",
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "number",
+            value: 0,
+            default: 0,
+            rad: [0, 1, 0.1],
             isDefaultProperty: true
         }
     },
     entity: {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
         rotation: {
             type: "number",
             value: 0,
@@ -366,22 +678,15 @@ const property_list = {
             visible: false,
             isDefaultProperty: true
         },
-        motion: {
-            value: [0, 0],
-            default: [0, 0],
-            visible: false,
-            isDefaultProperty: true
-        },
         motionDivision: {
             type: "number",
-            array: 2,
-            value: [10, 10],
-            default: [10, 10],
+            value: 10,
+            default: 10,
             isDefaultProperty: true
         },
         collisions: {
             type: "collision",
-            array: -1,
+            array: true,
             value: [],
             default: [],
             isDefaultProperty: true
@@ -389,76 +694,16 @@ const property_list = {
     }
 };
 
-property_list.tile = property_list.entity;
+property_list.tile = JSON.parse(JSON.stringify(property_list.entity));
 property_list.tile.gravityEnabled.visible = false;
 property_list.tile.gravity.visible = false;
 property_list.tile.gravityVelocity.visible = false;
 property_list.tile.terminalGravityVelocity.visible = false;
-property_list["tile-map"] = property_list.tile;
+property_list["tile-map"] = JSON.parse(JSON.stringify(property_list.tile));
 property_list["tile-map"].subModels = {
     value: [],
     default: [],
     visible: false
-};
-
-const model_properties = {
-    width: {
-        type: "number",
-        value: 0,
-        default: 0,
-        isDefaultProperty: true
-    },
-    height: {
-        type: "number",
-        value: 0,
-        default: 0,
-        isDefaultProperty: true
-    },
-    text: {
-        type: "string",
-        value: "",
-        default: "",
-        isDefaultProperty: true
-    },
-    font: {
-        type: "string",
-        value: "Calibri",
-        default: "Calibri",
-        isDefaultProperty: true
-    },
-    size: {
-        type: "number",
-        value: 12,
-        default: 12,
-        isDefaultProperty: true
-    },
-    color: {
-        type: "color",
-        value: "#000000",
-        default: "#000000",
-        isDefaultProperty: true
-    },
-    maxWidth: {
-        type: "number",
-        nullAllowed: true,
-        value: null,
-        default: null,
-        isDefaultProperty: true
-    },
-    fillColor: {
-        type: "color",
-        nullAllowed: true,
-        value: "#000000",
-        default: "#000000",
-        isDefaultProperty: true
-    },
-    strokeColor: {
-        type: "color",
-        nullAllowed: true,
-        value: "#000000",
-        default: "#000000",
-        isDefaultProperty: true
-    }
 };
 
 wss.on("connection", async socket => {
@@ -474,6 +719,20 @@ wss.on("connection", async socket => {
         try {
             const json = JSON.parse(message.toString());
             switch (json.action) {
+                case "screen_info":
+                    screen_info = json.data;
+                    setTimeout(async () => {
+                        let browser = global.browser;
+                        browser.hide();
+                        browser.setResizable(true);
+                        browser.setSize(700, 600);
+                        browser.setPosition(screen_info.width / 2 - 350, screen_info.height / 2 - 300)
+                        browser.setResizable(false);
+                        await browser.loadFile(__dirname + "/src/index.html");
+                        url = __dirname + "/src/index.html";
+                        browser.show();
+                    }, 8000);
+                    break;
                 case "set_theme":
                     CacheManager.setTheme(json.data.theme);
                     break;
@@ -558,7 +817,10 @@ wss.on("connection", async socket => {
                 case "add_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     cache.projects[json.data.path].json.objects[json.data.node.name] = {
-                        type: json.data.node.type, properties: property_list[json.data.node.type]
+                        type: json.data.node.type,
+                        properties: property_list[json.data.node.type],
+                        position: (Object.values(cache.projects[json.data.path].json.objects).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
+                        createdTimestamp: Date.now()
                     };
                     CacheManager.save();
                     break;
@@ -566,6 +828,22 @@ wss.on("connection", async socket => {
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     delete cache.projects[json.data.path].json.objects[json.data.name];
                     CacheManager.save();
+                    break;
+                case "set_node_properties":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    cache.projects[json.data.path].json.objects[json.data.name].properties = json.data.properties;
+                    CacheManager.save();
+                    break;
+                case "set_node_type":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    cache.projects[json.data.path].json.objects[json.data.name].type = json.data.type;
+                    CacheManager.save();
+                    break;
+                case "switch_node_positions":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    const a = CacheManager.getNode(json.data.path, json.data.from).position;
+                    CacheManager.setNodePosition(json.data.path, json.data.from, CacheManager.getNode(json.data.path, json.data.to).position);
+                    CacheManager.setNodePosition(json.data.path, json.data.to, a);
                     break;
                 case "main_menu":
                     browser.setPositionLimits();
@@ -580,12 +858,12 @@ let url;
 
 const create_window = async () => {
     const browser = new BrowserWindow({
-        width: 700,
-        height: 600
-    });
-    browser.setPositionLimits = () => {
+        width: 600,
+        height: 240
+    }); // 700 600
+    browser.setPositionLimits = (w = 700, h = 600) => {
         browser.unmaximize()
-        browser.setSize(700, 600);
+        browser.setSize(w, h);
         browser.setResizable(false);
         browser.setMaximizable(false);
     }
@@ -593,13 +871,13 @@ const create_window = async () => {
         browser.setResizable(true);
         browser.setMaximizable(true);
     }
-    browser.setPositionLimits();
+    browser.setPositionLimits(606, 269);
     browser.hide();
-    browser.setIcon(__dirname + "/icon.png");
+    browser.setIcon(__dirname + "/assets/icon.png");
     browser.setMenu(null);
     browser.setTitle("Light");
-    await browser.loadFile(__dirname + "/src/index.html");
-    url = __dirname + "/src/index.html";
+    await browser.loadFile("./resources/src/start.html");
+    url = __dirname + "/resources/src/start.html";
     browser.show();
     browser.webContents.on("update-target-url", (ev, ur) => url = ur);
     global.browser = browser;

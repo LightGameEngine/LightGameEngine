@@ -36,39 +36,45 @@
     </div>
     <span id="node_menu" class="node_menu" hidden></span>
     <div class="right_container_nav">
-        <img draggable="false" onclick="open_property_menu()" id="right_nav_add" class="right_nav_add"
+        <img draggable="false" onclick="open_property_menu()" id="property-add" hidden class="right_nav_add"
              src="../assets/add.png">
+        <img draggable="false"
+             onclick="property_delete_mode = !property_delete_mode; select_node(selected_node, true)"
+             id="property-remove" hidden class="right_nav_remove"
+             src="../assets/trash_closed.png">
         <div style="text-align: center; color: var(--general-color)" id="lC-prp">
             <script>lU(() => document.getElementById("lC-prp").innerHTML = m("properties-title"))</script>
         </div>
     </div>
     <div class="right_container">
-        <div class="property">
-            <span class="property_name">gravity</span>
-            <input class="property_value" value="test">
-        </div>
+        <table id="properties" style="position: absolute; left: -2px; top: -2px"></table>
     </div>
     <div class="console"></div>
     <canvas class="canvas" id="canvas"></canvas>
 </div>
 <div id="prompt" hidden
      style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2)">
-    <div style="position: absolute; left: 30%; padding: 2% 15% 15%;width: 10%; top: 25%; min-height: 10%; height: 10%; background: rgba(0, 0, 0, 0.2)">
+    <div style="position: absolute; left: 30%; padding: 2% 15% 15%;width: 10%; top: 25%; min-height: 10%; height: 15%; background: rgba(0, 0, 0, 0.2)">
         <svg onclick="end_prompt(null)" width="50" height="35" class="prompt_close">
             <path d="M20 12 L30 22 Z" stroke="white"></path>
             <path d="M30 12 L20 22 Z" stroke="white"></path>
         </svg>
-        <h1 id="prompt-title" style="color: var(--general-color); text-align: center"></h1>
-        <div style="text-align: center;"><span id="prompt-error" style="color: red; text-align: center"></span></div>
-        <br>
-        <div style="text-align: center;"><span id="prompt-text"
-                                               style="color: var(--general-color); text-align: center"></span></div>
-        <br>
-        <div style="text-align: center;"><input maxlength="16" id="prompt-input" class="prompt_input"></div>
-        <br>
-        <div style="text-align: center;">
-            <button class="btn" id="prompt-button"
-                    onclick="end_prompt(document.getElementById('prompt-input').value)"></button>
+        <div style="position: absolute; left: 0; width: 100%">
+            <h1 id="prompt-title" style="color: var(--general-color); text-align: center"></h1>
+            <div style="text-align: center;"><span id="prompt-error" style="color: red; text-align: center"></span>
+            </div>
+            <br>
+            <div style="text-align: center;"><span id="prompt-text"
+                                                   style="color: var(--general-color); text-align: center"></span>
+            </div>
+            <br>
+            <div style="text-align: center;"><input spellcheck="false" maxlength="16" id="prompt-input"
+                                                    class="prompt_input"></div>
+            <br>
+            <div style="text-align: center;">
+                <button class="btn" id="prompt-button"
+                        onclick="end_prompt(document.getElementById('prompt-input').value)"></button>
+            </div>
         </div>
     </div>
 </div>
@@ -81,12 +87,42 @@
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
+    const node_types = ["entity", "model", "collision", "tile", "tile-map"];
+
     const start_btn = document.getElementById("start_btn");
     const stop_btn = document.getElementById("stop_btn");
 
     function open_node_menu() {
-        document.getElementById("node_menu").innerHTML = ["entity", "model", "collision", "tile", "tile-map"].map(i => `<span onclick="open_add_node_menu('${i}')" class="object_select">${languages[lang]["object-" + i]}</span>`).join("<br>");
+        document.getElementById("node_menu").innerHTML = node_types.map(i => `<span onclick="open_add_node_menu('${i}')" class="object_select">${languages[lang]["object-" + i]}</span>`).join("<br>");
         document.getElementById("node_menu").hidden = undefined;
+    }
+
+    let property_delete_mode = false;
+
+    function open_property_menu() {
+        if (!selected_node) return;
+        prompt(
+            languages[lang]["add-property-title"],
+            languages[lang]["property-name"],
+            languages[lang]["add-button"]
+        )
+            .then(r => {
+                if (r === null) return;
+                if (!selected_node) return;
+                if (!r || r.split("").some(i => !"abcçdefgğhıijklmnoprsştuüvyzqwx0123456789".split("").some(a => a.toLowerCase() === i.toLowerCase())) || "0123456789".split("").some(i => r.endsWith(i))) {
+                    open_property_menu();
+                    return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-property-name"];
+                }
+                if (!project.json.objects[selected_node] || !selected_node) {
+                    open_property_menu();
+                    return document.getElementById("prompt-error").innerHTML = languages[lang]["node-not-selected"];
+                }
+                if (project.json.objects[selected_node].properties[r]) {
+                    open_property_menu();
+                    return document.getElementById("prompt-error").innerHTML = languages[lang]["property-exists"];
+                }
+                add_node_property(selected_node, r);
+            });
     }
 
     let _p_c = null;
@@ -110,15 +146,23 @@
         });
     }
 
+    const modelTypes = ["image", "text", "rectangle", "circle"];
+
     function open_add_node_menu(type) {
         prompt(
             languages[lang]["add-node-title"],
-            languages[lang]["enter-node-name"] + ":",
-            languages[lang]["add-node-button"]
-        ).then(res => {
-            if (res) {
-                add_node(type, res);
-            } else if (res !== null) {
+            languages[lang]["enter-node-name"] + `:<br>
+<div style="text-align: center;"><input spellcheck="false" maxlength="16" id="add-node-name" class="prompt_input"></div><br>
+<span${type !== "model" ? " hidden" : ""}>${languages[lang]["select-model-type"]}:<br><div style="text-align: center;"><select id="add-node-type" class="prompt_input">${modelTypes.map(i => `<option style="background: var(--body-background)" value="${i}">${languages[lang]["model-type-" + i]}</option>`).join("")}</select></div></span>`,
+            languages[lang]["add-node-button"],
+            false
+        ).then(r => {
+            if (r === null) return;
+            let name = document.getElementById("add-node-name").value;
+            let modelType = document.getElementById("add-node-type").value;
+            if (name) {
+                add_node(type + (type === "model" ? "-" + modelType : ""), name);
+            } else if (name !== null) {
                 open_add_node_menu(type);
                 document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
             }
@@ -127,13 +171,14 @@
 
     function add_node(type, name) {
         if (project.json.objects[name]) {
-            open_add_node_menu(type);
+            open_add_node_menu(type.startsWith("model") ? "model" : type);
             document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
             return;
         }
         ws.sendPacket("add_node", {path: project.path, node: {name, type}});
         project.json.objects[name] = {name, type};
         refresh_nodes();
+        ws.sendPacket("get_projects");
     }
 
     function open_remove_node_menu(name) {
@@ -148,7 +193,64 @@
     function remove_node(name) {
         ws.sendPacket("remove_node", {path: project.path, name});
         delete project.json.objects[name];
+        if (name === selected_node) select_node(null);
         refresh_nodes();
+    }
+
+    function add_node_property(name, property) {
+        project.json.objects[name].properties[property] = {
+            value: "",
+            default: ""
+        };
+        ws.sendPacket("set_node_properties", {
+            path: project.path,
+            name,
+            properties: project.json.objects[name].properties
+        });
+        refresh_properties();
+        ws.sendPacket("get_projects");
+    }
+
+    function remove_node_property(name, property) {
+        delete project.json.objects[name].properties[property];
+        ws.sendPacket("set_node_properties", {
+            path: project.path,
+            name,
+            properties: project.json.objects[name].properties
+        });
+        refresh_properties();
+    }
+
+    function set_node_property(nodeName, propertyName, propertyValue) {
+        if (!project.json.objects[nodeName] || !project.json.objects[nodeName].properties[propertyName]) return;
+        if (selected_node === nodeName && !propertyValue)
+            document.getElementById("node_property_" + propertyName).value = propertyValue = project.json.objects[nodeName].properties[propertyName].default;
+        project.json.objects[nodeName].properties[propertyName].value = !isNaN(propertyValue * 1) ? propertyValue * 1 : (propertyValue || null);
+        ws.sendPacket("set_node_properties", {
+            path: project.path, name: nodeName, properties: project.json.objects[nodeName].properties
+        });
+    }
+
+    function set_node_properties(nodeName, properties) {
+        if (!project.json.objects[nodeName]) return;
+        project.json.objects[nodeName].properties = properties;
+        ws.sendPacket("set_node_properties", {
+            path: project.path, name: nodeName, properties
+        });
+    }
+
+    function rename_node(name, newName) {
+        let old = project.json.objects[name];
+        remove_node(name);
+        add_node(old.type, newName);
+        set_node_properties(newName, old.properties);
+        ws.sendPacket("get_projects");
+        addWSOnceListener("get_projects", () => select_node(newName));
+    }
+
+    function switch_node_positions(a, b) {
+        ws.sendPacket("switch_node_positions", {path: project.path, from: a, to: b});
+        ws.sendPacket("get_projects");
     }
 
     addEventListener("click", ev => {
@@ -159,19 +261,50 @@
     let selected_node = null;
 
     function refresh_nodes() {
-        document.getElementById("objects").innerHTML = Object.keys(project.json.objects).map(key => `
-<div>
+        document.getElementById("objects").innerHTML = Object.keys(project.json.objects).sort((a, b) => {
+            a = project.json.objects[a];
+            b = project.json.objects[b];
+            return a.position - b.position;
+        }).map(key => `
+<div draggable="true" id="node_key_${key}">
     <div class="object${selected_node === key ? " object_selected" : ""}" onclick="select_node('${key}')">
         <img draggable="false" class="object_image" src="../assets/${project.json.objects[key].type.replaceAll("-", "_")}.png">
         <span class="object_name">${key}</span>
     </div>
     <div onclick="open_remove_node_menu('${key}')" class="remove_node"></div>
-</div>
+</div>`).join("");
+        Object.keys(project.json.objects).forEach(key => {
+            const el = document.getElementById("node_key_" + key);
+            el.addEventListener("dragstart", ev => ev.dataTransfer.setData("DragID", ev.target.id));
+            el.addEventListener("dragover", ev => ev.preventDefault());
+            el.addEventListener("drop", ev => {
+                ev.preventDefault();
+                const dragged = ev.dataTransfer.getData("DragID");
+                if (ev.path.some(i => i.id && i.id.startsWith("node_key_") && i.id !== dragged)) {
+                    switch_node_positions(key, dragged.replace("node_key_", ""));
+                }
+            });
+        });
+    }
+
+    function refresh_properties() {
+        if (!selected_node || !project.json.objects[selected_node]) return document.getElementById("properties").innerHTML = "";
+        const props = project.json.objects[selected_node].properties;
+        document.getElementById("properties").innerHTML = Object.keys(props).filter(i => props[i].visible !== false).map(key => `
+<tr><td class="property_name${property_delete_mode && !props[key].isDefaultProperty ? ` remove_mode` : ""}"${property_delete_mode && !props[key].isDefaultProperty ? `onclick="remove_node_property(selected_node, '${key}')"` : ""}>${props[key].isDefaultProperty ? languages[lang]["property--" + key] : key}</td><td><input onchange="set_node_property('${selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" spellcheck="false" class="property_value" style="position: absolute; margin-left: -3px; margin-top: -10px; height: 19px" value="${props[key].value === null ? "" : props[key].value}" placeholder="<${languages[lang]["none"]}>"></td></tr>
 `).join("");
     }
 
-    function select_node(name) {
+    function select_node(name, v = false) {
+        if (selected_node === name && !v) {
+            name = null;
+            property_delete_mode = false;
+        }
+        document.getElementById("property-remove").src = property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
+        document.getElementById("property-add").hidden = name ? undefined : true;
+        document.getElementById("property-remove").hidden = name ? undefined : true;
         selected_node = name;
+        refresh_properties();
         refresh_nodes();
     }
 
@@ -191,7 +324,7 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    function setSceneType(type) {
+    async function setSceneType(type) {
         sceneType = type;
         switch (sceneType) {
             case "editor":
@@ -204,8 +337,36 @@
             case "game":
                 Scene.ctx = ctx;
                 gameScene = Scene.getInstance();
-                let e = new Entity(10, 10);
-                e.setModel(new RectangleModel(10, 10, "sa"));
+                const createModel = async ({type, properties}) => {
+                    switch (type) {
+                        case "model-image":
+                            const model = new ImageModel(properties.x.value * 1, properties.y.value * 1, properties.width.value * 1, properties.height.value * 1, properties.opacity.value * 1)
+                            if (properties.image.value) model.setImage(await ImageModel.loadImage(properties.image.value));
+                            return model;
+                    }
+                    return null;
+                };
+                const createEntity = async props => {
+                    const entity = new Entity(props.x.value * 1, props.y.value * 1);
+                    const mdl = project.json.objects[props.model.value];
+                    if (mdl) entity.setModel(modelList[props.model.value]);
+                    return entity;
+                };
+                const modelList = [];
+                const loadingModels = Object.keys(project.json.objects).filter(i => project.json.objects[i].type.startsWith("model-"));
+                for (let i = 0; i < loadingModels.length; i++) {
+                    const m = loadingModels[i];
+                    const n = project.json.objects[m];
+                    modelList[m] = await createModel(n);// add await to setImage etc. etc.
+                }
+                for (const i1 of Object.values(project.json.objects).filter(i => ["entity"].includes(i.type))) {
+                    switch (i1.type) {
+                        case "entity":
+                            const entity = await createEntity(i1.properties);
+                            if (entity) entity.init();
+                            break;
+                    }
+                }
                 start_btn.hidden = true;
                 stop_btn.hidden = undefined;
                 break;
