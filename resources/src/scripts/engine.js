@@ -251,11 +251,21 @@ class Vector2 {
 class Model {
     /*** @type {number} */
     opacity;
+    /*** @type {number} */
+    offsetX;
+    /*** @type {number} */
+    offsetY;
 
-    /*** @param {number} opacity */
-    constructor(opacity) {
+    /**
+     * @param {number} offsetX
+     * @param {number} offsetY
+     * @param {number} opacity
+     */
+    constructor(offsetX, offsetY, opacity) {
         check_var.bigger_equal_0("Model opacity", opacity);
         this.opacity = opacity || 1.0;
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
     }
 
     /**
@@ -276,12 +286,14 @@ class ImageModel extends Model {
     image = null;
 
     /**
+     * @param {number} offsetX
+     * @param {number} offsetY
      * @param {number} width
      * @param {number} height
      * @param {number} opacity
      */
-    constructor(width, height, opacity = 1.0) {
-        super(opacity)
+    constructor(offsetX, offsetY, width, height, opacity = 1.0) {
+        super(offsetX, offsetY, opacity)
             .setWidth(width)
             .setHeight(height);
     }
@@ -327,6 +339,7 @@ class ImageModel extends Model {
     }
 
     draw(ctx, entity, position) {
+        position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.width / 2, this.height / 2));
         if (this.image) ctx.drawImage(this.image, position.x, position.y, this.width, this.height);
         ctx.resetRotate();
@@ -346,6 +359,8 @@ class TextModel extends Model {
     maxWidth;
 
     /**
+     * @param {number} offsetX
+     * @param {number} offsetY
      * @param {string} text
      * @param {string} font
      * @param {number} size
@@ -353,8 +368,8 @@ class TextModel extends Model {
      * @param {number | null} maxWidth
      * @param {number} opacity
      */
-    constructor(text, font = "Calibri", size = 16, color = "#000000", maxWidth = null, opacity = 1.0) {
-        super(opacity)
+    constructor(offsetX, offsetY, text, font = "Calibri", size = 16, color = "#000000", maxWidth = null, opacity = 1.0) {
+        super(offsetX, offsetY, opacity)
             .setText(text)
             .setFont(font || "Calibri")
             .setSize(size || 16)
@@ -413,6 +428,7 @@ class TextModel extends Model {
     }
 
     draw(ctx, entity, position) {
+        position = position.add(this.offsetX, this.offsetY);
         const div = document.createElement("div");
         div.style.fontFamily = this.font;
         div.style.fontSize = this.size.toString();
@@ -444,13 +460,15 @@ class PathModel extends Model {
     middle;
 
     /**
+     * @param {number} offsetX
+     * @param {number} offsetY
      * @param {{offsetX: number, offsetY: number}[]} path
      * @param {string | null} fillColor
      * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(path, fillColor = null, strokeColor = null, opacity = 1.0) {
-        super(opacity)
+    constructor(offsetX, offsetY, path, fillColor = null, strokeColor = null, opacity = 1.0) {
+        super(offsetX, offsetY, opacity)
             .setPath(path)
             .setFillColor(fillColor)
             .setStrokeColor(strokeColor);
@@ -487,6 +505,7 @@ class PathModel extends Model {
     }
 
     draw(ctx, entity, position) {
+        position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.middle[0], this.middle[1]));
         ctx.beginPath();
         ctx.moveTo(this.path[0].offsetX + position.x, this.path[0].offsetY + position.y);
@@ -511,14 +530,16 @@ class RectangleModel extends PathModel {
     height;
 
     /**
+     * @param {number} offsetX
+     * @param {number} offsetY
      * @param {number} width
      * @param {number} height
      * @param {string | null} fillColor
      * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(width, height, fillColor = null, strokeColor = null, opacity = 1.0) {
-        super([
+    constructor(offsetX, offsetY, width, height, fillColor = null, strokeColor = null, opacity = 1.0) {
+        super(offsetX, offsetY, [
             {offsetX: 0, offsetY: 0},
             {offsetX: width, offsetY: 0},
             {offsetX: width, offsetY: height},
@@ -563,13 +584,15 @@ class CircleModel extends Model {
     strokeColor;
 
     /**
+     * @param {number} offsetX
+     * @param {number} offsetY
      * @param {number} radius
      * @param {string | null} fillColor
      * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(radius, fillColor = null, strokeColor = null, opacity = 1.0) {
-        super(opacity)
+    constructor(offsetX, offsetY, radius, fillColor = null, strokeColor = null, opacity = 1.0) {
+        super(offsetX, offsetY, opacity)
             .setRadius(radius)
             .setFillColor(fillColor)
             .setStrokeColor(strokeColor);
@@ -606,6 +629,7 @@ class CircleModel extends Model {
     }
 
     draw(ctx, entity, position) {
+        position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.radius, this.radius));
         ctx.beginPath();
         ctx.arc(this.x + this.radius, this.y + this.radius, this.radius, 0, Math.PI * 2);
@@ -724,6 +748,9 @@ class Entity extends Vector2 {
      */
     constructor(x, y) {
         super(x, y);
+    }
+
+    init() {
         Scene.getInstance().entities.push(this);
     }
 
@@ -912,6 +939,26 @@ class Scene {
             worker.terminate();
         });
         Scene.scripts = [];
+    }
+}
+
+class Sound {
+    constructor(src) {
+        this.sound = document.createElement("audio");
+        this.sound.src = src;
+        this.sound.setAttribute("preload", "auto");
+        this.sound.setAttribute("controls", "none");
+        this.sound.style.display = "none";
+        this.sound.hidden = true;
+        document.body.appendChild(this.sound);
+    }
+
+    async play() {
+        await this.sound.play();
+    }
+
+    stop() {
+        this.sound.pause();
     }
 }
 

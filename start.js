@@ -2,10 +2,21 @@ const fs = require("fs");
 const fetch = require("node-fetch");
 const oldChanges = require("./.changes.json");
 const Logger = require("./Logger");
+const https = require("https");
 const lightRoamingPath = process.env.HOME.replaceAll("\\", "/") + "/AppData/Roaming/lightge";
 if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
 
-Logger.debugging = true;
+const download = file => {
+    return new Promise(r => {
+        const f = fs.createWriteStream("./" + file);
+        https.get("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + file, res => {
+            res.pipe(f);
+            r();
+        });
+    });
+};
+
+Logger.debugging = false;
 
 (async () => {
     Logger.info("Checking updates...");
@@ -32,7 +43,7 @@ Logger.debugging = true;
                             Logger.debug("Created directory '" + dir + "'!");
                         }
                     });
-                    fs.writeFileSync("./" + f, con);
+                    await download(f);
                     Logger.debug("Loaded '" + f + "'!");
                 } else if (fs.existsSync("./" + f)) fs.unlinkSync("./" + f);
             }

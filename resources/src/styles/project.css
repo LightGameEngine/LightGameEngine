@@ -3,6 +3,22 @@
     font-family: Calibri, serif;
 }
 
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
 .bar {
     position: absolute;
     color: var(--bar-color);
@@ -64,33 +80,25 @@
     height: 22%;
 }
 
-.property {
-    position: absolute;
-    left: 0;
-    height: 3%;
-    width: 100%;
+.remove_mode {
+    cursor: pointer;
+}
+
+.remove_mode:hover {
+    background: red !important;
 }
 
 .property_name {
-    position: absolute;
     color: var(--property-name-color);
     background: var(--btn-background);
-    width: 30%;
-    left: 0;
-    text-align: center;
-    height: 100%;
+    max-width: 50%;
 }
 
 .property_value {
-    position: absolute;
     color: var(--property-name-color);
     background: var(--btn-hover-background);
     outline: none;
     border: none;
-    width: 65%;
-    left: 30%;
-    padding-left: 4%;
-    height: 90%;
 }
 
 .left_container_nav {
@@ -124,6 +132,14 @@
     cursor: pointer;
     margin-left: 4%;
     margin-top: 1%;
+    width: 6%;
+}
+
+.right_nav_remove {
+    position: absolute;
+    cursor: pointer;
+    margin-left: 14%;
+    margin-top: 0.5%;
     width: 6%;
 }
 
