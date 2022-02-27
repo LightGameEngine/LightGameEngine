@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>document._cc = console;</script>
     <meta charset="UTF-8">
     <title id="title">Light</title>
     <link href="styles/project.css" rel="stylesheet">
@@ -49,7 +50,7 @@
     <div class="right_container">
         <table id="properties" style="position: absolute; left: -2px; top: -2px"></table>
     </div>
-    <div class="console"></div>
+    <div class="console" id="console"></div>
     <canvas class="canvas" id="canvas"></canvas>
 </div>
 <div id="prompt" hidden
@@ -80,8 +81,8 @@
 </div>
 </body>
 <script src="scripts/engine.js"></script>
-<script src="scripts/PathFinder.js"></script>
 <script>
+    const letters = "abcçdefgğhıijklmnoprsştuüvyzqwx";
     document.getElementById("prompt-input").addEventListener("keydown", ev => ev.key === "Enter" ? document.getElementById("prompt-button").click() : null);
     /*** @type {HTMLCanvasElement} */
     const canvas = document.getElementById("canvas");
@@ -91,6 +92,17 @@
 
     const start_btn = document.getElementById("start_btn");
     const stop_btn = document.getElementById("stop_btn");
+    let consoleList = [];
+    const renderConsole = (str) => {
+        const cns = document.getElementById("console");
+        if (str) {
+            if (consoleList.length > 0 && consoleList[consoleList.length - 1].value === str) consoleList[consoleList.length - 1].stack++;
+            else consoleList.push({value: str, stack: 1});
+        }
+        cns.innerHTML = consoleList.map(i => `${i.stack > 1 ? "[x" + i.stack + "]" : ""} ${i.value}`).join("<br>");
+        cns.scrollTop = cns.scrollHeight;
+    }
+    printHandler = renderConsole;
 
     function open_node_menu() {
         document.getElementById("node_menu").innerHTML = node_types.map(i => `<span onclick="open_add_node_menu('${i}')" class="node_select">${languages[lang]["node-" + i]}</span>`).join("<br>");
@@ -109,15 +121,25 @@
             .then(r => {
                 if (r === null) return;
                 if (!selected_node) return;
-                if (!r || r.split("").some(i => !"abcçdefgğhıijklmnoprsştuüvyzqwx0123456789".split("").some(a => a.toLowerCase() === i.toLowerCase())) || "0123456789".split("").some(i => r.endsWith(i))) {
+                const node = project.json.nodes[selected_node];
+                if (!r || r.split("").some(i => !(letters + "0123456789").split("").some(a => a.toLowerCase() === i.toLowerCase())) || "0123456789".split("").some(i => r.endsWith(i))) {
                     open_property_menu();
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-property-name"];
                 }
-                if (!project.json.nodes[selected_node] || !selected_node) {
+                if (!node) {
                     open_property_menu();
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["node-not-selected"];
                 }
-                if (project.json.nodes[selected_node].properties[r]) {
+                const extraProps = {
+                    entity: Entity.PROPERTIES,
+                    "model-image": ImageModel.PROPERTIES,
+                    "model-text": TextModel.PROPERTIES,
+                    "model-rectangle": RectangleModel.PROPERTIES,
+                    "model-circle": CircleModel.PROPERTIES,
+                    collision: RectangleCollision.PROPERTIES,
+                    tile: Tile.PROPERTIES
+                }[node.type] || [];
+                if (node.properties[r] || extraProps.includes(r)) {
                     open_property_menu();
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["property-exists"];
                 }
@@ -146,7 +168,7 @@
         });
     }
 
-    const modelTypes = ["image", "text", "rectangle", "circle"];
+    const modelTypes = ["image", "text", "rectangle", "circle", "custom"];
 
     function open_rename_node_menu(oldName) {
         prompt(
@@ -155,7 +177,7 @@
             languages[lang]["rename-node-button"]
         ).then(r => {
             if (r === null) return;
-            if (!r || r.split("").some(i => i !== "İ" && !"abcçdefgğhıijklmnoöprsştuüvyzqwx1234567890 ".includes(i.toLowerCase()))) {
+            if (!r || r.split("").some(i => i !== "İ" && !(letters + "1234567890 ").includes(i.toLowerCase()))) {
                 open_rename_node_menu(oldName);
                 return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
             }
@@ -177,7 +199,7 @@
             let name = document.getElementById("add-node-name").value;
             let modelType = document.getElementById("add-node-type").value;
             if (name) {
-                if (name.split("").some(i => i !== "İ" && !"abcçdefgğhıijklmnoöprsştuüvyzqwx1234567890 ".includes(i.toLowerCase()))) {
+                if (name.split("").some(i => i !== "İ" && !(letters + "1234567890 ").includes(i.toLowerCase()))) {
                     open_add_node_menu(type);
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
                 }
@@ -215,6 +237,7 @@
         delete project.json.nodes[name];
         if (name === selected_node) select_node(null);
         refresh_nodes();
+        if (sceneType === "editor") setSceneType("editor");
     }
 
     function add_node_property(name, property) {
@@ -264,19 +287,16 @@
                 }
                 break;
             case "model":
-                if (prop.array) {
-                    propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => project.json.nodes[i] && project.json.nodes[i].type.startsWith("model-") && nodeName !== i))).join(",");
-                } else {
-                    if (!project.json.nodes[propertyValue] || nodeName === propertyValue) propertyValue = prop.default;
-                }
-                break;
             case "collision":
             case "script":
                 if (prop.array) {
-                    propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => project.json.nodes[i] && project.json.nodes[i].type === prop.type && nodeName !== i))).join(",");
+                    propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => project.json.nodes[i] && (prop.type === "model" ? project.json.nodes[i].type.startsWith("model-") : project.json.nodes[i].type === prop.type) && nodeName !== i))).join(",");
                 } else {
-                    if (!project.json.nodes[propertyValue] || nodeName === propertyValue) propertyValue = prop.default;
+                    if (!project.json.nodes[propertyValue] || (prop.type === "model" ? project.json.nodes[propertyValue].type.startsWith("model-") : project.json.nodes[propertyValue].type !== prop.type) || nodeName === propertyValue) propertyValue = prop.default;
                 }
+                break;
+            case undefined:
+                propertyValue = !isNaN(propertyValue) ? propertyValue * 1 : propertyValue;
                 break;
         }
 
@@ -410,6 +430,13 @@ ${input}
     let modelList = {};
     let collisionList = {};
     let scriptList = {};
+    let loadedScriptList = {};
+
+    setInterval(() => {
+        ws.sendPacket("set_project_camera", {
+            path: project.path, x: sceneCamera.x, y: sceneCamera.y
+        });
+    }, 5000);
 
     const createModel = async ({type, properties}) => {
         switch (type) {
@@ -457,15 +484,42 @@ ${input}
         return null;
     };
     const createCollision = props => {
-        return new RectangleCollision(
-            props.x.value * 1,
-            props.y.value * 1,
-            props.width.value * 1,
-            props.height.value * 1
-        );
+        const scr = loadedScriptList[props.customScript.value];
+        let collisionClass = sceneType === "game" ? scr || RectangleCollision : RectangleCollision;
+        let collision;
+        try {
+            collision = new collisionClass(
+                props.x.value * 1,
+                props.y.value * 1,
+                props.width.value * 1,
+                props.height.value * 1
+            );
+        } catch (e) {
+            collision = new RectangleCollision(
+                props.x.value * 1,
+                props.y.value * 1,
+                props.width.value * 1,
+                props.height.value * 1
+            );
+        }
+        Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => collision[i] = props[i].value);
+        collision.offsetX = props.x.value * 1;
+        collision.offsetY = props.y.value * 1;
+        collision.width = props.width.value * 1;
+        collision.height = props.height.value * 1;
+        return collision;
     };
-    const createEntity = async props => {
-        const entity = new Entity(props.x.value * 1, props.y.value * 1);
+    const createEntity = async (props) => {
+        const scr = loadedScriptList[props.customScript.value];
+        let entityClass = sceneType === "game" ? scr || Entity : Entity;
+        let entity;
+        try {
+            entity = new entityClass(props.x.value * 1, props.y.value * 1);
+        } catch (e) {
+            entity = new Entity(props.x.value * 1, props.y.value * 1);
+        }
+        entity.x = props.x.value * 1;
+        entity.x = props.x.value * 1;
         (props.models.value || "").split(",").forEach(m => {
             const mdl = project.json.nodes[m];
             if (mdl) entity.addModel(modelList[m]);
@@ -480,10 +534,20 @@ ${input}
         entity.terminalGravityVelocity = props.terminalGravityVelocity.value;
         entity.motionDivision = new Vector2(props.motionDivision.value, props.motionDivision.value);
         entity.visible = !props.invisible.value;
+        Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => entity[i] = props[i].value);
         return entity;
     };
-    const createTile = async props => {
-        const tile = new Tile(props.x.value * 1, props.y.value * 1);
+    const createTile = async (props) => {
+        const scr = loadedScriptList[props.customScript.value];
+        let tileClass = sceneType === "game" ? scr || Tile : Tile;
+        let tile;
+        try {
+            tile = new tileClass(props.x.value * 1, props.y.value * 1);
+        } catch (e) {
+            tile = new Tile(props.x.value * 1, props.y.value * 1);
+        }
+        tile.x = props.x.value * 1;
+        tile.y = props.y.value * 1;
         props.models.value.split(",").forEach(m => {
             const mdl = project.json.nodes[m];
             if (mdl) tile.addModel(modelList[m]);
@@ -494,6 +558,7 @@ ${input}
         });
         tile.rotation = props.rotation.value;
         tile.visible = !props.invisible.value;
+        Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => tile[i] = props[i].value);
         return tile;
     };
     const refreshModelList = async () => {
@@ -502,7 +567,21 @@ ${input}
         for (let i = 0; i < loadingModels.length; i++) {
             const m = loadingModels[i];
             const n = project.json.nodes[m];
-            modelList[m] = await createModel(n);
+            if (n.type === "model-custom") {
+                if (sceneType === "game") {
+                    const scr = loadedScriptList[n.properties.customScript.value];
+                    try {
+                        const mdl = new scr(n.properties.x.value * 1, n.properties.y.value * 1, n.properties.opacity.value * 1);
+                        mdl.offsetX = n.properties.x.value * 1;
+                        mdl.offsetY = n.properties.y.value * 1;
+                        mdl.opacity = n.properties.opacity.value * 1;
+                        Object.keys(n.properties).filter(i => !n.properties[i].isDefaultProperty).forEach(i => mdl[i] = n.properties[i].value);
+                        modelList[m] = mdl;
+                    } catch (e) {
+                    }
+                }
+            } else modelList[m] = await createModel(n);
+            if (modelList[m]) modelList[m].init();
         }
     }
     const refreshCollisionList = async () => {
@@ -511,8 +590,11 @@ ${input}
         for (let i = 0; i < loadingCollisions.length; i++) {
             const m = loadingCollisions[i];
             const n = project.json.nodes[m];
-            collisionList[m] = createCollision(n.properties);
+            (collisionList[m] = createCollision(n.properties)).init();
         }
+    }
+    const getProjectFilePath = path => {
+        return /\w:\//i.test(path.substring(0, 3)) ? path : (path.startsWith(".") ? (path.startsWith("./") && /\w/i.test(path.charAt(2)) ? project.path + "/" + path.substring(2) : path) : project.path + "/" + path);
     }
     const refreshScriptList = async () => {
         scriptList = {};
@@ -520,31 +602,71 @@ ${input}
         for (let i = 0; i < loadingScripts.length; i++) {
             const m = loadingScripts[i];
             const n = project.json.nodes[m];
-            if (n.properties.file.value) scriptList[m] = await loadScript(n.properties.file.value);
+            const file = getProjectFilePath(n.properties.file.value || "");
+            const script = await loadScript(file);
+            if (script.error) console.info(`Script named '${m}' defined with file '${file}' not found or a folder!`);
+            else scriptList[m] = script.code;
         }
     }
-
-    canvas.addEventListener("keypress", ev => {
-    });
+    const loadScriptList = async () => {
+        loadedScriptList = {};
+        Object.keys(scriptList).forEach(nodeId => {
+            const code = scriptList[nodeId];
+            const ____________i = setInterval;
+            const ____________t = setTimeout;
+            const ____________c = console;
+            const ____________e = eval;
+            const ____________x = XMLHttpRequest;
+            console = null;
+            eval = null;
+            XMLHttpRequest = null;
+            setInterval = (...args) => Scene.intervals.push(____________i(...args));
+            setTimeout = (...args) => Scene.intervals.push(____________t(...args));
+            exports = null;
+            try {
+                (() => {
+                    ____________e(code.length === 0 ? "null" : code);
+                    loadedScriptList[nodeId] = exports;
+                })();
+            } catch (e) {
+                ____________c.error(e);
+                ____________c.info(`Script named '${nodeId}' gave error!`);
+            }
+            window.XMLHttpRequest = ____________x;
+            window.eval = ____________e;
+            window.setInterval = ____________i;
+            window.setTimeout = ____________t;
+            window.console = ____________c;
+        });
+    }
 
     let canvasMouseDown = null;
     let selectedEditorEntity = null;
     const mouse = new Vector2(0, 0);
+    let mPos = new Vector2(0, 0);
+    let collidingCanvas = false;
 
     addEventListener("mousemove", ev => {
         mouse.x = ev.clientX;
         mouse.y = ev.clientY;
+        collidingCanvas = ev.path[0].id === "canvas";
+        mPos = Scene.getInstance().camera.subtract(ev.offsetX, ev.offsetY).floor();
     });
 
     canvas.addEventListener("mousemove", ev => {
         if (!canvasMouseDown) return;
         if (selectedEditorEntity) {
-            const pos = (new Vector2(ev.offsetX, ev.offsetY)).subtract(sceneCamera);
+            const pos = canvasMouseDown[2].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
             const nodeId = selectedEditorEntity["nodeId"];
             project.json.nodes[nodeId].properties.x.value = pos.x;
             project.json.nodes[nodeId].properties.y.value = pos.y;
             refresh_properties();
-            setSceneType("editor");
+            selectedEditorEntity.x = pos.x;
+            selectedEditorEntity.y = pos.y;
+            selectedEditorEntity.collisionTiles.forEach(t => {
+                t.x = pos.x;
+                t.y = pos.y;
+            });
         } else {
             const newCamera = canvasMouseDown[1].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
             sceneCamera.x = newCamera.x;
@@ -560,6 +682,7 @@ ${input}
         canvasMouseDown = [new Vector2(ev.offsetX, ev.offsetY), Scene.getInstance().camera.clone()];
         if (sceneType === "editor") {
             selectedEditorEntity = getEntityByMouse(ev.offsetX, ev.offsetY);
+            if (selectedEditorEntity) canvasMouseDown[2] = selectedEditorEntity.clone();
         }
     });
 
@@ -589,6 +712,11 @@ ${input}
                     ctx.fillStyle = "rgb(255, 0, 0)";
                     ctx.fillRect(sceneCamera.x, 0, 1, canvas.height);
                 }
+                Scene.getInstance().onUpdateEnd = () => {
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "16px Calibri";
+                    ctx.fillText(sceneType === "editor" && collidingCanvas ? `X: ${mPos.x}, Y: ${mPos.y}` : "", 4, 16);
+                }
                 if (!setupCamera) {
                     setupCamera = true;
                     sceneCamera.x = canvas.width / 2;
@@ -596,7 +724,7 @@ ${input}
                 }
                 await refreshModelList();
                 await refreshCollisionList();
-                const nList = Object.keys(project.json.nodes).filter(i => ["entity", "tile"].includes(project.json.nodes[i].type));
+                const nList = Object.keys(project.json.nodes).filter(i => ["entity", "tile"].includes(project.json.nodes[i].type)).sort((a, b) => project.json.nodes[a].position - project.json.nodes[b].position);
                 for (const j of nList) {
                     const i1 = project.json.nodes[j];
                     switch (i1.type) {
@@ -605,11 +733,13 @@ ${input}
                             entity.update = r => r;
                             if (entity) entity.init();
                             entity.nodeId = j;
-                            entity.collisions.forEach(i => {
+                            entity.collisionTiles = [];
+                            if (i1.properties.collisionBorder.value) entity.collisions.forEach(i => {
                                 if (!(i instanceof RectangleCollision)) return;
                                 const t = new Tile(entity.x, entity.y);
-                                t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, "#ffffff"));
+                                t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
                                 t.init();
+                                entity.collisionTiles.push(t);
                             });
                             break;
                         case "tile":
@@ -617,11 +747,13 @@ ${input}
                             tile.update = r => r;
                             if (tile) tile.init();
                             tile.nodeId = j;
-                            tile.collisions.forEach(i => {
+                            tile.collisionTiles = [];
+                            if (i1.properties.collisionBorder.value) tile.collisions.forEach(i => {
                                 if (!(i instanceof RectangleCollision)) return;
                                 const t = new Tile(tile.x, tile.y);
                                 t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, "#ffffff"));
                                 t.init();
+                                tile.collisionTiles.push(t);
                             });
                             break;
                     }
@@ -630,8 +762,12 @@ ${input}
                 stop_btn.hidden = true;
                 break;
             case "game":
+                consoleList = [];
+                renderConsole();
                 Scene.getInstance().destroy();
                 Scene.getInstance();
+                await refreshScriptList();
+                await loadScriptList();
                 await refreshModelList();
                 await refreshCollisionList();
                 for (const i1 of Object.values(project.json.nodes).filter(i => ["entity", "tile"].includes(i.type))) {
@@ -652,7 +788,11 @@ ${input}
         }
     }
 
-    addWSOnceListener("get_projects", () => setSceneType("editor"));
+    addWSOnceListener("get_projects", () => {
+        setSceneType("editor");
+        sceneCamera.x = project.json.camera.x;
+        sceneCamera.y = project.json.camera.y;
+    });
 
     function main_menu() {
         window.location.href = "index.html";

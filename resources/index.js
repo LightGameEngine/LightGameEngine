@@ -76,11 +76,14 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "property--invisible": "Invisible",
     "property--radius": "Radius",
     "property--file": "File",
+    "property--customScript": "Script",
+    "property--collisionBorder": "Collision Border",
     "none": "none",
     "model-type-image": "Image",
     "model-type-text": "Text",
     "model-type-rectangle": "Rectangle",
     "model-type-circle": "Circle",
+    "model-type-custom": "Custom",
     "select-model-type": "Select model type",
     "rename-node-title": "Rename Node",
     "enter-node-new-name": "Enter node's new name",
@@ -153,11 +156,14 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "property--invisible": "Görünmez",
     "property--radius": "Yarıçap",
     "property--file": "Dosya",
+    "property--customScript": "Skript",
+    "property--collisionBorder": "Sınır Çizgisi",
     "none": "yok",
     "model-type-image": "Resim",
     "model-type-text": "Yazı",
     "model-type-rectangle": "Kare",
     "model-type-circle": "Yuvarlak",
+    "model-type-custom": "Özel",
     "select-model-type": "Model türü seç",
     "rename-node-title": "Nesneyi Yeniden Adlandır",
     "enter-node-new-name": "Nesnenin yeni adını gir",
@@ -269,7 +275,7 @@ if (!fs.existsSync(cachePath)) {
         default_project_folder: null
     }));
 }
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {nodes: Object<string, {type: number, properties: Object<string, number | string>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
+/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {camera: {x: number, y: number}, nodes: Object<string, {type: number, properties: Object<string, number | string>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
 const cache = JSON.parse(fs.readFileSync(cachePath).toString());
 
 class CacheManager {
@@ -281,7 +287,6 @@ class CacheManager {
             if (!project.valid) delete cache.projects[project.path];
             p[project.path] = project;
         }
-        this.save();
         return p;
     }
 
@@ -296,19 +301,18 @@ class CacheManager {
             name: path.split("/").reverse()[0],
             path,
             json: {
+                camera: {x: 0, y: 0},
                 nodes: {}
             },
             createdTimestamp: Date.now(),
             lastOpenTimestamp: 0
         };
-        this.save();
         if (!fs.existsSync(path)) fs.mkdirSync(path);
     }
 
     static openProject(socket, path) {
         this.createProject(path);
         cache.projects[path].lastOpenTimestamp = Date.now();
-        this.save();
         browser.hide();
         socket.sendPacket("open_project", {name: cache.projects[path].name, path});
         browser.resetPositionLimits();
@@ -319,12 +323,15 @@ class CacheManager {
     static renameProject(path, name) {
         this.createProject(path);
         cache.projects[path].name = name;
-        this.save();
     }
 
     static removeProject(path) {
         delete cache.projects[path];
-        this.save();
+    }
+
+    static setProjectCamera(path, x, y) {
+        this.createProject(path);
+        cache.projects[path].json.camera = {x, y};
     }
 
     static getNode(path, node) {
@@ -333,7 +340,6 @@ class CacheManager {
 
     static setNodePosition(path, node, position) {
         cache.projects[path].json.nodes[node].position = position;
-        this.save();
     }
 
     static getDefaultProjectFolder() {
@@ -343,23 +349,22 @@ class CacheManager {
 
     static setDefaultProjectFolder(folder) {
         cache.default_project_folder = folder;
-        this.save();
     }
 
     static setTheme(theme) {
         cache.theme = theme;
-        this.save();
     }
 
     static setLanguage(lang) {
         cache.lang = lang;
-        this.save();
     }
 
     static save() {
         fs.writeFileSync(cachePath, JSON.stringify(cache));
     }
 }
+
+setInterval(CacheManager.save, 40000);
 
 const wss = new (require("ws"))["Server"]({port: 9009});
 let socketClients = [];
@@ -540,7 +545,7 @@ const property_list = {
             isDefaultProperty: true
         }
     },
-    text: {
+    "model-custom": {
         x: {
             type: "number",
             value: 0,
@@ -553,42 +558,16 @@ const property_list = {
             default: 0,
             isDefaultProperty: true
         },
-        text: {
-            type: "string",
-            value: "Light",
-            default: "Light",
-            isDefaultProperty: true
-        },
-        font: {
-            type: "string",
-            value: "Calibri",
-            default: "Calibri",
-            isDefaultProperty: true
-        },
-        size: {
-            type: "number",
-            value: 12,
-            default: 12,
-            isDefaultProperty: true
-        },
-        color: {
-            type: "color",
-            value: "#000000",
-            default: "#000000",
-            isDefaultProperty: true
-        },
-        maxWidth: {
-            type: "number",
-            nullAllowed: true,
-            value: null,
-            default: null,
-            isDefaultProperty: true
-        },
         opacity: {
             type: "number",
-            value: 0,
-            default: 0,
-            rad: [0, 1, 0.1],
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        },
+        customScript: {
+            type: "script",
+            value: "",
+            default: "",
             isDefaultProperty: true
         }
     },
@@ -615,6 +594,12 @@ const property_list = {
             type: "number",
             value: 1,
             default: 1,
+            isDefaultProperty: true
+        },
+        customScript: {
+            type: "script",
+            value: "",
+            default: "",
             isDefaultProperty: true
         }
     },
@@ -687,6 +672,18 @@ const property_list = {
             array: true,
             value: "",
             default: "",
+            isDefaultProperty: true
+        },
+        customScript: {
+            type: "script",
+            value: "",
+            default: "",
+            isDefaultProperty: true
+        },
+        collisionBorder: {
+            type: "boolean",
+            value: true,
+            default: true,
             isDefaultProperty: true
         }
     }
@@ -806,7 +803,11 @@ wss.on("connection", async socket => {
                     });
                     break;
                 case "load_script":
-                    if (!fs.existsSync(json.data.file) || await is_folder(json.data.file)) return;
+                    if (!fs.existsSync(json.data.file) || await is_folder(json.data.file))
+                        return socket.sendPacket("load_script", {
+                            id: json.data.id,
+                            error: true
+                        });
                     socket.sendPacket("load_script", {
                         id: json.data.id,
                         code: fs.readFileSync(json.data.file).toString()
@@ -820,22 +821,18 @@ wss.on("connection", async socket => {
                         position: (Object.values(cache.projects[json.data.path].json.nodes).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
                         createdTimestamp: Date.now()
                     };
-                    CacheManager.save();
                     break;
                 case "remove_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     delete cache.projects[json.data.path].json.nodes[json.data.name];
-                    CacheManager.save();
                     break;
                 case "set_node_properties":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     cache.projects[json.data.path].json.nodes[json.data.name].properties = json.data.properties;
-                    CacheManager.save();
                     break;
                 case "set_node_type":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     cache.projects[json.data.path].json.nodes[json.data.name].type = json.data.type;
-                    CacheManager.save();
                     break;
                 case "switch_node_positions":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
@@ -846,6 +843,10 @@ wss.on("connection", async socket => {
                 case "set_node_position":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.setNodePosition(json.data.path, json.data.node, json.data.position);
+                    break;
+                case "set_project_camera":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.setProjectCamera(json.data.path, json.data.x, json.data.y);
                     break;
                 case "main_menu":
                     browser.setPositionLimits();
@@ -895,6 +896,7 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-    Logger.alert("Closing Light...");
+    Logger.alert("Closing Light, saving cache...");
+    CacheManager.save();
     if (process.platform !== "darwin") app.quit();
 });

@@ -30,4 +30,7 @@
     --object-selected-background: #4a7aa9;
     --object-selected-hover-background: #5e95cb;
     --node-menu-background: #545454;
+    --node-hover-background: rgba(169, 159, 159, 0.5);
+    --node-selected-background: #4a7aa9;
+    --node-selected-hover-background: #5e95cb;
 }
