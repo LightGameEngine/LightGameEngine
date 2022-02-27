@@ -231,6 +231,14 @@ class Vector2 {
     }
 
     /**
+     * @param {Vector2} vector2
+     * @returns {boolean}
+     */
+    equals(vector2) {
+        return vector2.x === this.x && vector2.y === this.y;
+    }
+
+    /**
      * @param {number | Vector2} xOrVector2
      * @param {number?} y
      * @returns {Vector2}
@@ -341,7 +349,9 @@ class ImageModel extends Model {
     draw(ctx, entity, position) {
         position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.width / 2, this.height / 2));
+        ctx.globalAlpha = this.opacity;
         if (this.image) ctx.drawImage(this.image, position.x, position.y, this.width, this.height);
+        ctx.globalAlpha = 1;
         ctx.resetRotate();
     }
 }
@@ -355,7 +365,7 @@ class TextModel extends Model {
     size;
     /*** @type {string} */
     color;
-    /*** @type {number} */
+    /*** @type {number | null} */
     maxWidth;
 
     /**
@@ -418,33 +428,46 @@ class TextModel extends Model {
     }
 
     /**
-     * @param {number} maxWidth
+     * @param {number?} maxWidth
      * @returns {TextModel}
      */
     setMaxWidth(maxWidth) {
-        check_var.string("Model text max width", maxWidth);
         this.maxWidth = maxWidth;
         return this;
     }
 
-    draw(ctx, entity, position) {
-        position = position.add(this.offsetX, this.offsetY);
+    /**
+     * @param {string} text
+     * @param {number} size
+     * @param {string} font
+     * @returns {{width: number, height: number}}
+     */
+    static calculateTextSize(text, size, font) {
         const div = document.createElement("div");
-        div.style.fontFamily = this.font;
-        div.style.fontSize = this.size.toString();
+        div.style.fontFamily = font;
+        div.style.fontSize = size.toString();
         div.style.position = "absolute";
-        div.style.visibility = "hidden";
         div.style.width = "auto";
         div.style.height = "auto";
         div.style.whiteSpace = "nowrap";
+        div.innerHTML = text;
         document.body.appendChild(div);
         const width = div.clientWidth;
         const height = div.clientHeight;
         div.remove();
+        return {width, height};
+    }
+
+    draw(ctx, entity, position) {
+        position = position.add(this.offsetX, this.offsetY);
+        const {width, height} = TextModel.calculateTextSize(this.text, this.size, this.font);
+        position = position.add(0, height);
         ctx.rotateComplete(entity.rotation || 0, position.add(width / 2, height / 2));
+        ctx.globalAlpha = this.opacity;
         ctx.fillStyle = this.color;
-        ctx.fillText(this.text, position.x, position.y, this.maxWidth);
-        if (this.image) ctx.drawImage(this.image, position.x, position.y, width, height);
+        ctx.font = this.size + "px " + this.font;
+        ctx.fillText(this.text, position.x, position.y, this.maxWidth === null ? undefined : this.maxWidth);
+        ctx.globalAlpha = 1;
         ctx.resetRotate();
     }
 }
@@ -508,8 +531,9 @@ class PathModel extends Model {
         position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.middle[0], this.middle[1]));
         ctx.beginPath();
+        ctx.globalAlpha = this.opacity;
         ctx.moveTo(this.path[0].offsetX + position.x, this.path[0].offsetY + position.y);
-        this.path.slice(1).forEach(p => ctx.lineTo(p.offsetX + position.x, p.offsetY + position.y));
+        [...this.path.slice(1), this.path[0]].forEach(p => ctx.lineTo(p.offsetX + position.x, p.offsetY + position.y));
         if (this.fillColor) {
             ctx.fillStyle = this.fillColor;
             ctx.fill();
@@ -518,6 +542,7 @@ class PathModel extends Model {
             ctx.strokeStyle = this.strokeColor;
             ctx.stroke();
         }
+        ctx.globalAlpha = 1;
         ctx.closePath();
         ctx.resetRotate();
     }
@@ -632,7 +657,13 @@ class CircleModel extends Model {
         position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.radius, this.radius));
         ctx.beginPath();
-        ctx.arc(this.x + this.radius, this.y + this.radius, this.radius, 0, Math.PI * 2);
+        ctx.globalAlpha = this.opacity;
+        ctx.fillStyle = this.fillColor;
+        ctx.strokeStyle = this.strokeColor;
+        ctx.arc(this.offsetX + this.radius + position.x, this.offsetY + this.radius + position.y, this.radius, 0, Math.PI * 2);
+        if (this.fillColor) ctx.fill();
+        if (this.strokeColor) ctx.stroke();
+        ctx.globalAlpha = 1;
         ctx.closePath();
         ctx.resetRotate();
     }
@@ -672,10 +703,13 @@ class Collision {
     }
 
     /**
-     * @param {Collision} collision
+     * @param {Vector2} currentPosition
+     * @param {Vector2} vector2
+     * @param {Collision?} collision
      * @returns {boolean}
      */
-    collides(collision) {
+    collides(currentPosition, vector2, collision = null) {
+        return false;
     }
 }
 
@@ -714,17 +748,28 @@ class RectangleCollision extends Collision {
         this.height = height;
         return this;
     }
+
+    collides(currentPosition, vector2, collision) {
+        if (collision && !(collision instanceof RectangleCollision)) return false;
+        if (!(collision instanceof RectangleCollision)) collision = new RectangleCollision(0, 0, 1, 1);
+        currentPosition = currentPosition.add(this.offsetX, this.offsetY);
+        vector2 = vector2.add(collision.offsetX, collision.offsetY);
+        return currentPosition.x <= vector2.x + collision.width &&
+            vector2.x <= currentPosition.x + this.width &&
+            currentPosition.y <= vector2.y + collision.height &&
+            vector2.y <= currentPosition.y + this.height;
+    }
 }
 
 class Entity extends Vector2 {
     /*** @type {number} */
     rotation = 0;
-    /*** @type {Model} */
-    model;
+    /*** @type {Model[]} */
+    models = [];
     /*** @type {boolean} */
     gravityEnabled = true;
     /*** @type {boolean} */
-    alive = true;
+    visible = true;
     /*** @type {number} */
     gravity = 1;
     /*** @type {number} */
@@ -767,6 +812,7 @@ class Entity extends Vector2 {
             this.onGround = false;
             if (this.collidesAnyEntity()) {
                 this.y -= this.gravityVelocity;
+                this.gravityVelocity = 0;
                 this.onGround = true;
                 if (this.fallDistance > 0) this.onFall(this.fallDistance);
             } else this.fallDistance += this.gravityVelocity;
@@ -790,27 +836,37 @@ class Entity extends Vector2 {
     }
 
     /**
-     * @param {Entity} entity
+     * @param {Entity | Vector2} entityOrVector
      * @returns {boolean}
      */
-    collides(entity) {
-        return entity.collisions.some(col1 => this.collisions.some(col2 => col1.collides(col2)))
+    collides(entityOrVector) {
+        if (!(entityOrVector instanceof Entity)) return this.collisions.some(col => col.collides(this.clone(), entityOrVector));
+        return entityOrVector.collisions.some(col1 => this.collisions.some(col2 => col1.collides(entityOrVector.clone(), this.clone(), col2)))
     }
 
     /**
-     * @param {boolean} alive
-     * @returns {boolean}
+     * @param {boolean} visible
+     * @returns {Entity | null}
      */
-    collidesAnyEntity(alive = true) {
-        return Scene.getInstance().entities.some(i => i.alive === alive && i.collides(this));
+    collidesAnyEntity(visible = true) {
+        return Scene.getInstance().entities.find(i => i !== this && i.visible === visible && this.collides(i));
     }
 
     /**
-     * @param {Model | null} model
+     * @param {Model} model
      * @returns {Entity}
      */
-    setModel(model) {
-        this.model = model;
+    addModel(model) {
+        this.models.push(model);
+        return this;
+    }
+
+    /**
+     * @param {Model} model
+     * @returns {Entity}
+     */
+    removeModel(model) {
+        this.models = this.models.filter(i => i !== model);
         return this;
     }
 
@@ -852,15 +908,22 @@ class Tile extends Entity {
     constructor(x, y) {
         super(x, y);
     }
+
+    update() {
+    }
 }
 
 class TileMapModel extends Model {
     /*** @type {{x: number, y: number, model: Model}[]} */
     subModels = [];
 
-    /*** @param {number} opacity */
-    constructor(opacity) {
-        super(opacity);
+    /**
+     * @param {number} offsetX
+     * @param {number} offsetY
+     * @param {number} opacity
+     */
+    constructor(offsetX, offsetY, opacity) {
+        super(offsetX, offsetY, opacity);
     }
 
     /**
@@ -894,6 +957,9 @@ class Scene {
     ctx = null;
     /*** @type {Entity[]} */
     entities = [];
+    camera = new Vector2(0, 0);
+    onUpdateStart = r => r;
+    onUpdateEnd = r => r;
     /*** @type {Worker[]} */
     static scripts = [];
     /*** @type {CanvasRenderingContext2D | null} */
@@ -915,10 +981,12 @@ class Scene {
 
     update() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.onUpdateStart();
         this.entities.forEach(i => {
             i.update();
-            if (i.model) i.model.draw(this.ctx, i, i.clone());
+            if (i.visible) i.models.forEach(model => model ? model.draw(this.ctx, i, i.clone().add(this.camera)) : null);
         });
+        this.onUpdateEnd();
     }
 
     addScript(file) {
@@ -934,6 +1002,7 @@ class Scene {
     }
 
     destroy() {
+        _sList.forEach(i => i.stop());
         Scene.instance = null;
         Scene.scripts.forEach(worker => {
             worker.terminate();
@@ -942,8 +1011,11 @@ class Scene {
     }
 }
 
+const _sList = [];
+
 class Sound {
     constructor(src) {
+        _sList.push(this);
         this.sound = document.createElement("audio");
         this.sound.src = src;
         this.sound.setAttribute("preload", "auto");
@@ -962,7 +1034,7 @@ class Sound {
     }
 }
 
-setInterval(() => Scene.ctx ? Scene.getInstance().update() : (window.on_editor ? window.on_editor() : null), 10);
+setInterval(() => Scene.getInstance().update(), 10);
 document._load_script = {};
 let _script_id = 0;
 
