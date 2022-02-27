@@ -87,7 +87,7 @@
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    const node_types = ["entity", "model", "collision", "tile", "tile-map"];
+    const node_types = ["entity", "model", "collision", "tile"/*, "tile-map"*/, "script"];
 
     const start_btn = document.getElementById("start_btn");
     const stop_btn = document.getElementById("stop_btn");
@@ -271,8 +271,9 @@
                 }
                 break;
             case "collision":
+            case "script":
                 if (prop.array) {
-                    propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => project.json.nodes[i] && project.json.nodes[i].type === "collision" && nodeName !== i))).join(",");
+                    propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => project.json.nodes[i] && project.json.nodes[i].type === prop.type && nodeName !== i))).join(",");
                 } else {
                     if (!project.json.nodes[propertyValue] || nodeName === propertyValue) propertyValue = prop.default;
                 }
@@ -408,6 +409,7 @@ ${input}
     Scene.ctx = ctx;
     let modelList = {};
     let collisionList = {};
+    let scriptList = {};
 
     const createModel = async ({type, properties}) => {
         switch (type) {
@@ -512,6 +514,15 @@ ${input}
             collisionList[m] = createCollision(n.properties);
         }
     }
+    const refreshScriptList = async () => {
+        scriptList = {};
+        const loadingScripts = Object.keys(project.json.nodes).filter(i => project.json.nodes[i].type === "script");
+        for (let i = 0; i < loadingScripts.length; i++) {
+            const m = loadingScripts[i];
+            const n = project.json.nodes[m];
+            if (n.properties.file.value) scriptList[m] = await loadScript(n.properties.file.value);
+        }
+    }
 
     canvas.addEventListener("keypress", ev => {
     });
@@ -573,8 +584,9 @@ ${input}
                 Scene.getInstance().destroy();
                 Scene.getInstance().camera = sceneCamera;
                 Scene.getInstance().onUpdateStart = () => {
-                    ctx.fillStyle = "rgb(255, 0, 0)";
+                    ctx.fillStyle = "rgb(0, 255, 0)";
                     ctx.fillRect(0, sceneCamera.y, canvas.width, 1);
+                    ctx.fillStyle = "rgb(255, 0, 0)";
                     ctx.fillRect(sceneCamera.x, 0, 1, canvas.height);
                 }
                 if (!setupCamera) {
