@@ -32,6 +32,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "node-collision": "Collision",
     "node-tile": "Tile",
     "node-tile-map": "Tile Map",
+    "node-script": "Script",
     "enter-node-name": "Enter node name",
     "add-node-title": "Add Node",
     "add-node-button": "Add",
@@ -74,6 +75,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "property--terminalGravityVelocity": "Max Gravity",
     "property--invisible": "Invisible",
     "property--radius": "Radius",
+    "property--file": "File",
     "none": "none",
     "model-type-image": "Image",
     "model-type-text": "Text",
@@ -108,6 +110,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "node-collision": "Çarpışma Kutusu",
     "node-tile": "Nesne",
     "node-tile-map": "Nesne Haritası",
+    "node-script": "Skript",
     "enter-node-name": "Nesne adını girin",
     "add-node-title": "Nesne Ekle",
     "add-node-button": "Ekle",
@@ -149,6 +152,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "property--terminalGravityVelocity": "Max Yer Çekimi",
     "property--invisible": "Görünmez",
     "property--radius": "Yarıçap",
+    "property--file": "Dosya",
     "none": "yok",
     "model-type-image": "Resim",
     "model-type-text": "Yazı",
@@ -611,6 +615,14 @@ const property_list = {
             type: "number",
             value: 1,
             default: 1,
+            isDefaultProperty: true
+        }
+    },
+    script: {
+        file: {
+            type: "file",
+            value: null,
+            default: null,
             isDefaultProperty: true
         }
     },

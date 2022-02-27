@@ -989,18 +989,6 @@ class Scene {
         this.onUpdateEnd();
     }
 
-    addScript(file) {
-        let id = _script_id++;
-        return new Promise(r => {
-            document._load_script[id] = code => {
-                this.code = code;
-                delete document._load_script[id];
-                r(code);
-            }
-            ws.sendPacket("load_script", {file, id});
-        });
-    }
-
     destroy() {
         _sList.forEach(i => i.stop());
         Scene.instance = null;
@@ -1037,5 +1025,17 @@ class Sound {
 setInterval(() => Scene.getInstance().update(), 10);
 document._load_script = {};
 let _script_id = 0;
+
+const loadScript = file => {
+    let id = _script_id++;
+    return new Promise(r => {
+        document._load_script[id] = code => {
+            this.code = code;
+            delete document._load_script[id];
+            r(code);
+        }
+        ws.sendPacket("load_script", {file, id});
+    });
+}
 
 addWSListener("load_script", ({id, code}) => document._load_script[id](code));
