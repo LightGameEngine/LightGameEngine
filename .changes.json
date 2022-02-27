@@ -47,5 +47,25 @@
     "resources/src/scripts/engine.js",
     "resources/src/styles/project.css",
     "resources/src/styles/style.css"
+  ],
+  [
+    "Logger.js",
+    "resources/assets/edit.png",
+    "resources/index.js",
+    "resources/src/project.html",
+    "resources/src/scripts/engine.js",
+    "resources/src/styles/project.css",
+    "resources/assets/icon.png",
+    "resources/assets/model.png",
+    "resources/assets/model_circle.png",
+    "resources/assets/model_image.png",
+    "resources/assets/model_rectangle.png",
+    "resources/assets/model_text.png",
+    "resources/assets/start.gif",
+    "resources/assets/trash_closed.png",
+    "resources/assets/trash_closed_red.png",
+    "resources/assets/trash_open.png",
+    "resources/assets/trash_open_red.png",
+    "resources/src/start.html"
   ]
 ]
