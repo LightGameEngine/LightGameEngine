@@ -55,7 +55,7 @@ Logger.debugging = false;
             require("./resources/index");
         }
     } catch (e) {
-        console.log(e);
+        console.info(e);
         Logger.alert("Update failed.");
         require("./resources/index");
     }

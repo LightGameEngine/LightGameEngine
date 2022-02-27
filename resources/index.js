@@ -27,11 +27,11 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "project-name-invalid": "Project name should not include invalid characters.",
     "project-name-empty": "Project name should have been filled.",
     "properties-title": "Properties",
-    "object-entity": "Entity",
-    "object-model": "Model",
-    "object-collision": "Collision",
-    "object-tile": "Tile",
-    "object-tile-map": "Tile Map",
+    "node-entity": "Entity",
+    "node-model": "Model",
+    "node-collision": "Collision",
+    "node-tile": "Tile",
+    "node-tile-map": "Tile Map",
     "enter-node-name": "Enter node name",
     "add-node-title": "Add Node",
     "add-node-button": "Add",
@@ -64,20 +64,25 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "property--fillColor": "Fill Color",
     "property--strokeColor": "Stroke Color",
     "property--rotation": "Rotation",
-    "property--model": "Model",
+    "property--models": "Models",
     "property--motionDivision": "Motion Multiplier",
     "property--collisions": "Collisions",
     "property--image": "Image",
-    "property--opacity": "Opaklık",
+    "property--opacity": "Opacity",
     "property--gravity": "Gravity Multiplier",
     "property--gravityEnabled": "Gravity",
     "property--terminalGravityVelocity": "Max Gravity",
+    "property--invisible": "Invisible",
+    "property--radius": "Radius",
     "none": "none",
     "model-type-image": "Image",
     "model-type-text": "Text",
     "model-type-rectangle": "Rectangle",
     "model-type-circle": "Circle",
-    "select-model-type": "Select model type"
+    "select-model-type": "Select model type",
+    "rename-node-title": "Rename Node",
+    "enter-node-new-name": "Enter node's new name",
+    "rename-node-button": "Rename"
 }));
 fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
@@ -98,11 +103,11 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "project-name-invalid": "Proje adı geçersiz karakter içermemeli.",
     "project-name-empty": "Proje adını doldurmalısın.",
     "properties-title": "Özellikler",
-    "object-entity": "Canlı",
-    "object-model": "Model",
-    "object-collision": "Çarpışma Kutusu",
-    "object-tile": "Nesne",
-    "object-tile-map": "Nesne Haritası",
+    "node-entity": "Canlı",
+    "node-model": "Model",
+    "node-collision": "Çarpışma Kutusu",
+    "node-tile": "Nesne",
+    "node-tile-map": "Nesne Haritası",
     "enter-node-name": "Nesne adını girin",
     "add-node-title": "Nesne Ekle",
     "add-node-button": "Ekle",
@@ -134,7 +139,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "property--fillColor": "Doldurma Rengi",
     "property--strokeColor": "Çevre Rengi",
     "property--rotation": "Yön",
-    "property--model": "Model",
+    "property--models": "Modeller",
     "property--motionDivision": "Hareket Oranı",
     "property--collisions": "Çarpışma Kutuları",
     "property--image": "Resim",
@@ -142,12 +147,17 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "property--gravity": "Yer Çekimi İvmesi",
     "property--gravityEnabled": "Yer Çekimi",
     "property--terminalGravityVelocity": "Max Yer Çekimi",
+    "property--invisible": "Görünmez",
+    "property--radius": "Yarıçap",
     "none": "yok",
     "model-type-image": "Resim",
     "model-type-text": "Yazı",
     "model-type-rectangle": "Kare",
     "model-type-circle": "Yuvarlak",
-    "select-model-type": "Model türü seç"
+    "select-model-type": "Model türü seç",
+    "rename-node-title": "Nesneyi Yeniden Adlandır",
+    "enter-node-new-name": "Nesnenin yeni adını gir",
+    "rename-node-button": "Yeniden Adlandır"
 }));
 if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
 fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
@@ -183,10 +193,10 @@ fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
         "bar-color": "white",
         "popup-close-hover-background": "red",
         "property-name-color": "white",
-        "object-hover-background": "rgba(169, 159, 159, 0.5)",
+        "node-hover-background": "rgba(169, 159, 159, 0.5)",
         "container-nav-background": "#5b5b5b",
-        "object-selected-background": "#4a7aa9",
-        "object-selected-hover-background": "#5e95cb",
+        "node-selected-background": "#4a7aa9",
+        "node-selected-hover-background": "#5e95cb",
         "node-menu-background": "#545454"
     }
 }));
@@ -223,10 +233,10 @@ fs.writeFileSync(lightRoamingPath + "/themes/light.json", JSON.stringify({
         "bar-color": "black",
         "popup-close-hover-background": "red",
         "property-name-color": "#000000",
-        "object-hover-background": "rgba(169, 159, 159, 0.5)",
+        "node-hover-background": "rgba(169, 159, 159, 0.5)",
         "container-nav-background": "#868686",
-        "object-selected-background": "#4a7aa9",
-        "object-selected-hover-background": "#5e95cb",
+        "node-selected-background": "#4a7aa9",
+        "node-selected-hover-background": "#5e95cb",
         "node-menu-background": "#7a7a7a"
     }
 }));
@@ -255,7 +265,7 @@ if (!fs.existsSync(cachePath)) {
         default_project_folder: null
     }));
 }
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {objects: Object<string, {type: number, properties: Object<string, number | string>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
+/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {nodes: Object<string, {type: number, properties: Object<string, number | string>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
 const cache = JSON.parse(fs.readFileSync(cachePath).toString());
 
 class CacheManager {
@@ -282,7 +292,7 @@ class CacheManager {
             name: path.split("/").reverse()[0],
             path,
             json: {
-                objects: {}
+                nodes: {}
             },
             createdTimestamp: Date.now(),
             lastOpenTimestamp: 0
@@ -314,11 +324,11 @@ class CacheManager {
     }
 
     static getNode(path, node) {
-        return cache.projects[path].json.objects[node];
+        return cache.projects[path].json.nodes[node];
     }
 
     static setNodePosition(path, node, position) {
-        cache.projects[path].json.objects[node].position = position;
+        cache.projects[path].json.nodes[node].position = position;
         this.save();
     }
 
@@ -379,7 +389,7 @@ const property_list = {
             isDefaultProperty: true
         },
         image: {
-            type: "string",
+            type: "image",
             value: "../assets/icon.png",
             default: "../assets/icon.png",
             isDefaultProperty: true
@@ -388,7 +398,6 @@ const property_list = {
             type: "number",
             value: 1,
             default: 1,
-            rad: [0, 1, 0.1],
             isDefaultProperty: true
         }
     },
@@ -440,7 +449,6 @@ const property_list = {
             type: "number",
             value: 1,
             default: 1,
-            rad: [0, 1, 0.1],
             isDefaultProperty: true
         }
     },
@@ -487,7 +495,6 @@ const property_list = {
             type: "number",
             value: 1,
             default: 1,
-            rad: [0, 1, 0.1],
             isDefaultProperty: true
         }
     },
@@ -506,14 +513,12 @@ const property_list = {
         },
         fillColor: {
             type: "color",
-            nullAllowed: true,
             value: "#000000",
             default: "#000000",
             isDefaultProperty: true
         },
         strokeColor: {
             type: "color",
-            nullAllowed: true,
             value: "#000000",
             default: "#000000",
             isDefaultProperty: true
@@ -526,9 +531,8 @@ const property_list = {
         },
         opacity: {
             type: "number",
-            value: 0,
-            default: 0,
-            rad: [0, 1, 0.1],
+            value: 1,
+            default: 1,
             isDefaultProperty: true
         }
     },
@@ -608,13 +612,6 @@ const property_list = {
             value: 1,
             default: 1,
             isDefaultProperty: true
-        },
-        opacity: {
-            type: "number",
-            value: 0,
-            default: 0,
-            rad: [0, 1, 0.1],
-            isDefaultProperty: true
         }
     },
     entity: {
@@ -636,10 +633,17 @@ const property_list = {
             default: 0,
             isDefaultProperty: true
         },
-        model: {
+        models: {
             type: "model",
-            value: null,
-            default: null,
+            array: true,
+            value: "",
+            default: "",
+            isDefaultProperty: true
+        },
+        invisible: {
+            type: "boolean",
+            value: false,
+            default: false,
             isDefaultProperty: true
         },
         gravityEnabled: {
@@ -650,32 +654,14 @@ const property_list = {
         },
         gravity: {
             type: "number",
-            value: 1,
-            default: 1,
-            isDefaultProperty: true
-        },
-        gravityVelocity: {
-            value: 1,
-            default: 1,
-            visible: false,
+            value: 0.3,
+            default: 0.3,
             isDefaultProperty: true
         },
         terminalGravityVelocity: {
             type: "number",
             value: 128,
             default: 128,
-            isDefaultProperty: true
-        },
-        fallDistance: {
-            value: 0,
-            default: 0,
-            visible: false,
-            isDefaultProperty: true
-        },
-        onGround: {
-            value: false,
-            default: false,
-            visible: false,
             isDefaultProperty: true
         },
         motionDivision: {
@@ -687,18 +673,18 @@ const property_list = {
         collisions: {
             type: "collision",
             array: true,
-            value: [],
-            default: [],
+            value: "",
+            default: "",
             isDefaultProperty: true
         }
     }
 };
 
 property_list.tile = JSON.parse(JSON.stringify(property_list.entity));
-property_list.tile.gravityEnabled.visible = false;
-property_list.tile.gravity.visible = false;
-property_list.tile.gravityVelocity.visible = false;
-property_list.tile.terminalGravityVelocity.visible = false;
+delete property_list.tile.gravityEnabled;
+delete property_list.tile.gravity;
+delete property_list.tile.terminalGravityVelocity;
+delete property_list.tile.motionDivision;
 property_list["tile-map"] = JSON.parse(JSON.stringify(property_list.tile));
 property_list["tile-map"].subModels = {
     value: [],
@@ -816,27 +802,27 @@ wss.on("connection", async socket => {
                     break;
                 case "add_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    cache.projects[json.data.path].json.objects[json.data.node.name] = {
+                    cache.projects[json.data.path].json.nodes[json.data.node.name] = {
                         type: json.data.node.type,
                         properties: property_list[json.data.node.type],
-                        position: (Object.values(cache.projects[json.data.path].json.objects).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
+                        position: (Object.values(cache.projects[json.data.path].json.nodes).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
                         createdTimestamp: Date.now()
                     };
                     CacheManager.save();
                     break;
                 case "remove_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    delete cache.projects[json.data.path].json.objects[json.data.name];
+                    delete cache.projects[json.data.path].json.nodes[json.data.name];
                     CacheManager.save();
                     break;
                 case "set_node_properties":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    cache.projects[json.data.path].json.objects[json.data.name].properties = json.data.properties;
+                    cache.projects[json.data.path].json.nodes[json.data.name].properties = json.data.properties;
                     CacheManager.save();
                     break;
                 case "set_node_type":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    cache.projects[json.data.path].json.objects[json.data.name].type = json.data.type;
+                    cache.projects[json.data.path].json.nodes[json.data.name].type = json.data.type;
                     CacheManager.save();
                     break;
                 case "switch_node_positions":
@@ -844,6 +830,10 @@ wss.on("connection", async socket => {
                     const a = CacheManager.getNode(json.data.path, json.data.from).position;
                     CacheManager.setNodePosition(json.data.path, json.data.from, CacheManager.getNode(json.data.path, json.data.to).position);
                     CacheManager.setNodePosition(json.data.path, json.data.to, a);
+                    break;
+                case "set_node_position":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.setNodePosition(json.data.path, json.data.node, json.data.position);
                     break;
                 case "main_menu":
                     browser.setPositionLimits();

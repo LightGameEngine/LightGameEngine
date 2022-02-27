@@ -143,11 +143,11 @@
     width: 6%;
 }
 
-.object_select {
+.node_select {
     cursor: pointer;
 }
 
-.object_select:hover {
+.node_select:hover {
     background: var(--btn-hover-background);
 }
 
@@ -161,34 +161,34 @@
     background: var(--node-menu-background);
 }
 
-.objects {
+.nodes {
     margin-top: 10px;
 }
 
-.object {
+.node {
     cursor: pointer;
 }
 
-.object:hover {
-    background: var(--object-hover-background);
+.node:hover {
+    background: var(--node-hover-background);
 }
 
-.object_selected {
-    background: var(--object-selected-background);
+.node_selected {
+    background: var(--node-selected-background);
 }
 
-.object_selected:hover {
-    background: var(--object-selected-hover-background);
+.node_selected:hover {
+    background: var(--node-selected-hover-background);
 }
 
-.object_name {
+.node_name {
     color: var(--property-name-color);
     position: absolute;
     margin-left: 4px;
     margin-top: 3px;
 }
 
-.object_image {
+.node_image {
     margin-left: 2px;
     margin-top: 3px;
     width: 18px;
@@ -245,4 +245,15 @@
 .remove_node:hover {
     background: url("../../assets/trash_open.png");
     background-size: 15px 19px;
+}
+
+.rename_node {
+    position: absolute;
+    background: url("../../assets/edit.png");
+    background-size: 16px 16px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    right: 25px;
+    margin-top: -20px;
 }

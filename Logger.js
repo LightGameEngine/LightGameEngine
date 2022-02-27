@@ -10,7 +10,7 @@ module.exports = class Logger {
 
     static log(type, text) {
         const date = new Date();
-        console.log(`${chalk.blueBright(`[${date.getHours().toString().length < 2 ? "0" + date.getHours() : date.getHours()}:${date.getMinutes().toString().length < 2 ? "0" + date.getMinutes() : date.getMinutes()}:${date.getSeconds().toString().length < 2 ? "0" + date.getSeconds() : date.getSeconds()}]`)}${this[type](`${" ".repeat((8 - type.length) - Math.floor((8 - type.length) / 2))}[${type}]${" ".repeat(Math.floor((8 - type.length) / 2))}: ${text}`)}`);
+        console.info(`${chalk.blueBright(`[${date.getHours().toString().length < 2 ? "0" + date.getHours() : date.getHours()}:${date.getMinutes().toString().length < 2 ? "0" + date.getMinutes() : date.getMinutes()}:${date.getSeconds().toString().length < 2 ? "0" + date.getSeconds() : date.getSeconds()}]`)}${this[type](`${" ".repeat((8 - type.length) - Math.floor((8 - type.length) / 2))}[${type}]${" ".repeat(Math.floor((8 - type.length) / 2))}: ${text}`)}`);
     }
 
     static info(text) {
