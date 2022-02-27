@@ -1,5 +1,247 @@
 // noinspection JSUnusedGlobalSymbols
 
+// Source: https://github.com/bgrins/javascript-astar
+
+(() => {
+    function pathTo(node, sync) {
+        let curr = node, path = [];
+        if (sync) {
+            while (curr.parent) {
+                path.push(curr);
+                curr = curr.parent;
+            }
+            return new Promise(r => r(path.reverse()));
+        }
+        return new Promise(r => {
+            const func = () => {
+                if (curr.parent) {
+                    path.push(curr);
+                    curr = curr.parent;
+                    requestAnimationFrame(func);
+                } else {
+                    r(path.reverse());
+                }
+            };
+            func();
+        });
+    }
+
+    const PathFinderAStar = {
+        search: async function (grid, start, end, options) {
+            options = options || {};
+            options.sync = options.sync === undefined ? true : options.sync;
+            const graph = {
+                grid: grid.map((t, r) => t.map((j, i) => [{
+                    x: r,
+                    y: i,
+                    weight: j,
+                    f: 0,
+                    g: 0,
+                    h: 0,
+                    visited: false,
+                    closed: false,
+                    parent: null
+                }][0]))
+            };
+            start = graph.grid[start.x][start.y];
+            end = graph.grid[end.x][end.y];
+            const heuristic = options["heuristic"] || PathFinderAStar.heuristics.manhattan,
+                closest = options.closest || false;
+            let openHeap = new BinaryHeap(n => n.f), closestNode = start;
+            start.h = heuristic(start, end);
+            openHeap.content.push(start);
+            await openHeap.sink(openHeap.content.length - 1, options.sync);
+            if (options.sync) {
+                while (openHeap.content.length > 0) {
+                    const currentNode = await openHeap.pop(options.sync);
+                    if (currentNode === end) return pathTo(currentNode);
+                    currentNode.closed = true;
+                    const neighbors = [];
+                    if (graph.grid[currentNode.x - 1] && graph.grid[currentNode.x - 1][currentNode.y]) neighbors.push(graph.grid[currentNode.x - 1][currentNode.y]);
+                    if (graph.grid[currentNode.x + 1] && graph.grid[currentNode.x + 1][currentNode.y]) neighbors.push(graph.grid[currentNode.x + 1][currentNode.y]);
+                    if (graph.grid[currentNode.x] && graph.grid[currentNode.x][currentNode.y - 1]) neighbors.push(graph.grid[currentNode.x][currentNode.y - 1]);
+                    if (graph.grid[currentNode.x] && graph.grid[currentNode.x][currentNode.y + 1]) neighbors.push(graph.grid[currentNode.x][currentNode.y + 1]);
+                    if (options.diagonal) {
+                        if (graph.grid[currentNode.x - 1] && graph.grid[currentNode.x - 1][currentNode.y - 1]) neighbors.push(graph.grid[currentNode.x - 1][currentNode.y - 1]);
+                        if (graph.grid[currentNode.x + 1] && graph.grid[currentNode.x + 1][currentNode.y - 1]) neighbors.push(graph.grid[currentNode.x + 1][currentNode.y - 1]);
+                        if (graph.grid[currentNode.x - 1] && graph.grid[currentNode.x - 1][currentNode.y + 1]) neighbors.push(graph.grid[currentNode.x - 1][currentNode.y + 1]);
+                        if (graph.grid[currentNode.x + 1] && graph.grid[currentNode.x + 1][currentNode.y + 1]) neighbors.push(graph.grid[currentNode.x + 1][currentNode.y + 1]);
+                    }
+                    for (let i = 0, il = neighbors.length; i < il; ++i) {
+                        const neighbor = neighbors[i];
+                        if (neighbor.closed || neighbor.weight === 0) continue;
+                        const gScore = currentNode.g + neighbor.weight, beenVisited = neighbor.visited;
+                        if (!beenVisited || gScore < neighbor.g) {
+                            neighbor.visited = true;
+                            neighbor.parent = currentNode;
+                            neighbor.h = neighbor.h || heuristic(neighbor, end);
+                            neighbor.g = gScore;
+                            neighbor.f = neighbor.g + neighbor.h;
+                            if (closest && (neighbor.h < closestNode.h || (neighbor.h === closestNode.h && neighbor.g < closestNode.g))) closestNode = neighbor;
+                            if (!beenVisited) {
+                                openHeap.content.push(neighbor);
+                                await openHeap.sink(openHeap.content.length - 1, options.sync);
+                            } else await openHeap.sink(openHeap.content.indexOf(neighbor), options.sync)
+                        }
+                    }
+                }
+            } else {
+                const r = await new Promise(async res => {
+                    const func = async () => {
+                        if (openHeap.content.length > 0) {
+                            const currentNode = await openHeap.pop(options.sync);
+                            if (currentNode === end) {
+                                res(pathTo(currentNode));
+                                return;
+                            }
+                            currentNode.closed = true;
+                            const neighbors = [];
+                            if (graph.grid[currentNode.x - 1] && graph.grid[currentNode.x - 1][currentNode.y]) neighbors.push(graph.grid[currentNode.x - 1][currentNode.y]);
+                            if (graph.grid[currentNode.x + 1] && graph.grid[currentNode.x + 1][currentNode.y]) neighbors.push(graph.grid[currentNode.x + 1][currentNode.y]);
+                            if (graph.grid[currentNode.x] && graph.grid[currentNode.x][currentNode.y - 1]) neighbors.push(graph.grid[currentNode.x][currentNode.y - 1]);
+                            if (graph.grid[currentNode.x] && graph.grid[currentNode.x][currentNode.y + 1]) neighbors.push(graph.grid[currentNode.x][currentNode.y + 1]);
+                            if (options.diagonal) {
+                                if (graph.grid[currentNode.x - 1] && graph.grid[currentNode.x - 1][currentNode.y - 1]) neighbors.push(graph.grid[currentNode.x - 1][currentNode.y - 1]);
+                                if (graph.grid[currentNode.x + 1] && graph.grid[currentNode.x + 1][currentNode.y - 1]) neighbors.push(graph.grid[currentNode.x + 1][currentNode.y - 1]);
+                                if (graph.grid[currentNode.x - 1] && graph.grid[currentNode.x - 1][currentNode.y + 1]) neighbors.push(graph.grid[currentNode.x - 1][currentNode.y + 1]);
+                                if (graph.grid[currentNode.x + 1] && graph.grid[currentNode.x + 1][currentNode.y + 1]) neighbors.push(graph.grid[currentNode.x + 1][currentNode.y + 1]);
+                            }
+                            let i = 0;
+                            let il = neighbors.length;
+                            await new Promise(async res2 => {
+                                const func2 = async () => {
+                                    if (i < il) {
+                                        const neighbor = neighbors[i];
+                                        if (neighbor.closed || neighbor.weight === 0) {
+                                            i++;
+                                            return requestAnimationFrame(func2);
+                                        }
+                                        const gScore = currentNode.g + neighbor.weight, beenVisited = neighbor.visited;
+                                        if (!beenVisited || gScore < neighbor.g) {
+                                            neighbor.visited = true;
+                                            neighbor.parent = currentNode;
+                                            neighbor.h = neighbor.h || heuristic(neighbor, end);
+                                            neighbor.g = gScore;
+                                            neighbor.f = neighbor.g + neighbor.h;
+                                            if (closest && (neighbor.h < closestNode.h || (neighbor.h === closestNode.h && neighbor.g < closestNode.g))) closestNode = neighbor;
+                                            if (!beenVisited) {
+                                                openHeap.content.push(neighbor);
+                                                await openHeap.sink(openHeap.content.length - 1, options.sync);
+                                            } else await openHeap.sink(openHeap.content.indexOf(neighbor), options.sync)
+                                        }
+                                        i++;
+                                        requestAnimationFrame(func2);
+                                    } else res2();
+                                }
+                                await func2();
+                            });
+                            requestAnimationFrame(func);
+                        } else res();
+                    }
+                    await func();
+                });
+                if (r) return r;
+            }
+            if (closest) return pathTo(closestNode);
+            return [];
+        },
+        heuristics: {
+            manhattan: (p1, p2) => Math.abs(p2.x - p1.x) + Math.abs(p2.y - p1.y),
+            diagonal: (p1, p2) => (Math.abs(p2.x - p1.x) + Math.abs(p2.y - p1.y)) + ((Math.sqrt(2) - 2) * Math.min(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y)))
+        }
+    };
+
+    class BinaryHeap {
+        constructor(callback) {
+            this.content = [];
+            this.callback = callback;
+        }
+
+        async pop(sync) {
+            const result = this.content[0];
+            const end = this.content.pop();
+            if (this.content.length > 0) {
+                this.content[0] = end;
+                let n = 0;
+                const ES = this.callback(this.content[n]);
+                if (sync) {
+                    while (true) {
+                        const c2N = (n + 1) << 1, c1N = c2N - 1;
+                        let sw = null, c1S;
+                        if (c1N < this.content.length) {
+                            const child1 = this.content[c1N];
+                            c1S = this.callback(child1);
+                            if (c1S < ES) sw = c1N;
+                        }
+                        if (c2N < this.content.length && this.callback(this.content[c2N]) < (sw === null ? ES : c1S)) sw = c2N;
+                        if (sw !== null) {
+                            this.content[n] = this.content[sw];
+                            this.content[sw] = this.content[n];
+                            n = sw;
+                        } else break;
+                    }
+                } else {
+                    await new Promise(r => {
+                        const func = () => {
+                            const c2N = (n + 1) << 1, c1N = c2N - 1;
+                            let sw = null, c1S;
+                            if (c1N < this.content.length) {
+                                const child1 = this.content[c1N];
+                                c1S = this.callback(child1);
+                                if (c1S < ES) sw = c1N;
+                            }
+                            if (c2N < this.content.length && this.callback(this.content[c2N]) < (sw === null ? ES : c1S)) sw = c2N;
+                            if (sw !== null) {
+                                this.content[n] = this.content[sw];
+                                this.content[sw] = this.content[n];
+                                n = sw;
+                            } else return r();
+                            requestAnimationFrame(func);
+                        };
+                        func();
+                    });
+                }
+            }
+            return result;
+        }
+
+        sink(n, sync) {
+            const el = this.content[n];
+            if (sync) {
+                while (n > 0) {
+                    const parentN = ((n + 1) >> 1) - 1,
+                        parent = this.content[parentN];
+                    if (this.callback(el) < this.callback(parent)) {
+                        this.content[parentN] = el;
+                        this.content[n] = parent;
+                        n = parentN;
+                    } else break;
+                }
+            } else return new Promise(r => {
+                const func = () => {
+                    if (n > 0) {
+                        const parentN = ((n + 1) >> 1) - 1, parent = this.content[parentN];
+                        if (this.callback(el) < this.callback(parent)) {
+                            this.content[parentN] = el;
+                            this.content[n] = parent;
+                            n = parentN;
+                        } else return r();
+                    } else return r();
+                    requestAnimationFrame(func);
+                };
+                func();
+            });
+            return new Promise(r => r());
+        }
+    }
+
+    window.AStar = PathFinderAStar;
+})();
+const PathFinder = {
+    /*** @type {{heuristics: Object<string, function(p1: {x: number, y: number}, p2: {x: number, y: number}): number>, search: function(grid: number[][], start: {x: number, y: number}, end: {x: number, y: number}, options?: {heuristic?: function(p1: {x: number, y: number}, p2: {x: number, y: number}): number, closest?: boolean, diagonal?: boolean, sync?: boolean}): Promise<{x: int, y: int}[]>}} */
+    AStar: window.AStar
+};
+
 let _id = 0;
 /**
  * @param {number} angle
@@ -115,21 +357,6 @@ class Matrix2 {
         return keys;
     }
 }
-
-const check_var = {
-    bigger_0: (a, b) => {
-        if (b <= 0) throw new Error(a + " should be a number that is bigger than 0, '" + b + "' provided.");
-    },
-    bigger_equal_0: (a, b) => {
-        if (b < 0) throw new Error(a + " should be a number that is bigger or equal to 0, '" + b + "' provided.");
-    },
-    string: (a, b) => {
-        if (!b || typeof b !== "string") throw new Error(a + " should be a string, '" + b + "' provided.");
-    },
-    string_null: (a, b) => {
-        if (b && typeof b !== "string") throw new Error(a + " should be a string or null, '" + b + "' provided.");
-    }
-};
 
 class Vector2 {
     /*** @type {number} */
@@ -256,6 +483,36 @@ class Vector2 {
     }
 }
 
+let printHandler = console.log;
+let _hK = {};
+const _mP = new Vector2(0, 0);
+addEventListener("keydown", ev => _hK[ev.key] = true);
+addEventListener("keyup", ev => delete _hK[ev.key]);
+addEventListener("mousemove", ev => {
+    mouse.x = ev.offsetX;
+    mouse.y = ev.offsetY;
+});
+
+function log(str) {
+    printHandler(str);
+}
+
+function getMouse() {
+    return mouse;
+}
+
+function getMouseWithCamera() {
+    return Scene.getInstance().camera.subtract(mouse);
+}
+
+function isPressing(key) {
+    return _hK[key] || false;
+}
+
+function keysPressing() {
+    return Object.keys(_hK);
+}
+
 class Model {
     /*** @type {number} */
     opacity;
@@ -270,10 +527,12 @@ class Model {
      * @param {number} opacity
      */
     constructor(offsetX, offsetY, opacity) {
-        check_var.bigger_equal_0("Model opacity", opacity);
-        this.opacity = opacity || 1.0;
+        this.opacity = !opacity && opacity !== 0 ? 1.0 : opacity;
         this.offsetX = offsetX;
         this.offsetY = offsetY;
+    }
+
+    init() {
     }
 
     /**
@@ -286,6 +545,7 @@ class Model {
 }
 
 class ImageModel extends Model {
+    static PROPERTIES = ["offsetX", "offsetY", "width", "height", "image"];
     /*** @type {number} */
     width;
     /*** @type {number} */
@@ -311,7 +571,6 @@ class ImageModel extends Model {
      * @returns {ImageModel}
      */
     setWidth(width) {
-        check_var.bigger_0("Model width", width);
         this.width = width;
         return this;
     }
@@ -321,7 +580,6 @@ class ImageModel extends Model {
      * @returns {ImageModel}
      */
     setHeight(height) {
-        check_var.bigger_0("Model height", height);
         this.height = height;
         return this;
     }
@@ -341,12 +599,12 @@ class ImageModel extends Model {
     /*** @param {string | CanvasImageSource} urlOrImage */
     setImage(urlOrImage) {
         if (urlOrImage instanceof Image) return this.image = urlOrImage;
-        check_var.string("Model image", urlOrImage);
-        console.info("INFO: We don't prefer using Model.setImage function with url");
+        document._cc.info("INFO: We don't prefer using Model.setImage function with url");
         ImageModel.loadImage(urlOrImage).then(img => this.setImage(img));
     }
 
     draw(ctx, entity, position) {
+        if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.width / 2, this.height / 2));
         ctx.globalAlpha = this.opacity;
@@ -357,6 +615,7 @@ class ImageModel extends Model {
 }
 
 class TextModel extends Model {
+    static PROPERTIES = ["offsetX", "offsetY", "text", "font", "size", "color", "maxWidth"];
     /*** @type {string} */
     text;
     /*** @type {string} */
@@ -392,7 +651,6 @@ class TextModel extends Model {
      * @returns {TextModel}
      */
     setText(text) {
-        check_var.string("Model text", text);
         this.text = text;
         return this;
     }
@@ -402,7 +660,6 @@ class TextModel extends Model {
      * @returns {TextModel}
      */
     setFont(font) {
-        check_var.string("Model text font", font);
         this.font = font;
         return this;
     }
@@ -412,7 +669,6 @@ class TextModel extends Model {
      * @returns {TextModel}
      */
     setSize(size) {
-        check_var.bigger_0("Model text size", size);
         this.size = size;
         return this;
     }
@@ -422,7 +678,6 @@ class TextModel extends Model {
      * @returns {TextModel}
      */
     setColor(color) {
-        check_var.string("Model color", color);
         this.color = color;
         return this;
     }
@@ -459,6 +714,7 @@ class TextModel extends Model {
     }
 
     draw(ctx, entity, position) {
+        if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
         const {width, height} = TextModel.calculateTextSize(this.text, this.size, this.font);
         position = position.add(0, height);
@@ -473,6 +729,7 @@ class TextModel extends Model {
 }
 
 class PathModel extends Model {
+    static PROPERTIES = ["offsetX", "offsetY", "path", "fillColor", "strokeColor", "middle"];
     /*** @type {{offsetX: number, offsetY: number}[]} */
     path;
     /*** @type {string | null} */
@@ -512,7 +769,6 @@ class PathModel extends Model {
      * @returns {PathModel}
      */
     setFillColor(fillColor) {
-        check_var.string_null("Model fill color", fillColor);
         this.fillColor = fillColor;
         return this;
     }
@@ -522,12 +778,12 @@ class PathModel extends Model {
      * @returns {PathModel}
      */
     setStrokeColor(strokeColor) {
-        check_var.string_null("Model stroke color", strokeColor);
         this.strokeColor = strokeColor;
         return this;
     }
 
     draw(ctx, entity, position) {
+        if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.middle[0], this.middle[1]));
         ctx.beginPath();
@@ -549,6 +805,7 @@ class PathModel extends Model {
 }
 
 class RectangleModel extends PathModel {
+    static PROPERTIES = ["offsetX", "offsetY", "path", "fillColor", "strokeColor", "width", "height", "middle"];
     /*** @type {number} */
     width;
     /*** @type {number} */
@@ -580,7 +837,6 @@ class RectangleModel extends PathModel {
      * @returns {RectangleModel}
      */
     setWidth(width) {
-        check_var.bigger_0("Model width", width);
         this.width = width;
         this.path[1].offsetX = width;
         this.path[2].offsetX = width;
@@ -592,7 +848,6 @@ class RectangleModel extends PathModel {
      * @returns {RectangleModel}
      */
     setHeight(height) {
-        check_var.bigger_0("Model height", height);
         this.height = height;
         this.path[2].offsetY = height;
         this.path[3].offsetY = height;
@@ -601,6 +856,7 @@ class RectangleModel extends PathModel {
 }
 
 class CircleModel extends Model {
+    static PROPERTIES = ["offsetX", "offsetY", "radius", "fillColor", "strokeColor"];
     /*** @type {number} */
     radius;
     /*** @type {string} */
@@ -628,7 +884,6 @@ class CircleModel extends Model {
      * @returns {CircleModel}
      */
     setRadius(radius) {
-        check_var.bigger_0("Model radius", radius);
         this.radius = radius;
         return this;
     }
@@ -638,7 +893,6 @@ class CircleModel extends Model {
      * @returns {CircleModel}
      */
     setFillColor(fillColor) {
-        check_var.string_null("Model fill color", fillColor);
         this.fillColor = fillColor;
         return this;
     }
@@ -648,12 +902,12 @@ class CircleModel extends Model {
      * @returns {CircleModel}
      */
     setStrokeColor(strokeColor) {
-        check_var.string_null("Model stroke color", strokeColor);
         this.strokeColor = strokeColor;
         return this;
     }
 
     draw(ctx, entity, position) {
+        if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
         ctx.rotateComplete(entity.rotation || 0, position.add(this.radius, this.radius));
         ctx.beginPath();
@@ -682,6 +936,9 @@ class Collision {
     constructor(offsetX, offsetY) {
         this.setOffsetX(offsetX)
             .setOffsetY(offsetY);
+    }
+
+    init() {
     }
 
     /**
@@ -714,6 +971,7 @@ class Collision {
 }
 
 class RectangleCollision extends Collision {
+    static PROPERTIES = ["offsetX", "offsetY", "width", "height"];
     /*** @type {number} */
     width;
     /*** @type {number} */
@@ -762,6 +1020,10 @@ class RectangleCollision extends Collision {
 }
 
 class Entity extends Vector2 {
+    static PROPERTIES = [
+        "x", "y", "rotation", "models", "gravityEnabled", "visible", "gravity", "gravityVelocity",
+        "terminalGravityVelocity", "fallDistance", "onGround", "motion", "motionDivision", "collisions"
+    ];
     /*** @type {number} */
     rotation = 0;
     /*** @type {Model[]} */
@@ -805,18 +1067,20 @@ class Entity extends Vector2 {
         this.y += motion.y;
         this.motion.x -= motion.x;
         this.motion.y -= motion.y;
-        if (this.gravityEnabled && this.gravity > 0) {
-            this.gravityVelocity += this.gravity;
-            if (this.gravityVelocity > this.terminalGravityVelocity) this.gravityVelocity = this.terminalGravityVelocity;
-            this.y += this.gravityVelocity;
-            this.onGround = false;
-            if (this.collidesAnyEntity()) {
-                this.y -= this.gravityVelocity;
-                this.gravityVelocity = 0;
-                this.onGround = true;
-                if (this.fallDistance > 0) this.onFall(this.fallDistance);
-            } else this.fallDistance += this.gravityVelocity;
-        }
+        if (this.gravityEnabled && this.gravity > 0) this.onGravity();
+    }
+
+    onGravity() {
+        this.gravityVelocity += this.gravity;
+        if (this.gravityVelocity > this.terminalGravityVelocity) this.gravityVelocity = this.terminalGravityVelocity;
+        this.y += this.gravityVelocity;
+        this.onGround = false;
+        if (this.collidesAnyEntity()) {
+            this.y -= this.gravityVelocity;
+            this.gravityVelocity = 0;
+            this.onGround = true;
+            if (this.fallDistance > 0) this.onFall(this.fallDistance);
+        } else this.fallDistance += this.gravityVelocity;
     }
 
     /*** @returns {Entity} */
@@ -960,8 +1224,8 @@ class Scene {
     camera = new Vector2(0, 0);
     onUpdateStart = r => r;
     onUpdateEnd = r => r;
-    /*** @type {Worker[]} */
-    static scripts = [];
+    /*** @type {number[]} */
+    static intervals = [];
     /*** @type {CanvasRenderingContext2D | null} */
     static ctx = null;
     /*** @type {Scene | null} */
@@ -991,10 +1255,8 @@ class Scene {
 
     destroy() {
         _sList.forEach(i => i.stop());
+        Scene.intervals.forEach(i => clearInterval(i));
         Scene.instance = null;
-        Scene.scripts.forEach(worker => {
-            worker.terminate();
-        });
         Scene.scripts = [];
     }
 }
@@ -1026,16 +1288,19 @@ setInterval(() => Scene.getInstance().update(), 10);
 document._load_script = {};
 let _script_id = 0;
 
+/**
+ * @param {string} file
+ * @returns {Promise<{id: number, error: boolean, code: string | null}>}
+ */
 const loadScript = file => {
     let id = _script_id++;
     return new Promise(r => {
-        document._load_script[id] = code => {
-            this.code = code;
+        document._load_script[id] = res => {
             delete document._load_script[id];
-            r(code);
+            r(res);
         }
         ws.sendPacket("load_script", {file, id});
     });
 }
 
-addWSListener("load_script", ({id, code}) => document._load_script[id](code));
+addWSListener("load_script", res => document._load_script[res.id](res));

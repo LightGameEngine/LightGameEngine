@@ -2,7 +2,7 @@ const ws = new WebSocket("ws://localhost:9009/");
 const waitingPackets = [];
 ws.onopen = () => {
     ws.connected = true;
-    console.info("[WS] Connected.");
+    (document._cc || console).info("[WS] Connected.");
     Object.values(waitingPackets).forEach(i => ws.sendPacket(i.action, i.data));
     ws._emit("connected");
 }

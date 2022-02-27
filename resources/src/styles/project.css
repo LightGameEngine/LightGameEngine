@@ -78,6 +78,8 @@
     background: var(--console-background);
     width: 60%;
     height: 22%;
+    color: var(--general-color);
+    overflow-y: scroll;
 }
 
 .remove_mode {
