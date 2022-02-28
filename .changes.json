@@ -78,5 +78,14 @@
     "resources/src/scripts/engine.js",
     "resources/src/styles/project.css",
     "resources/src/styles/roots/general.css"
+  ],
+  [
+    "resources/assets/group.png",
+    "resources/assets/model.png",
+    "resources/assets/script.png",
+    "resources/assets/text.png",
+    "resources/index.js",
+    "resources/src/project.html",
+    "resources/src/scripts/engine.js"
   ]
 ]
