@@ -254,9 +254,6 @@ CanvasRenderingContext2D.prototype.rotateComplete = function (angle, middle) {
     this.translate(-middle.x, -middle.y);
     return this;
 }
-CanvasRenderingContext2D.prototype.resetRotate = function () {
-    this.setTransform(1, 0, 0, 1, 0, 0);
-}
 Object.prototype.cloneObject = function (...args) {
     const object = new this.constructor.prototype.constructor(...args);
     const {...obj} = this;
@@ -494,7 +491,7 @@ addEventListener("mousemove", ev => {
 });
 
 function log(str) {
-    printHandler(str);
+    printHandler(JSON.stringify(str));
 }
 
 function getMouse() {
@@ -610,7 +607,7 @@ class ImageModel extends Model {
         ctx.globalAlpha = this.opacity;
         if (this.image) ctx.drawImage(this.image, position.x, position.y, this.width, this.height);
         ctx.globalAlpha = 1;
-        ctx.resetRotate();
+        ctx.resetTransform();
     }
 }
 
@@ -698,13 +695,8 @@ class TextModel extends Model {
      * @returns {{width: number, height: number}}
      */
     static calculateTextSize(text, size, font) {
-        const div = document.createElement("div");
-        div.style.fontFamily = font;
-        div.style.fontSize = size.toString();
-        div.style.position = "absolute";
-        div.style.width = "auto";
-        div.style.height = "auto";
-        div.style.whiteSpace = "nowrap";
+        const div = document.createElement("span");
+        div.style = `font-family:${font};font-size:${size}px`;
         div.innerHTML = text;
         document.body.appendChild(div);
         const width = div.clientWidth;
@@ -724,7 +716,7 @@ class TextModel extends Model {
         ctx.font = this.size + "px " + this.font;
         ctx.fillText(this.text, position.x, position.y, this.maxWidth === null ? undefined : this.maxWidth);
         ctx.globalAlpha = 1;
-        ctx.resetRotate();
+        ctx.resetTransform();
     }
 }
 
@@ -800,7 +792,7 @@ class PathModel extends Model {
         }
         ctx.globalAlpha = 1;
         ctx.closePath();
-        ctx.resetRotate();
+        ctx.resetTransform();
     }
 }
 
@@ -919,7 +911,7 @@ class CircleModel extends Model {
         if (this.strokeColor) ctx.stroke();
         ctx.globalAlpha = 1;
         ctx.closePath();
-        ctx.resetRotate();
+        ctx.resetTransform();
     }
 }
 
