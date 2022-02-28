@@ -32,7 +32,8 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "node-collision": "Collision",
     "node-tile": "Tile",
     "node-tile-map": "Tile Map",
-    "node-script": "Script",
+    "node-group": "Group",
+    "node-text": "Text",
     "enter-node-name": "Enter node name",
     "add-node-title": "Add Node",
     "add-node-button": "Add",
@@ -113,7 +114,8 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "node-collision": "Çarpışma Kutusu",
     "node-tile": "Nesne",
     "node-tile-map": "Nesne Haritası",
-    "node-script": "Skript",
+    "node-group": "Grup",
+    "node-text": "Yazı",
     "enter-node-name": "Nesne adını girin",
     "add-node-title": "Nesne Ekle",
     "add-node-button": "Ekle",
@@ -684,6 +686,69 @@ const property_list = {
             type: "boolean",
             value: true,
             default: true,
+            isDefaultProperty: true
+        }
+    },
+    text: {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        rotation: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        collisionBorder: {
+            type: "boolean",
+            value: true,
+            default: true,
+            isDefaultProperty: true
+        },
+        text: {
+            type: "string",
+            value: "Light",
+            default: "Light",
+            isDefaultProperty: true
+        },
+        font: {
+            type: "string",
+            value: "Calibri",
+            default: "Calibri",
+            isDefaultProperty: true
+        },
+        size: {
+            type: "number",
+            value: 12,
+            default: 12,
+            isDefaultProperty: true
+        },
+        color: {
+            type: "color",
+            value: "#000000",
+            default: "#000000",
+            isDefaultProperty: true
+        },
+        maxWidth: {
+            type: "number",
+            nullAllowed: true,
+            value: null,
+            default: null,
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "number",
+            value: 1,
+            default: 1,
             isDefaultProperty: true
         }
     }
