@@ -336,6 +336,7 @@
         delete project.json.nodes[from];
         ws.sendPacket("rename_node", {path: project.path, from, to});
         select_node(to);
+        if (sceneType === "editor") setSceneType("editor");
     }
 
     function switch_node_positions(from, to) {
@@ -396,8 +397,8 @@
             });
             el.addEventListener("dragover", ev => {
                 ev.preventDefault();
-                if (!currentDragging) return;
-                const targetId = ev.target.id.replace("node_pos_", "");
+                //if (!currentDragging) return;
+                //const targetId = ev.target.id.replace("node_pos_", "");
                 //if (targetId !== currentDragging && ev.target.id.startsWith("node_pos_")) el.style.border = "2px solid white";
             });
             el.addEventListener("dragleave", () => el.style.border = "");
@@ -450,7 +451,7 @@ ${input}
     }
 
     function select_node(name, v = false) {
-        if (project.json.nodes[name].type === "group") return toggle_group_node(name);
+        if (name && project.json.nodes[name].type === "group") return toggle_group_node(name);
         if (selected_node === name && !v) {
             name = null;
             property_delete_mode = false;

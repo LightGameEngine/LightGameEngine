@@ -398,14 +398,14 @@ const property_list = {
         },
         width: {
             type: "number",
-            value: 1,
-            default: 1,
+            value: 50,
+            default: 50,
             isDefaultProperty: true
         },
         height: {
             type: "number",
-            value: 1,
-            default: 1,
+            value: 50,
+            default: 50,
             isDefaultProperty: true
         },
         image: {
@@ -501,14 +501,14 @@ const property_list = {
         },
         width: {
             type: "number",
-            value: 1,
-            default: 1,
+            value: 50,
+            default: 50,
             isDefaultProperty: true
         },
         height: {
             type: "number",
-            value: 1,
-            default: 1,
+            value: 50,
+            default: 50,
             isDefaultProperty: true
         },
         opacity: {
@@ -597,14 +597,14 @@ const property_list = {
         },
         width: {
             type: "number",
-            value: 1,
-            default: 1,
+            value: 50,
+            default: 50,
             isDefaultProperty: true
         },
         height: {
             type: "number",
-            value: 1,
-            default: 1,
+            value: 50,
+            default: 50,
             isDefaultProperty: true
         },
         customScript: {
