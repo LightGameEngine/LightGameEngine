@@ -181,6 +181,10 @@
                 open_rename_node_menu(oldName);
                 return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
             }
+            if (project.json.nodes[r]) {
+                open_rename_node_menu(oldName);
+                return document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
+            }
             rename_node(oldName, r);
         });
         document.getElementById("prompt-input").value = oldName;
@@ -327,20 +331,25 @@
         });
     }
 
-    function rename_node(name, newName) {
-        let old = project.json.nodes[name];
-        remove_node(name);
-        add_node(old.type, newName);
-        set_node_properties(newName, old.properties);
-        ws.sendPacket("set_node_position", {
-            path: project.path, node: newName, position: old.position
-        });
-        ws.sendPacket("get_projects");
-        addWSOnceListener("get_projects", () => select_node(newName));
+    function rename_node(from, to) {
+        project.json.nodes[to] = project.json.nodes[from];
+        delete project.json.nodes[from];
+        ws.sendPacket("rename_node", {path: project.path, from, to});
+        select_node(to);
     }
 
-    function switch_node_positions(a, b) {
-        ws.sendPacket("switch_node_positions", {path: project.path, from: a, to: b});
+    function switch_node_positions(from, to) {
+        ws.sendPacket("switch_node_positions", {path: project.path, from, to});
+        ws.sendPacket("get_projects");
+    }
+
+    function set_node_position(node, position) {
+        ws.sendPacket("set_node_position", {path: project.path, node, position});
+        ws.sendPacket("get_projects");
+    }
+
+    function set_node_group(node, group) {
+        ws.sendPacket("set_node_group", {path: project.path, node, group});
         ws.sendPacket("get_projects");
     }
 
@@ -351,41 +360,77 @@
 
     let selected_node = null;
 
-    function refresh_nodes() {
-        document.getElementById("nodes").innerHTML = Object.keys(project.json.nodes).sort((a, b) => {
-            a = project.json.nodes[a];
-            b = project.json.nodes[b];
-            return a.position - b.position;
-        }).map(key => `
-<div draggable="true" id="node_key_${key}">
-    <div class="node${selected_node === key ? " node_selected" : ""}" onclick="select_node('${key}')">
-        <img draggable="false" class="node_image" src="../assets/${project.json.nodes[key].type.replaceAll("-", "_")}.png">
+    const sortNodeKeyPosition = (a, b) => {
+        a = project.json.nodes[a];
+        b = project.json.nodes[b];
+        return a.position - b.position;
+    };
+
+    const open_groups = {};
+
+    const mapNodeKey = key => `<div draggable="true" id="node_key_${key}">
+    <div class="node${selected_node === key ? " node_selected" : ""}" id="node_pos_${key}" onclick="select_node('${key}')">
+        <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${project.json.nodes[key].type === "group" ? "group_closed" : project.json.nodes[key].type.replaceAll("-", "_")}.png">
         <span class="node_name">${key}</span>
     </div>
     <div onclick="open_remove_node_menu('${key}')" class="remove_node"></div>
     <div onclick="open_rename_node_menu('${key}')" class="rename_node"></div>
-</div>`).join("");
-        Object.keys(project.json.nodes).forEach(key => {
+    <div id="group_node_content_${key}" style="margin-left: 10px" hidden>${Object.keys(project.json.nodes).filter(k => project.json.nodes[k].group === key).sort(sortNodeKeyPosition).map(mapNodeKey).join("")}</div>
+</div>`;
+
+    function refresh_nodes() {
+        for (let i = 0; i < Object.keys(project.json.nodes).length; i++) {
+            const nodeId = Object.keys(project.json.nodes)[i];
+            const node = project.json.nodes[nodeId];
+            if (node.group && !project.json.nodes[node.group]) {
+                return set_node_group(nodeId, null);
+            }
+        }
+        document.getElementById("nodes").innerHTML = Object.keys(project.json.nodes).filter(key => !project.json.nodes[key].group).sort(sortNodeKeyPosition).map(mapNodeKey).join("");
+        let currentDragging;
+        Object.keys(project.json.nodes).filter(key => !project.json.nodes[key].group).forEach(key => {
             const el = document.getElementById("node_key_" + key);
-            el.addEventListener("dragstart", ev => ev.dataTransfer.setData("DragID", ev.target.id));
+            el.addEventListener("dragstart", ev => {
+                currentDragging = key;
+                ev.dataTransfer.setData("DragID", ev.target.id)
+            });
             el.addEventListener("dragover", ev => {
                 ev.preventDefault();
-                el.style.border = "5px solid white";
+                if (!currentDragging) return;
+                const targetId = ev.target.id.replace("node_pos_", "");
+                //if (targetId !== currentDragging && ev.target.id.startsWith("node_pos_")) el.style.border = "2px solid white";
             });
             el.addEventListener("dragleave", () => el.style.border = "");
+            el.addEventListener("dragend", () => currentDragging = null);
             el.addEventListener("drop", ev => {
                 ev.preventDefault();
-                const dragged = ev.dataTransfer.getData("DragID");
-                if (ev.path.some(i => i.id && i.id.startsWith("node_key_") && i.id !== dragged)) {
-                    switch_node_positions(key, dragged.replace("node_key_", ""));
+                const dr = ev.dataTransfer.getData("DragID");
+                if (dr && ev.path.some(i => i.id && i.id.startsWith("node_key_") && i.id !== dr)) {
+                    const clickedKey = dr.replace("node_key_", "");
+                    const draggedKey = key;
+                    const clicked = project.json.nodes[clickedKey];
+                    const dragged = project.json.nodes[draggedKey];
+                    if (dragged.type === "group" && clicked.type !== "group") {
+                        set_node_group(clickedKey, draggedKey);
+                    } else if (clicked.group && dragged.type !== "group") {
+                        set_node_group(clickedKey, null);
+                        set_node_position(clickedKey, dragged.position + 1);
+                        Object.keys(project.json.nodes)
+                            .filter(i => !project.json.nodes[i].group && project.json.nodes[i].position > dragged.position)
+                            .forEach(i => set_node_position(i, project.json.nodes[i].position + 1));
+                    } else {
+                        switch_node_positions(clickedKey, draggedKey);
+                    }
                 } else el.style.border = "";
             });
         });
+        Object.keys(project.json.nodes).filter(key => project.json.nodes[key].type === "group").forEach(i => toggle_group_node(i, true));
     }
 
     function refresh_properties() {
         if (!selected_node || !project.json.nodes[selected_node]) return document.getElementById("properties").innerHTML = "";
-        const props = project.json.nodes[selected_node].properties;
+        const node = project.json.nodes[selected_node];
+        const props = node.properties;
         document.getElementById("properties").innerHTML = Object.keys(props).filter(i => props[i].visible !== false).map(key => {
             let input = `<input onchange="set_node_property('${selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" spellcheck="false" class="property_value" style="position: absolute; margin-left: -3px; margin-top: -10px; height: 19px" value="${props[key].value === null ? "" : props[key].value}" placeholder="<${languages[lang]["none"]}>">`;
             switch (props[key].type) {
@@ -405,6 +450,7 @@ ${input}
     }
 
     function select_node(name, v = false) {
+        if (project.json.nodes[name].type === "group") return toggle_group_node(name);
         if (selected_node === name && !v) {
             name = null;
             property_delete_mode = false;
@@ -415,6 +461,17 @@ ${input}
         selected_node = name;
         refresh_properties();
         refresh_nodes();
+    }
+
+    function toggle_group_node(key, r = false) {
+        const node = project.json.nodes[key];
+        if (!node || node.type !== "group") return;
+        const gN = document.getElementById("group_node_content_" + key);
+        const is_open = open_groups[key];
+        open_groups[key] = !open_groups[key];
+        gN.hidden = is_open ? true : undefined;
+        document.getElementById("node_icon_" + key).src = "../assets/group_" + (is_open ? "closed" : "open") + ".png";
+        if (r) toggle_group_node(key);
     }
 
     let project = {};
@@ -431,7 +488,6 @@ ${input}
     Scene.ctx = ctx;
     let modelList = {};
     let collisionList = {};
-    let scriptList = {};
     let loadedScriptList = {};
 
     setInterval(() => {
@@ -597,6 +653,7 @@ ${input}
     }
     const getProjectFilePath = path => /\w:\//i.test(path.substring(0, 3)) ? path : (path.startsWith(".") ? (path.startsWith("./") && /\w/i.test(path.charAt(2)) ? project.path + "/" + path.substring(2) : path) : project.path + "/" + path);
     const loadProjectScript = async file => {
+        if (!file) return null;
         if (loadedScriptList[file]) return loadedScriptList[file];
         file = getProjectFilePath(file);
         const script = await loadScript(file);
@@ -759,13 +816,12 @@ ${input}
                             textTile.addModel(textModel);
                             textTile.init();
                             textTile.nodeId = j;
-                            const size = TextModel.calculateTextSize(textModel.text, textModel.size, textModel.font);
-                            const coll = new RectangleCollision(0, 0, size.width, size.height);
-                            console.log(size)
+                            const size = TextModel.calculateTextSize(textModel.text, textModel.size, textModel.font, textModel.maxWidth);
+                            const coll = new RectangleCollision(0, textModel.size / 3, size.width, size.height);
                             textTile.addCollision(coll);
                             if (i1.properties.collisionBorder.value) {
                                 const t = new Tile(textTile.x, textTile.y);
-                                t.addModel(new RectangleModel(0, 0, size.width, size.height, null, themes[theme].json["general-color"]));
+                                t.addModel(new RectangleModel(0, textModel.size / 3, size.width, size.height, null, themes[theme].json["general-color"]));
                                 t.init();
                                 textTile.collisionTiles = [t];
                             }

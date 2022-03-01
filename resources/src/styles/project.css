@@ -79,7 +79,7 @@
     width: 60%;
     height: 22%;
     color: var(--general-color);
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 .remove_mode {
