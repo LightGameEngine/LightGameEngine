@@ -692,14 +692,16 @@ class TextModel extends Model {
      * @param {string} text
      * @param {number} size
      * @param {string} font
+     * @param {number | null} maxWidth
      * @returns {{width: number, height: number}}
      */
-    static calculateTextSize(text, size, font) {
+    static calculateTextSize(text, size, font, maxWidth = null) {
         const div = document.createElement("span");
-        div.style = `font-family:${font};font-size:${size}px`;
+        // noinspection JSValidateTypes
+        div.style = `font-family:${font};font-size:${size}px;position:absolute`;
         div.innerHTML = text;
         document.body.appendChild(div);
-        const width = div.clientWidth;
+        const width = maxWidth || div.clientWidth;
         const height = div.clientHeight;
         div.remove();
         return {width, height};
@@ -708,7 +710,7 @@ class TextModel extends Model {
     draw(ctx, entity, position) {
         if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
-        const {width, height} = TextModel.calculateTextSize(this.text, this.size, this.font);
+        const {width, height} = TextModel.calculateTextSize(this.text, this.size, this.font, this.maxWidth);
         position = position.add(0, height);
         ctx.rotateComplete(entity.rotation || 0, position.add(width / 2, height / 2));
         ctx.globalAlpha = this.opacity;

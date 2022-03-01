@@ -277,7 +277,7 @@ if (!fs.existsSync(cachePath)) {
         default_project_folder: null
     }));
 }
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {camera: {x: number, y: number}, nodes: Object<string, {type: number, properties: Object<string, number | string>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
+/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {camera: {x: number, y: number}, nodes: Object<string, {type: number, group: string?, properties: Object<string, number | string>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
 const cache = JSON.parse(fs.readFileSync(cachePath).toString());
 
 class CacheManager {
@@ -340,8 +340,17 @@ class CacheManager {
         return cache.projects[path].json.nodes[node];
     }
 
+    static renameNode(path, from, to) {
+        cache.projects[path].json.nodes[to] = this.getNode(path, from);
+        delete cache.projects[path].json.nodes[from];
+    }
+
     static setNodePosition(path, node, position) {
         cache.projects[path].json.nodes[node].position = position;
+    }
+
+    static setNodeGroup(path, node, group) {
+        cache.projects[path].json.nodes[node].group = group;
     }
 
     static getDefaultProjectFolder() {
@@ -909,6 +918,14 @@ wss.on("connection", async socket => {
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.setNodePosition(json.data.path, json.data.node, json.data.position);
                     break;
+                case "set_node_group":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.setNodeGroup(json.data.path, json.data.node, json.data.group);
+                    break;
+                case "rename_node":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.renameNode(json.data.path, json.data.from, json.data.to);
+                    break;
                 case "set_project_camera":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.setProjectCamera(json.data.path, json.data.x, json.data.y);
@@ -926,11 +943,11 @@ let url;
 
 const create_window = async () => {
     const browser = new BrowserWindow({
-        width: 600,
-        height: 240
+        width: 606,
+        height: 269
     }); // 700 600
     browser.setPositionLimits = (w = 700, h = 600) => {
-        browser.unmaximize()
+        browser.unmaximize();
         browser.setSize(w, h);
         browser.setResizable(false);
         browser.setMaximizable(false);
