@@ -491,7 +491,9 @@ addEventListener("mousemove", ev => {
 });
 
 function log(str) {
-    printHandler(JSON.stringify(str));
+    if (str instanceof Error) {
+        printHandler("<span style='color: red'>" + str.message + "</span>")
+    } else printHandler(JSON.stringify(str));
 }
 
 function getMouse() {

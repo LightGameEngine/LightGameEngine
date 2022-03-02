@@ -55,7 +55,7 @@
 </div>
 <div id="prompt" hidden
      style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2)">
-    <div style="position: absolute; left: 30%; padding: 2% 15% 15%;width: 10%; top: 25%; min-height: 10%; height: 15%; background: rgba(0, 0, 0, 0.2)">
+    <div style="position: absolute; left: 30%; padding: 2% 15% 15%;width: 10%; top: 25%; min-height: 10%; height: 15%; background: var(--popup)">
         <svg onclick="end_prompt(null)" width="50" height="35" class="prompt_close">
             <path d="M20 12 L30 22 Z" stroke="white"></path>
             <path d="M30 12 L20 22 Z" stroke="white"></path>
@@ -88,7 +88,7 @@
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    const node_types = ["entity", "model", "collision", "text", "tile"/*, "tile-map"*/, "group"];
+    const node_types = ["entity", "model", "collision", "text", "tile"/*, "tile-map"*/, "script", "group"];
 
     const start_btn = document.getElementById("start_btn");
     const stop_btn = document.getElementById("stop_btn");
@@ -653,12 +653,15 @@ ${input}
         }
     }
     const getProjectFilePath = path => /\w:\//i.test(path.substring(0, 3)) ? path : (path.startsWith(".") ? (path.startsWith("./") && /\w/i.test(path.charAt(2)) ? project.path + "/" + path.substring(2) : path) : project.path + "/" + path);
-    const loadProjectScript = async file => {
+    const loadProjectScript = async (file, addToList = true) => {
         if (!file) return null;
         if (loadedScriptList[file]) return loadedScriptList[file];
         file = getProjectFilePath(file);
         const script = await loadScript(file);
-        if (script.error) return console.info(`Script with file '${file}' not found or a folder!`);
+        if (script.error) {
+            log(`Script with file '${file}' not found or a folder!`);
+            return console.info(`Script with file '${file}' not found or a folder!`);
+        }
         const code = script.code;
         const ____________i = setInterval;
         const ____________t = setTimeout;
@@ -674,11 +677,12 @@ ${input}
         try {
             (() => {
                 ____________e(code.length === 0 ? "null" : code);
-                loadedScriptList[file] = exports;
+                if (addToList) loadedScriptList[file] = exports;
             })();
         } catch (e) {
             ____________c.error(e);
             ____________c.info(`Script with file '${file}' gave error!`);
+            log(e);
         }
         window.XMLHttpRequest = ____________x;
         window.eval = ____________e;
@@ -693,6 +697,20 @@ ${input}
     const mouse = new Vector2(0, 0);
     let mPos = new Vector2(0, 0);
     let collidingCanvas = false;
+
+    let _h = [];
+    let copying = false;
+    addEventListener("keydown", ev => {
+        _h.push(ev.key);
+        if (!copying && _h[0] === "Control" && (_h[1] === "C" || _h[1] === "c")) {
+            copying = true;
+        }
+    });
+    addEventListener("keyup", ev => {
+        _h = _h.filter(i => i !== ev.key);
+        if (_h.length < 2) copying = false;
+    });
+    addEventListener("blur", () => _h = []);
 
     addEventListener("mousemove", ev => {
         mouse.x = ev.clientX;
@@ -839,7 +857,7 @@ ${input}
                 Scene.getInstance();
                 await refreshModelList();
                 await refreshCollisionList();
-                for (const i1 of Object.values(project.json.nodes).filter(i => ["entity", "tile", "text"].includes(i.type))) {
+                for (const i1 of Object.values(project.json.nodes).filter(i => ["entity", "tile", "text", "script"].includes(i.type))) {
                     switch (i1.type) {
                         case "entity":
                             const entity = await createEntity(i1.properties);
@@ -854,6 +872,18 @@ ${input}
                             const textModel = await createModel({type: "model-text", properties: i1.properties});
                             textTile.addModel(textModel);
                             textTile.init();
+                            break;
+                        case "script":
+                            const script = await loadProjectScript(i1.properties.file.value, false);
+                            try {
+                                const props = {};
+                                Object.keys(i1.properties).forEach(i => props[i] = i1.properties[i].value);
+                                new script(props);
+                            } catch (e) {
+                                console.error(e);
+                                console.info(`Script with file '${i1.properties.file.value}' gave error!`);
+                                log(e);
+                            }
                             break;
                     }
                 }

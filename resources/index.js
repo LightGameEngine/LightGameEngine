@@ -34,6 +34,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "node-tile-map": "Tile Map",
     "node-group": "Group",
     "node-text": "Text",
+    "node-script": "Script",
     "enter-node-name": "Enter node name",
     "add-node-title": "Add Node",
     "add-node-button": "Add",
@@ -116,6 +117,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "node-tile-map": "Nesne Haritası",
     "node-group": "Grup",
     "node-text": "Yazı",
+    "node-script": "Skript",
     "enter-node-name": "Nesne adını girin",
     "add-node-title": "Nesne Ekle",
     "add-node-button": "Ekle",
@@ -277,8 +279,29 @@ if (!fs.existsSync(cachePath)) {
         default_project_folder: null
     }));
 }
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {camera: {x: number, y: number}, nodes: Object<string, {type: number, group: string?, properties: Object<string, number | string>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
+/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {camera: {x: number, y: number}, nodes: Object<string, {type: string, group?: string | null, properties: Object<string, Object>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
 const cache = JSON.parse(fs.readFileSync(cachePath).toString());
+
+const CAMERA_PROPERTY = (position = 0) => ({
+    type: "camera",
+    properties: {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        }
+    },
+    position,
+    createdTimestamp: Date.now(),
+    group: null
+});
 
 class CacheManager {
     static async getProjects() {
@@ -304,7 +327,7 @@ class CacheManager {
             path,
             json: {
                 camera: {x: 0, y: 0},
-                nodes: {}
+                nodes: {camera: CAMERA_PROPERTY()}
             },
             createdTimestamp: Date.now(),
             lastOpenTimestamp: 0
@@ -314,6 +337,7 @@ class CacheManager {
 
     static openProject(socket, path) {
         this.createProject(path);
+        if (!cache.projects[path].json.nodes.camera) cache.projects[path].json.nodes.camera = CAMERA_PROPERTY((Object.values(cache.projects[path].json.nodes).map(i => i.position).sort((a, b) => b - a)[0] || 0) + 1);
         cache.projects[path].lastOpenTimestamp = Date.now();
         browser.hide();
         socket.sendPacket("open_project", {name: cache.projects[path].name, path});
@@ -545,8 +569,8 @@ const property_list = {
         },
         radius: {
             type: "number",
-            value: 1,
-            default: 1,
+            value: 25,
+            default: 25,
             isDefaultProperty: true
         },
         opacity: {
@@ -576,7 +600,7 @@ const property_list = {
             isDefaultProperty: true
         },
         customScript: {
-            type: "script",
+            type: "file",
             value: "",
             default: "",
             isDefaultProperty: true
@@ -608,7 +632,7 @@ const property_list = {
             isDefaultProperty: true
         },
         customScript: {
-            type: "script",
+            type: "file",
             value: "",
             default: "",
             isDefaultProperty: true
@@ -686,7 +710,7 @@ const property_list = {
             isDefaultProperty: true
         },
         customScript: {
-            type: "script",
+            type: "file",
             value: "",
             default: "",
             isDefaultProperty: true
