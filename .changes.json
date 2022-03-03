@@ -6,5 +6,6 @@
   ["resources/assets/model_custom.png", "resources/index.js", "resources/src/project.html", "resources/src/scripts/PathFinder.js", "resources/src/scripts/connectionManager.js", "resources/src/scripts/engine.js", "resources/src/styles/project.css", "resources/src/styles/roots/general.css"],
   ["resources/assets/group.png", "resources/assets/model.png", "resources/assets/script.png", "resources/assets/text.png", "resources/index.js", "resources/src/project.html", "resources/src/scripts/engine.js"],
   ["Logger.js", "resources/assets/file.png", "resources/assets/folder.png", "resources/assets/group.png", "resources/assets/group_closed.png", "resources/assets/group_open.png", "resources/assets/start.gif", "resources/index.js", "resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/styles/project.css"],
-  ["resources/assets/group_open.png", "resources/assets/script.png", "resources/assets/start.gif", "resources/index.js", "resources/src/project.html", "resources/src/scripts/engine.js"]
+  ["resources/assets/group_open.png", "resources/assets/script.png", "resources/assets/start.gif", "resources/index.js", "resources/src/project.html", "resources/src/scripts/engine.js"],
+  ["resources/assets/group_open.png", "resources/assets/camera.png", "resources/assets/start.gif", "resources/index.js", "resources/src/project.html", "resources/src/scripts/engine.js"]
 ]
