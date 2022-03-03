@@ -12,19 +12,19 @@
 <body>
 <div class="body">
     <div class="bar">
-        <a onclick="main_menu()" id="lC-cb">
+        <a onclick="document._light.main_menu()" id="lC-cb">
             Close
             <script>lU(() => document.getElementById("lC-cb").innerHTML = m("close-button"))</script>
         </a>
     </div>
     <div style="position: absolute; left: 78%; top: 0.8%; width: 5%">
-        <img draggable="false" onclick="setSceneType('game')" id="start_btn" src="../assets/start.png"
+        <img draggable="false" onclick="document._light.setSceneType('game')" id="start_btn" src="../assets/start.png"
              style="position: absolute; top: -0.2%; cursor: pointer" hidden>
-        <img draggable="false" onclick="setSceneType('editor')" id="stop_btn" src="../assets/stop.png"
+        <img draggable="false" onclick="document._light.setSceneType('editor')" id="stop_btn" src="../assets/stop.png"
              style="position: absolute; cursor: pointer" hidden>
     </div>
     <div class="left_container_nav">
-        <img draggable="false" onclick="open_node_menu()" id="left_nav_add" class="left_nav_add"
+        <img draggable="false" onclick="document._light.open_node_menu()" id="left_nav_add" class="left_nav_add"
              src="../assets/add.png">
         <div style="text-align: center;color: var(--general-color)" id="lC-node">
             <script>lU(() => document.getElementById("lC-node").innerHTML = m("nodes-title"))</script>
@@ -37,10 +37,11 @@
     </div>
     <span id="node_menu" class="node_menu" hidden></span>
     <div class="right_container_nav">
-        <img draggable="false" onclick="open_property_menu()" id="property-add" hidden class="right_nav_add"
+        <img draggable="false" onclick="document._light.open_property_menu()" id="property-add" hidden
+             class="right_nav_add"
              src="../assets/add.png">
         <img draggable="false"
-             onclick="property_delete_mode = !property_delete_mode; select_node(selected_node, true)"
+             onclick="document._light.property_delete_mode = !document._light.property_delete_mode; document._light.select_node(document._light.selected_node, true)"
              id="property-remove" hidden class="right_nav_remove"
              src="../assets/trash_closed.png">
         <div style="text-align: center; color: var(--general-color)" id="lC-prp">
@@ -56,7 +57,7 @@
 <div id="prompt" hidden
      style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2)">
     <div style="position: absolute; left: 30%; padding: 2% 15% 15%;width: 10%; top: 25%; min-height: 10%; height: 15%; background: var(--popup)">
-        <svg onclick="end_prompt(null)" width="50" height="35" class="prompt_close">
+        <svg onclick="document._light.end_prompt(null)" width="50" height="35" class="prompt_close">
             <path d="M20 12 L30 22 Z" stroke="white"></path>
             <path d="M30 12 L20 22 Z" stroke="white"></path>
         </svg>
@@ -74,7 +75,7 @@
             <br>
             <div style="text-align: center;">
                 <button class="btn" id="prompt-button"
-                        onclick="end_prompt(document.getElementById('prompt-input').value)"></button>
+                        onclick="document._light.end_prompt(document.getElementById('prompt-input').value)"></button>
             </div>
         </div>
     </div>
@@ -82,846 +83,892 @@
 </body>
 <script src="scripts/engine.js"></script>
 <script>
-    const letters = "abcçdefgğhıijklmnoprsştuüvyzqwx";
-    document.getElementById("prompt-input").addEventListener("keydown", ev => ev.key === "Enter" ? document.getElementById("prompt-button").click() : null);
-    /*** @type {HTMLCanvasElement} */
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+    (() => {
+        const letters = "abcçdefgğhıijklmnoprsştuüvyzqwx";
+        document.getElementById("prompt-input").addEventListener("keydown", ev => ev.key === "Enter" ? document.getElementById("prompt-button").click() : null);
+        /*** @type {HTMLCanvasElement} */
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
 
-    const node_types = ["entity", "model", "collision", "text", "tile"/*, "tile-map"*/, "script", "group"];
+        const node_types = ["entity", "model", "collision", "text", "tile"/*, "tile-map"*/, "script", "group"];
 
-    const start_btn = document.getElementById("start_btn");
-    const stop_btn = document.getElementById("stop_btn");
-    let consoleList = [];
-    const renderConsole = (str) => {
-        const cns = document.getElementById("console");
-        if (str) {
-            if (consoleList.length > 0 && consoleList[consoleList.length - 1].value === str) consoleList[consoleList.length - 1].stack++;
-            else consoleList.push({value: str, stack: 1});
+        const start_btn = document.getElementById("start_btn");
+        const stop_btn = document.getElementById("stop_btn");
+        let consoleList = [];
+        const renderConsole = (str) => {
+            const cns = document.getElementById("console");
+            if (str) {
+                if (consoleList.length > 0 && consoleList[consoleList.length - 1].value === str) consoleList[consoleList.length - 1].stack++;
+                else consoleList.push({value: str, stack: 1});
+            }
+            cns.innerHTML = consoleList.map(i => `${i.stack > 1 ? "[x" + i.stack + "]" : ""} ${i.value}`).join("<br>");
+            cns.scrollTop = cns.scrollHeight;
         }
-        cns.innerHTML = consoleList.map(i => `${i.stack > 1 ? "[x" + i.stack + "]" : ""} ${i.value}`).join("<br>");
-        cns.scrollTop = cns.scrollHeight;
-    }
-    printHandler = renderConsole;
+        printHandler = renderConsole;
 
-    function open_node_menu() {
-        document.getElementById("node_menu").innerHTML = node_types.map(i => `<span onclick="open_add_node_menu('${i}')" class="node_select">${languages[lang]["node-" + i]}</span>`).join("<br>");
-        document.getElementById("node_menu").hidden = undefined;
-    }
+        function open_node_menu() {
+            document.getElementById("node_menu").innerHTML = node_types.map(i => `<span onclick="document._light.open_add_node_menu('${i}')" class="node_select">${languages[lang]["node-" + i]}</span>`).join("<br>");
+            document.getElementById("node_menu").hidden = undefined;
+        }
 
-    let property_delete_mode = false;
+        let property_delete_mode = false;
 
-    function open_property_menu() {
-        if (!selected_node) return;
-        prompt(
-            languages[lang]["add-property-title"],
-            languages[lang]["property-name"],
-            languages[lang]["add-button"]
-        )
-            .then(r => {
-                if (r === null) return;
-                if (!selected_node) return;
-                const node = project.json.nodes[selected_node];
-                if (!r || r.split("").some(i => !(letters + "0123456789").split("").some(a => a.toLowerCase() === i.toLowerCase())) || "0123456789".split("").some(i => r.endsWith(i))) {
-                    open_property_menu();
-                    return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-property-name"];
-                }
-                if (!node) {
-                    open_property_menu();
-                    return document.getElementById("prompt-error").innerHTML = languages[lang]["node-not-selected"];
-                }
-                const extraProps = {
-                    entity: Entity.PROPERTIES,
-                    "model-image": ImageModel.PROPERTIES,
-                    "model-text": TextModel.PROPERTIES,
-                    "model-rectangle": RectangleModel.PROPERTIES,
-                    "model-circle": CircleModel.PROPERTIES,
-                    collision: RectangleCollision.PROPERTIES,
-                    tile: Tile.PROPERTIES
-                }[node.type] || [];
-                if (node.properties[r] || extraProps.includes(r)) {
-                    open_property_menu();
-                    return document.getElementById("prompt-error").innerHTML = languages[lang]["property-exists"];
-                }
-                add_node_property(selected_node, r);
+        function open_property_menu() {
+            if (!document._light.selected_node) return;
+            prompt(
+                languages[lang]["add-property-title"],
+                languages[lang]["property-name"],
+                languages[lang]["add-button"]
+            )
+                .then(r => {
+                    if (r === null) return;
+                    if (!document._light.selected_node) return;
+                    const node = project.json.nodes[document._light.selected_node];
+                    if (!r || r.split("").some(i => !(letters + "0123456789").split("").some(a => a.toLowerCase() === i.toLowerCase())) || "0123456789".split("").some(i => r.endsWith(i))) {
+                        open_property_menu();
+                        return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-property-name"];
+                    }
+                    if (!node) {
+                        open_property_menu();
+                        return document.getElementById("prompt-error").innerHTML = languages[lang]["node-not-selected"];
+                    }
+                    const extraProps = {
+                        entity: Entity.PROPERTIES,
+                        "model-image": ImageModel.PROPERTIES,
+                        "model-text": TextModel.PROPERTIES,
+                        "model-rectangle": RectangleModel.PROPERTIES,
+                        "model-circle": CircleModel.PROPERTIES,
+                        collision: RectangleCollision.PROPERTIES,
+                        tile: Tile.PROPERTIES
+                    }[node.type] || [];
+                    if (node.properties[r] || extraProps.includes(r)) {
+                        open_property_menu();
+                        return document.getElementById("prompt-error").innerHTML = languages[lang]["property-exists"];
+                    }
+                    add_node_property(document._light.selected_node, r);
+                });
+        }
+
+        let _p_c = null;
+
+        function end_prompt(res) {
+            if (_p_c) _p_c(res);
+            _p_c = null;
+            document.getElementById("prompt").hidden = true;
+        }
+
+        function prompt(title, text, button, input = true) {
+            return new Promise(r => {
+                document.getElementById("prompt-title").innerHTML = title;
+                document.getElementById("prompt-text").innerHTML = text;
+                document.getElementById("prompt-input").value = "";
+                document.getElementById("prompt-input").hidden = input ? undefined : true;
+                document.getElementById("prompt-button").innerHTML = button;
+                document.getElementById("prompt-error").innerHTML = "";
+                document.getElementById("prompt").hidden = undefined;
+                _p_c = r;
             });
-    }
+        }
 
-    let _p_c = null;
+        const modelTypes = ["image", "text", "rectangle", "circle", "custom"];
 
-    function end_prompt(res) {
-        if (_p_c) _p_c(res);
-        _p_c = null;
-        document.getElementById("prompt").hidden = true;
-    }
-
-    function prompt(title, text, button, input = true) {
-        return new Promise(r => {
-            document.getElementById("prompt-title").innerHTML = title;
-            document.getElementById("prompt-text").innerHTML = text;
-            document.getElementById("prompt-input").value = "";
-            document.getElementById("prompt-input").hidden = input ? undefined : true;
-            document.getElementById("prompt-button").innerHTML = button;
-            document.getElementById("prompt-error").innerHTML = "";
-            document.getElementById("prompt").hidden = undefined;
-            _p_c = r;
-        });
-    }
-
-    const modelTypes = ["image", "text", "rectangle", "circle", "custom"];
-
-    function open_rename_node_menu(oldName) {
-        prompt(
-            languages[lang]["rename-node-title"],
-            languages[lang]["enter-node-new-name"] + ":",
-            languages[lang]["rename-node-button"]
-        ).then(r => {
-            if (r === null) return;
-            if (!r || r.split("").some(i => i !== "İ" && !(letters + "1234567890 ").includes(i.toLowerCase()))) {
-                open_rename_node_menu(oldName);
-                return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
-            }
-            if (project.json.nodes[r]) {
-                open_rename_node_menu(oldName);
-                return document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
-            }
-            rename_node(oldName, r);
-        });
-        document.getElementById("prompt-input").value = oldName;
-    }
-
-    function open_add_node_menu(type) {
-        prompt(
-            languages[lang]["add-node-title"],
-            languages[lang]["enter-node-name"] + `:<br>
-<div style="text-align: center;"><input spellcheck="false" maxlength="16" id="add-node-name" class="prompt_input"></div><br>
-<span${type !== "model" ? " hidden" : ""}>${languages[lang]["select-model-type"]}:<br><div style="text-align: center;"><select id="add-node-type" class="prompt_input">${modelTypes.map(i => `<option style="background: var(--body-background)" value="${i}">${languages[lang]["model-type-" + i]}</option>`).join("")}</select></div></span>`,
-            languages[lang]["add-node-button"],
-            false
-        ).then(r => {
-            if (r === null) return;
-            let name = document.getElementById("add-node-name").value;
-            let modelType = document.getElementById("add-node-type").value;
-            if (name) {
-                if (name.split("").some(i => i !== "İ" && !(letters + "1234567890 ").includes(i.toLowerCase()))) {
-                    open_add_node_menu(type);
+        function open_rename_node_menu(oldName) {
+            prompt(
+                languages[lang]["rename-node-title"],
+                languages[lang]["enter-node-new-name"] + ":",
+                languages[lang]["rename-node-button"]
+            ).then(r => {
+                if (r === null) return;
+                if (!r || r.split("").some(i => i !== "İ" && !(letters + "1234567890 ").includes(i.toLowerCase()))) {
+                    open_rename_node_menu(oldName);
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
                 }
-                add_node(type + (type === "model" ? "-" + modelType : ""), name);
-            } else if (name !== null) {
-                open_add_node_menu(type);
-                document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
-            }
-        });
-    }
-
-    function add_node(type, name) {
-        if (project.json.nodes[name]) {
-            open_add_node_menu(type.startsWith("model") ? "model" : type);
-            document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
-            return;
+                if (project.json.nodes[r]) {
+                    open_rename_node_menu(oldName);
+                    return document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
+                }
+                rename_node(oldName, r);
+            });
+            document.getElementById("prompt-input").value = oldName;
         }
-        ws.sendPacket("add_node", {path: project.path, node: {name, type}});
-        project.json.nodes[name] = {name, type};
-        ws.sendPacket("get_projects");
-        addWSOnceListener("get_projects", () => {
-            select_node(name);
-            if (sceneType === "editor") setSceneType("editor");
-        });
-    }
 
-    function open_remove_node_menu(name) {
-        prompt(
-            languages[lang]["remove-node-title"],
-            languages[lang]["node-remove-text"].replace("%0", name),
-            languages[lang]["remove-node-button"],
-            false
-        ).then(r => r === "" && remove_node(name));
-    }
-
-    function remove_node(name) {
-        ws.sendPacket("remove_node", {path: project.path, name});
-        delete project.json.nodes[name];
-        if (name === selected_node) select_node(null);
-        refresh_nodes();
-        if (sceneType === "editor") setSceneType("editor");
-    }
-
-    function add_node_property(name, property) {
-        project.json.nodes[name].properties[property] = {
-            value: "",
-            default: ""
-        };
-        ws.sendPacket("set_node_properties", {
-            path: project.path,
-            name,
-            properties: project.json.nodes[name].properties
-        });
-        refresh_properties();
-        ws.sendPacket("get_projects");
-    }
-
-    function remove_node_property(name, property) {
-        delete project.json.nodes[name].properties[property];
-        ws.sendPacket("set_node_properties", {
-            path: project.path,
-            name,
-            properties: project.json.nodes[name].properties
-        });
-        refresh_properties();
-    }
-
-    function set_node_property(nodeName, propertyName, propertyValue) {
-        if (!project.json.nodes[nodeName] || !project.json.nodes[nodeName].properties[propertyName]) return;
-        const node = project.json.nodes[nodeName];
-        const prop = node.properties[propertyName];
-        switch (prop.type) {
-            case "boolean":
-                break;
-            case "color":
-                break;
-            case "number":
-                if (prop.array) {
-                    propertyValue = (propertyValue || "").split(",").map(j => j.toString().split("").filter(i => !isNaN(i * 1) || i === "-" || i === ".").join("")).map(i => i.length !== 0 ? i * 1 : undefined).filter(i => i !== undefined).map(i => isNaN(i) ? prop.default : i).join(",");
-                } else {
-                    if (propertyValue.length !== 0) propertyValue *= 1;
-                    else propertyValue = prop.default;
-                    if (isNaN(propertyValue)) propertyValue = prop.default;
-                    if (prop.isDefaultProperty && propertyName === "opacity") {
-                        if (propertyValue < 0) propertyValue = 0;
-                        if (propertyValue > 1) propertyValue = 1;
+        function open_add_node_menu(type) {
+            prompt(
+                languages[lang]["add-node-title"],
+                languages[lang]["enter-node-name"] + `:<br>
+<div style="text-align: center;"><input spellcheck="false" maxlength="16" id="add-node-name" class="prompt_input"></div><br>
+<span${type !== "model" ? " hidden" : ""}>${languages[lang]["select-model-type"]}:<br><div style="text-align: center;"><select id="add-node-type" class="prompt_input">${modelTypes.map(i => `<option style="background: var(--body-background)" value="${i}">${languages[lang]["model-type-" + i]}</option>`).join("")}</select></div></span>`,
+                languages[lang]["add-node-button"],
+                false
+            ).then(r => {
+                if (r === null) return;
+                let name = document.getElementById("add-node-name").value;
+                let modelType = document.getElementById("add-node-type").value;
+                if (name) {
+                    if (name.split("").some(i => i !== "İ" && !(letters + "1234567890 ").includes(i.toLowerCase()))) {
+                        open_add_node_menu(type);
+                        return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
                     }
+                    add_node(type + (type === "model" ? "-" + modelType : ""), name);
+                } else if (name !== null) {
+                    open_add_node_menu(type);
+                    document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
                 }
-                break;
-            case "model":
-            case "collision":
-                if (prop.array) {
-                    propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => project.json.nodes[i] && (prop.type === "model" ? project.json.nodes[i].type.startsWith("model-") : project.json.nodes[i].type === prop.type) && nodeName !== i))).join(",");
-                } else {
-                    if (!project.json.nodes[propertyValue] || (prop.type === "model" ? project.json.nodes[propertyValue].type.startsWith("model-") : project.json.nodes[propertyValue].type !== prop.type) || nodeName === propertyValue) propertyValue = prop.default;
-                }
-                break;
-            case undefined:
-                propertyValue = !isNaN(propertyValue) ? propertyValue * 1 : propertyValue;
-                break;
+            });
         }
 
-        if (selected_node === nodeName) {
+        function add_node(type, name) {
+            if (project.json.nodes[name]) {
+                open_add_node_menu(type.startsWith("model") ? "model" : type);
+                document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
+                return;
+            }
+            ws.sendPacket("add_node", {path: project.path, node: {name, type}});
+            project.json.nodes[name] = {name, type};
+            ws.sendPacket("get_projects");
+            addWSOnceListener("get_projects", () => {
+                select_node(name);
+                if (sceneType === "editor") setSceneType("editor");
+            });
+        }
+
+        function open_remove_node_menu(name) {
+            prompt(
+                languages[lang]["remove-node-title"],
+                languages[lang]["node-remove-text"].replace("%0", name),
+                languages[lang]["remove-node-button"],
+                false
+            ).then(r => r === "" && remove_node(name));
+        }
+
+        function remove_node(name) {
+            ws.sendPacket("remove_node", {path: project.path, name});
+            delete project.json.nodes[name];
+            if (name === document._light.selected_node) select_node(null);
+            refresh_nodes();
+            if (sceneType === "editor") setSceneType("editor");
+        }
+
+        function add_node_property(name, property) {
+            project.json.nodes[name].properties[property] = {
+                value: "",
+                default: ""
+            };
+            ws.sendPacket("set_node_properties", {
+                path: project.path,
+                name,
+                properties: project.json.nodes[name].properties
+            });
+            refresh_properties();
+            ws.sendPacket("get_projects");
+        }
+
+        function remove_node_property(name, property) {
+            delete project.json.nodes[name].properties[property];
+            ws.sendPacket("set_node_properties", {
+                path: project.path,
+                name,
+                properties: project.json.nodes[name].properties
+            });
+            refresh_properties();
+        }
+
+        function set_node_property(nodeName, propertyName, propertyValue) {
+            if (!project.json.nodes[nodeName] || !project.json.nodes[nodeName].properties[propertyName]) return;
+            const node = project.json.nodes[nodeName];
+            const prop = node.properties[propertyName];
             switch (prop.type) {
                 case "boolean":
-                    document.getElementById("node_property_" + propertyName).checked = propertyValue;
-                    break;
-                default:
-                    document.getElementById("node_property_" + propertyName).value = propertyValue;
-                    break;
-            }
-        }
-        node.properties[propertyName].value = propertyValue;
-        ws.sendPacket("set_node_properties", {
-            path: project.path, name: nodeName, properties: node.properties
-        });
-        if (sceneType === "editor") setSceneType("editor");
-    }
-
-    function set_node_properties(nodeName, properties) {
-        if (!project.json.nodes[nodeName]) return;
-        project.json.nodes[nodeName].properties = properties;
-        ws.sendPacket("set_node_properties", {
-            path: project.path, name: nodeName, properties
-        });
-    }
-
-    function rename_node(from, to) {
-        project.json.nodes[to] = project.json.nodes[from];
-        delete project.json.nodes[from];
-        ws.sendPacket("rename_node", {path: project.path, from, to});
-        select_node(to);
-        if (sceneType === "editor") setSceneType("editor");
-    }
-
-    function switch_node_positions(from, to) {
-        ws.sendPacket("switch_node_positions", {path: project.path, from, to});
-        ws.sendPacket("get_projects");
-    }
-
-    function set_node_position(node, position) {
-        ws.sendPacket("set_node_position", {path: project.path, node, position});
-        ws.sendPacket("get_projects");
-    }
-
-    function set_node_group(node, group) {
-        ws.sendPacket("set_node_group", {path: project.path, node, group});
-        ws.sendPacket("get_projects");
-    }
-
-    addEventListener("click", ev => {
-        if (!ev.path.some(i => i.id === "node_menu" || i.id === "left_nav_add"))
-            document.getElementById("node_menu").hidden = true;
-    });
-
-    let selected_node = null;
-
-    const sortNodeKeyPosition = (a, b) => {
-        a = project.json.nodes[a];
-        b = project.json.nodes[b];
-        return a.position - b.position;
-    };
-
-    const open_groups = {};
-
-    const mapNodeKey = key => `<div draggable="true" id="node_key_${key}">
-    <div class="node${selected_node === key ? " node_selected" : ""}" id="node_pos_${key}" onclick="select_node('${key}')">
-        <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${project.json.nodes[key].type === "group" ? "group_closed" : project.json.nodes[key].type.replaceAll("-", "_")}.png">
-        <span class="node_name">${key}</span>
-    </div>
-    <div onclick="open_remove_node_menu('${key}')" class="remove_node"></div>
-    <div onclick="open_rename_node_menu('${key}')" class="rename_node"></div>
-    <div id="group_node_content_${key}" style="margin-left: 10px" hidden>${Object.keys(project.json.nodes).filter(k => project.json.nodes[k].group === key).sort(sortNodeKeyPosition).map(mapNodeKey).join("")}</div>
-</div>`;
-
-    function refresh_nodes() {
-        for (let i = 0; i < Object.keys(project.json.nodes).length; i++) {
-            const nodeId = Object.keys(project.json.nodes)[i];
-            const node = project.json.nodes[nodeId];
-            if (node.group && !project.json.nodes[node.group]) {
-                return set_node_group(nodeId, null);
-            }
-        }
-        document.getElementById("nodes").innerHTML = Object.keys(project.json.nodes).filter(key => !project.json.nodes[key].group).sort(sortNodeKeyPosition).map(mapNodeKey).join("");
-        let currentDragging;
-        Object.keys(project.json.nodes).filter(key => !project.json.nodes[key].group).forEach(key => {
-            const el = document.getElementById("node_key_" + key);
-            el.addEventListener("dragstart", ev => {
-                currentDragging = key;
-                ev.dataTransfer.setData("DragID", ev.target.id)
-            });
-            el.addEventListener("dragover", ev => {
-                ev.preventDefault();
-                //if (!currentDragging) return;
-                //const targetId = ev.target.id.replace("node_pos_", "");
-                //if (targetId !== currentDragging && ev.target.id.startsWith("node_pos_")) el.style.border = "2px solid white";
-            });
-            el.addEventListener("dragleave", () => el.style.border = "");
-            el.addEventListener("dragend", () => currentDragging = null);
-            el.addEventListener("drop", ev => {
-                ev.preventDefault();
-                const dr = ev.dataTransfer.getData("DragID");
-                if (dr && ev.path.some(i => i.id && i.id.startsWith("node_key_") && i.id !== dr)) {
-                    const clickedKey = dr.replace("node_key_", "");
-                    const draggedKey = key;
-                    const clicked = project.json.nodes[clickedKey];
-                    const dragged = project.json.nodes[draggedKey];
-                    if (dragged.type === "group" && clicked.type !== "group") {
-                        set_node_group(clickedKey, draggedKey);
-                    } else if (clicked.group && dragged.type !== "group") {
-                        set_node_group(clickedKey, null);
-                        set_node_position(clickedKey, dragged.position + 1);
-                        Object.keys(project.json.nodes)
-                            .filter(i => !project.json.nodes[i].group && project.json.nodes[i].position > dragged.position)
-                            .forEach(i => set_node_position(i, project.json.nodes[i].position + 1));
-                    } else {
-                        switch_node_positions(clickedKey, draggedKey);
-                    }
-                } else el.style.border = "";
-            });
-        });
-        Object.keys(project.json.nodes).filter(key => project.json.nodes[key].type === "group").forEach(i => toggle_group_node(i, true));
-    }
-
-    function refresh_properties() {
-        if (!selected_node || !project.json.nodes[selected_node]) return document.getElementById("properties").innerHTML = "";
-        const node = project.json.nodes[selected_node];
-        const props = node.properties;
-        document.getElementById("properties").innerHTML = Object.keys(props).filter(i => props[i].visible !== false).map(key => {
-            let input = `<input onchange="set_node_property('${selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" spellcheck="false" class="property_value" style="position: absolute; margin-left: -3px; margin-top: -10px; height: 19px" value="${props[key].value === null ? "" : props[key].value}" placeholder="<${languages[lang]["none"]}>">`;
-            switch (props[key].type) {
-                case "boolean":
-                    input = `<input onchange="set_node_property('${selected_node}', '${key}', !!document.getElementById('node_property_${key}').checked)" id="node_property_${key}" type="checkbox" ${props[key].value ? "checked" : ""}>`;
                     break;
                 case "color":
-                    input = `<input onchange="set_node_property('${selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" type="color" value="${props[key].value}">`
+                    break;
+                case "number":
+                    if (prop.array) {
+                        propertyValue = (propertyValue || "").split(",").map(j => j.toString().split("").filter(i => !isNaN(i * 1) || i === "-" || i === ".").join("")).map(i => i.length !== 0 ? i * 1 : undefined).filter(i => i !== undefined).map(i => isNaN(i) ? prop.default : i).join(",");
+                    } else {
+                        if (propertyValue.length !== 0) propertyValue *= 1;
+                        else propertyValue = prop.default;
+                        if (isNaN(propertyValue)) propertyValue = prop.default;
+                        if (prop.isDefaultProperty && propertyName === "opacity") {
+                            if (propertyValue < 0) propertyValue = 0;
+                            if (propertyValue > 1) propertyValue = 1;
+                        }
+                    }
+                    break;
+                case "model":
+                case "collision":
+                    if (prop.array) {
+                        propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => project.json.nodes[i] && (prop.type === "model" ? project.json.nodes[i].type.startsWith("model-") : project.json.nodes[i].type === prop.type) && nodeName !== i))).join(",");
+                    } else {
+                        if (!project.json.nodes[propertyValue] || (prop.type === "model" ? project.json.nodes[propertyValue].type.startsWith("model-") : project.json.nodes[propertyValue].type !== prop.type) || nodeName === propertyValue) propertyValue = prop.default;
+                    }
+                    break;
+                case undefined:
+                    propertyValue = !isNaN(propertyValue) ? propertyValue * 1 : propertyValue;
                     break;
             }
-            return `
-<tr><td class="property_name${property_delete_mode && !props[key].isDefaultProperty ? ` remove_mode` : ""}"${property_delete_mode && !props[key].isDefaultProperty ? `onclick="remove_node_property(selected_node, '${key}')"` : ""}>${props[key].isDefaultProperty ? languages[lang]["property--" + key] : key}</td><td>
+
+            if (document._light.selected_node === nodeName) {
+                switch (prop.type) {
+                    case "boolean":
+                        document.getElementById("node_property_" + propertyName).checked = propertyValue;
+                        break;
+                    default:
+                        document.getElementById("node_property_" + propertyName).value = propertyValue;
+                        break;
+                }
+            }
+            node.properties[propertyName].value = propertyValue;
+            ws.sendPacket("set_node_properties", {
+                path: project.path, name: nodeName, properties: node.properties
+            });
+            if (sceneType === "editor") setSceneType("editor");
+        }
+
+        function set_node_properties(nodeName, properties) {
+            if (!project.json.nodes[nodeName]) return;
+            project.json.nodes[nodeName].properties = properties;
+            ws.sendPacket("set_node_properties", {
+                path: project.path, name: nodeName, properties
+            });
+        }
+
+        function rename_node(from, to) {
+            project.json.nodes[to] = project.json.nodes[from];
+            delete project.json.nodes[from];
+            ws.sendPacket("rename_node", {path: project.path, from, to});
+            select_node(to);
+            if (sceneType === "editor") setSceneType("editor");
+        }
+
+        function switch_node_positions(from, to) {
+            ws.sendPacket("switch_node_positions", {path: project.path, from, to});
+            ws.sendPacket("get_projects");
+        }
+
+        function set_node_position(node, position) {
+            ws.sendPacket("set_node_position", {path: project.path, node, position});
+            ws.sendPacket("get_projects");
+        }
+
+        function set_node_group(node, group) {
+            ws.sendPacket("set_node_group", {path: project.path, node, group});
+            ws.sendPacket("get_projects");
+        }
+
+        addEventListener("click", ev => {
+            if (!ev.path.some(i => i.id === "node_menu" || i.id === "left_nav_add"))
+                document.getElementById("node_menu").hidden = true;
+        });
+
+        const sortNodeKeyPosition = (a, b) => {
+            a = project.json.nodes[a];
+            b = project.json.nodes[b];
+            return a.position - b.position;
+        };
+
+        const open_groups = {};
+
+        const mapNodeKey = key => `<div draggable="true" id="node_key_${key}">
+    <div class="node${document._light.selected_node === key ? " node_selected" : ""}" id="node_pos_${key}" onclick="document._light.select_node('${key}')">
+        <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${project.json.nodes[key].type === "group" ? "group_closed" : project.json.nodes[key].type.replaceAll("-", "_")}.png">
+        <span class="node_name">${key === "camera" ? m("camera") : key}</span>
+    </div>
+    ${project.json.nodes[key].type === "camera" ? "" : `<div onclick="document._light.open_remove_node_menu('${key}')" class="remove_node"></div>
+    <div onclick="document._light.open_rename_node_menu('${key}')" class="rename_node"></div>
+    <div id="group_node_content_${key}" style="margin-left: 10px" hidden>${Object.keys(project.json.nodes).filter(k => project.json.nodes[k].group === key).sort(sortNodeKeyPosition).map(mapNodeKey).join("")}</div>`}
+</div>`;
+
+        function refresh_nodes() {
+            for (let i = 0; i < Object.keys(project.json.nodes).length; i++) {
+                const nodeId = Object.keys(project.json.nodes)[i];
+                const node = project.json.nodes[nodeId];
+                if (node.group && !project.json.nodes[node.group]) {
+                    return set_node_group(nodeId, null);
+                }
+            }
+            document.getElementById("nodes").innerHTML = Object.keys(project.json.nodes).filter(key => !project.json.nodes[key].group).sort(sortNodeKeyPosition).map(mapNodeKey).join("");
+            let currentDragging;
+            Object.keys(project.json.nodes).filter(key => !project.json.nodes[key].group).forEach(key => {
+                const el = document.getElementById("node_key_" + key);
+                el.addEventListener("dragstart", ev => {
+                    currentDragging = key;
+                    ev.dataTransfer.setData("DragID", ev.target.id)
+                });
+                el.addEventListener("dragover", ev => {
+                    ev.preventDefault();
+                    //if (!currentDragging) return;
+                    //const targetId = ev.target.id.replace("node_pos_", "");
+                    //if (targetId !== currentDragging && ev.target.id.startsWith("node_pos_")) el.style.border = "2px solid white";
+                });
+                el.addEventListener("dragleave", () => el.style.border = "");
+                el.addEventListener("dragend", () => currentDragging = null);
+                el.addEventListener("drop", ev => {
+                    ev.preventDefault();
+                    const dr = ev.dataTransfer.getData("DragID");
+                    if (dr && ev.path.some(i => i.id && i.id.startsWith("node_key_") && i.id !== dr)) {
+                        const clickedKey = dr.replace("node_key_", "");
+                        const draggedKey = key;
+                        const clicked = project.json.nodes[clickedKey];
+                        const dragged = project.json.nodes[draggedKey];
+                        if (dragged.type === "group" && clicked.type !== "group") {
+                            set_node_group(clickedKey, draggedKey);
+                        } else if (clicked.group && dragged.type !== "group") {
+                            set_node_group(clickedKey, null);
+                            set_node_position(clickedKey, dragged.position + 1);
+                            Object.keys(project.json.nodes)
+                                .filter(i => !project.json.nodes[i].group && project.json.nodes[i].position > dragged.position)
+                                .forEach(i => set_node_position(i, project.json.nodes[i].position + 1));
+                        } else {
+                            switch_node_positions(clickedKey, draggedKey);
+                        }
+                    } else el.style.border = "";
+                });
+            });
+            Object.keys(project.json.nodes).filter(key => project.json.nodes[key].type === "group").forEach(i => toggle_group_node(i, true));
+        }
+
+        function refresh_properties() {
+            if (!document._light.selected_node || !project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
+            const node = project.json.nodes[document._light.selected_node];
+            const props = node.properties;
+            document.getElementById("properties").innerHTML = Object.keys(props).filter(i => props[i].visible !== false).map(key => {
+                let input = `<input onchange="document._light.set_node_property('${document._light.selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" spellcheck="false" class="property_value" style="position: absolute; margin-left: -3px; margin-top: -10px; height: 19px" value="${props[key].value === null ? "" : props[key].value}" placeholder="<${languages[lang]["none"]}>">`;
+                switch (props[key].type) {
+                    case "boolean":
+                        input = `<input onchange="document._light.set_node_property('${document._light.selected_node}', '${key}', !!document.getElementById('node_property_${key}').checked)" id="node_property_${key}" type="checkbox" ${props[key].value ? "checked" : ""}>`;
+                        break;
+                    case "color":
+                        input = `<input onchange="document._light.set_node_property('${document._light.selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" type="color" value="${props[key].value}">`
+                        break;
+                }
+                return `
+<tr><td class="property_name${property_delete_mode && !props[key].isDefaultProperty ? ` remove_mode` : ""}"${property_delete_mode && !props[key].isDefaultProperty ? `onclick="document._light.remove_node_property(document._light.selected_node, '${key}')"` : ""}>${props[key].isDefaultProperty ? languages[lang]["property--" + key] : key}</td><td>
 ${input}
 </td></tr>
 `;
-        }).join("");
-    }
+            }).join("");
+        }
 
-    function select_node(name, v = false) {
-        if (name && project.json.nodes[name].type === "group") return toggle_group_node(name);
-        if (selected_node === name && !v) {
-            name = null;
-            property_delete_mode = false;
-        }
-        document.getElementById("property-remove").src = property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
-        document.getElementById("property-add").hidden = name ? undefined : true;
-        document.getElementById("property-remove").hidden = name ? undefined : true;
-        selected_node = name;
-        refresh_properties();
-        refresh_nodes();
-    }
-
-    function toggle_group_node(key, r = false) {
-        const node = project.json.nodes[key];
-        if (!node || node.type !== "group") return;
-        const gN = document.getElementById("group_node_content_" + key);
-        const is_open = open_groups[key];
-        open_groups[key] = !open_groups[key];
-        gN.hidden = is_open ? true : undefined;
-        document.getElementById("node_icon_" + key).src = "../assets/group_" + (is_open ? "closed" : "open") + ".png";
-        if (r) toggle_group_node(key);
-    }
-
-    let project = {};
-    addWSListener("get_language", () => setLanguage(lang, false));
-    addWSListener("get_projects", ({projects}) => {
-        project = projects[query.path];
-        document.getElementById("title").innerHTML = "Light - " + project.name;
-        refresh_nodes();
-    });
-    ws.sendPacket("get_projects");
-    /*** @type {"editor" | "game"} */
-    let sceneType;
-    let sceneCamera = new Vector2(0, 0);
-    Scene.ctx = ctx;
-    let modelList = {};
-    let collisionList = {};
-    let loadedScriptList = {};
-
-    setInterval(() => {
-        ws.sendPacket("set_project_camera", {
-            path: project.path, x: sceneCamera.x, y: sceneCamera.y
-        });
-    }, 5000);
-
-    const createModel = async ({type, properties}) => {
-        switch (type) {
-            case "model-image":
-                const model = new ImageModel(
-                    properties.x.value * 1,
-                    properties.y.value * 1,
-                    properties.width.value * 1,
-                    properties.height.value * 1,
-                    properties.opacity.value * 1
-                );
-                if (properties.image.value) model.setImage(await ImageModel.loadImage(properties.image.value));
-                return model;
-            case "model-text":
-                return new TextModel(
-                    properties.x.value * 1,
-                    properties.y.value * 1,
-                    properties.text.value,
-                    properties.font.value,
-                    properties.size.value * 1,
-                    properties.color.value,
-                    properties.maxWidth.value * 1 || null,
-                    properties.opacity.value * 1
-                );
-            case "model-rectangle":
-                return new RectangleModel(
-                    properties.x.value * 1,
-                    properties.y.value * 1,
-                    properties.width.value * 1,
-                    properties.height.value * 1,
-                    properties.fillColor.value,
-                    properties.strokeColor.value,
-                    properties.opacity.value * 1
-                );
-            case "model-circle":
-                return new CircleModel(
-                    properties.x.value * 1,
-                    properties.y.value * 1,
-                    properties.radius.value,
-                    properties.fillColor.value,
-                    properties.strokeColor.value,
-                    properties.opacity.value * 1
-                );
-        }
-        return null;
-    };
-    const createCollision = async props => {
-        const scr = await loadProjectScript(props.customScript.value);
-        let collisionClass = sceneType === "game" ? scr || RectangleCollision : RectangleCollision;
-        let collision;
-        try {
-            collision = new collisionClass(
-                props.x.value * 1,
-                props.y.value * 1,
-                props.width.value * 1,
-                props.height.value * 1
-            );
-        } catch (e) {
-            collision = new RectangleCollision(
-                props.x.value * 1,
-                props.y.value * 1,
-                props.width.value * 1,
-                props.height.value * 1
-            );
-        }
-        Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => collision[i] = props[i].value);
-        collision.offsetX = props.x.value * 1;
-        collision.offsetY = props.y.value * 1;
-        collision.width = props.width.value * 1;
-        collision.height = props.height.value * 1;
-        return collision;
-    };
-    const createEntity = async (props) => {
-        const scr = await loadProjectScript(props.customScript.value);
-        let entityClass = sceneType === "game" ? scr || Entity : Entity;
-        let entity;
-        try {
-            entity = new entityClass(props.x.value * 1, props.y.value * 1);
-        } catch (e) {
-            entity = new Entity(props.x.value * 1, props.y.value * 1);
-        }
-        entity.x = props.x.value * 1;
-        entity.x = props.x.value * 1;
-        (props.models.value || "").split(",").forEach(m => {
-            const mdl = project.json.nodes[m];
-            if (mdl) entity.addModel(modelList[m]);
-        });
-        (props.collisions.value || "").split(",").forEach(m => {
-            const cls = project.json.nodes[m];
-            if (cls) entity.addCollision(collisionList[m]);
-        });
-        entity.rotation = props.rotation.value;
-        entity.gravityEnabled = props.gravityEnabled.value;
-        entity.gravity = props.gravity.value;
-        entity.terminalGravityVelocity = props.terminalGravityVelocity.value;
-        entity.motionDivision = new Vector2(props.motionDivision.value, props.motionDivision.value);
-        entity.visible = !props.invisible.value;
-        Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => entity[i] = props[i].value);
-        return entity;
-    };
-    const createTile = async (props) => {
-        const scr = await loadProjectScript(props.customScript.value);
-        let tileClass = sceneType === "game" ? scr || Tile : Tile;
-        let tile;
-        try {
-            tile = new tileClass(props.x.value * 1, props.y.value * 1);
-        } catch (e) {
-            tile = new Tile(props.x.value * 1, props.y.value * 1);
-        }
-        tile.x = props.x.value * 1;
-        tile.y = props.y.value * 1;
-        props.models.value.split(",").forEach(m => {
-            const mdl = project.json.nodes[m];
-            if (mdl) tile.addModel(modelList[m]);
-        });
-        props.collisions.value.split(",").forEach(m => {
-            const cls = project.json.nodes[m];
-            if (cls) tile.addCollision(collisionList[m]);
-        });
-        tile.rotation = props.rotation.value;
-        tile.visible = !props.invisible.value;
-        Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => tile[i] = props[i].value);
-        return tile;
-    };
-    const refreshModelList = async () => {
-        modelList = {};
-        const loadingModels = Object.keys(project.json.nodes).filter(i => project.json.nodes[i].type.startsWith("model-"));
-        for (let i = 0; i < loadingModels.length; i++) {
-            const m = loadingModels[i];
-            const n = project.json.nodes[m];
-            if (n.type === "model-custom") {
-                if (sceneType === "game") {
-                    const scr = await loadProjectScript(n.properties.customScript.value);
-                    try {
-                        const mdl = new scr(n.properties.x.value * 1, n.properties.y.value * 1, n.properties.opacity.value * 1);
-                        mdl.offsetX = n.properties.x.value * 1;
-                        mdl.offsetY = n.properties.y.value * 1;
-                        mdl.opacity = n.properties.opacity.value * 1;
-                        Object.keys(n.properties).filter(i => !n.properties[i].isDefaultProperty).forEach(i => mdl[i] = n.properties[i].value);
-                        modelList[m] = mdl;
-                    } catch (e) {
-                    }
-                }
-            } else modelList[m] = await createModel(n);
-            if (modelList[m]) modelList[m].init();
-        }
-    }
-    const refreshCollisionList = async () => {
-        collisionList = {};
-        const loadingCollisions = Object.keys(project.json.nodes).filter(i => project.json.nodes[i].type === "collision");
-        for (let i = 0; i < loadingCollisions.length; i++) {
-            const m = loadingCollisions[i];
-            const n = project.json.nodes[m];
-            (collisionList[m] = await createCollision(n.properties)).init();
-        }
-    }
-    const getProjectFilePath = path => /\w:\//i.test(path.substring(0, 3)) ? path : (path.startsWith(".") ? (path.startsWith("./") && /\w/i.test(path.charAt(2)) ? project.path + "/" + path.substring(2) : path) : project.path + "/" + path);
-    const loadProjectScript = async (file, addToList = true) => {
-        if (!file) return null;
-        if (loadedScriptList[file]) return loadedScriptList[file];
-        file = getProjectFilePath(file);
-        const script = await loadScript(file);
-        if (script.error) {
-            log(`Script with file '${file}' not found or a folder!`);
-            return console.info(`Script with file '${file}' not found or a folder!`);
-        }
-        const code = script.code;
-        const ____________i = setInterval;
-        const ____________t = setTimeout;
-        const ____________c = console;
-        const ____________e = eval;
-        const ____________x = XMLHttpRequest;
-        console = null;
-        eval = null;
-        XMLHttpRequest = null;
-        setInterval = (...args) => Scene.intervals.push(____________i(...args));
-        setTimeout = (...args) => Scene.intervals.push(____________t(...args));
-        exports = null;
-        try {
-            (() => {
-                ____________e(code.length === 0 ? "null" : code);
-                if (addToList) loadedScriptList[file] = exports;
-            })();
-        } catch (e) {
-            ____________c.error(e);
-            ____________c.info(`Script with file '${file}' gave error!`);
-            log(e);
-        }
-        window.XMLHttpRequest = ____________x;
-        window.eval = ____________e;
-        window.setInterval = ____________i;
-        window.setTimeout = ____________t;
-        window.console = ____________c;
-        return exports;
-    }
-
-    let canvasMouseDown = null;
-    let selectedEditorEntity = null;
-    const mouse = new Vector2(0, 0);
-    let mPos = new Vector2(0, 0);
-    let collidingCanvas = false;
-
-    let _h = [];
-    let copying = false;
-    addEventListener("keydown", ev => {
-        _h.push(ev.key);
-        if (!copying && _h[0] === "Control" && (_h[1] === "C" || _h[1] === "c")) {
-            copying = true;
-        }
-    });
-    addEventListener("keyup", ev => {
-        _h = _h.filter(i => i !== ev.key);
-        if (_h.length < 2) copying = false;
-    });
-    addEventListener("blur", () => _h = []);
-
-    addEventListener("mousemove", ev => {
-        mouse.x = ev.clientX;
-        mouse.y = ev.clientY;
-        collidingCanvas = ev.path[0].id === "canvas";
-        mPos = Scene.getInstance().camera.subtract(ev.offsetX, ev.offsetY).floor();
-    });
-
-    canvas.addEventListener("mousemove", ev => {
-        if (!canvasMouseDown) return;
-        if (selectedEditorEntity) {
-            const pos = canvasMouseDown[2].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
-            const nodeId = selectedEditorEntity["nodeId"];
-            project.json.nodes[nodeId].properties.x.value = pos.x;
-            project.json.nodes[nodeId].properties.y.value = pos.y;
+        function select_node(name, v = false) {
+            if (name && project.json.nodes[name].type === "group") return toggle_group_node(name);
+            if (document._light.selected_node === name && !v) {
+                name = null;
+                property_delete_mode = false;
+            }
+            document.getElementById("property-remove").src = property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
+            const s = name && project.json.nodes[name].type !== "camera";
+            document.getElementById("property-add").hidden = s ? undefined : true;
+            document.getElementById("property-remove").hidden = s ? undefined : true;
+            document._light.selected_node = name;
             refresh_properties();
-            selectedEditorEntity.x = pos.x;
-            selectedEditorEntity.y = pos.y;
-            (selectedEditorEntity.collisionTiles || []).forEach(t => {
-                if (!t) return;
-                t.x = pos.x;
-                t.y = pos.y;
+            refresh_nodes();
+        }
+
+        function toggle_group_node(key, r = false) {
+            const node = project.json.nodes[key];
+            if (!node || node.type !== "group") return;
+            const gN = document.getElementById("group_node_content_" + key);
+            const is_open = open_groups[key];
+            open_groups[key] = !open_groups[key];
+            gN.hidden = is_open ? true : undefined;
+            document.getElementById("node_icon_" + key).src = "../assets/group_" + (is_open ? "closed" : "open") + ".png";
+            if (r) toggle_group_node(key);
+        }
+
+        let project = {};
+        addWSListener("get_language", () => setLanguage(lang, false));
+        addWSListener("get_projects", ({projects}) => {
+            project = projects[query.path];
+            document.getElementById("title").innerHTML = "Light - " + project.name;
+            refresh_nodes();
+            if (sceneType === "editor") setSceneType("editor");
+        });
+        ws.sendPacket("get_projects");
+        /*** @type {"editor" | "game"} */
+        let sceneType;
+        let sceneCamera = new Vector2(0, 0);
+        let sceneZoom = 1.0;
+        Scene.ctx = ctx;
+        let modelList = {};
+        let collisionList = {};
+        let loadedScriptList = {};
+
+        setInterval(() => {
+            ws.sendPacket("set_project_camera", {
+                path: project.path, x: sceneCamera.x, y: sceneCamera.y
             });
-        } else {
-            const newCamera = canvasMouseDown[1].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
-            sceneCamera.x = newCamera.x;
-            sceneCamera.y = newCamera.y;
-        }
-    });
+            ws.sendPacket("set_project_zoom", {
+                path: project.path, zoom: sceneZoom
+            });
+        }, 5000);
 
-    const getEntityByMouse = (x, y) => {
-        const cmr = new Vector2(x - sceneCamera.x, y - sceneCamera.y);
-        return Scene.getInstance().entities.find(entity => entity instanceof Entity && (entity.collides(cmr)));
-    };
-
-    canvas.addEventListener("mousedown", ev => {
-        canvasMouseDown = [new Vector2(ev.offsetX, ev.offsetY), Scene.getInstance().camera.clone()];
-        if (sceneType === "editor") {
-            selectedEditorEntity = getEntityByMouse(ev.offsetX, ev.offsetY);
-            if (selectedEditorEntity) canvasMouseDown[2] = selectedEditorEntity.clone();
-        }
-    });
-
-    addEventListener("mouseup", ev => {
-        if (sceneType === "editor" && canvasMouseDown && canvasMouseDown[0] && canvasMouseDown[0].equals(new Vector2(ev.offsetX, ev.offsetY))) {
-            const ent = getEntityByMouse(ev.offsetX, ev.offsetY);
-            if (ent && ent["nodeId"]) select_node(ent["nodeId"]);
-        }
-        if (selectedEditorEntity && canvasMouseDown) {
-            const nodeId = selectedEditorEntity["nodeId"];
-            set_node_properties(nodeId, project.json.nodes[nodeId].properties);
-        }
-        selectedEditorEntity = null;
-        canvasMouseDown = false;
-    });
-    let setupCamera = false;
-
-    async function setSceneType(type) {
-        loadedScriptList = {};
-        sceneType = type;
-        switch (sceneType) {
-            case "editor":
-                Scene.getInstance().destroy();
-                Scene.getInstance().camera = sceneCamera;
-                Scene.getInstance().onUpdateStart = () => {
-                    ctx.fillStyle = "rgb(0, 255, 0)";
-                    ctx.fillRect(0, sceneCamera.y, canvas.width, 1);
-                    ctx.fillStyle = "rgb(255, 0, 0)";
-                    ctx.fillRect(sceneCamera.x, 0, 1, canvas.height);
-                }
-                Scene.getInstance().onUpdateEnd = () => {
-                    ctx.fillStyle = "#ffffff";
-                    ctx.font = "16px Calibri";
-                    ctx.fillText(sceneType === "editor" && collidingCanvas ? `X: ${-mPos.x}, Y: ${-mPos.y}` : "", 4, 16);
-                }
-                if (!setupCamera) {
-                    setupCamera = true;
-                    sceneCamera.x = canvas.width / 2;
-                    sceneCamera.y = canvas.height / 2;
-                }
-                await refreshModelList();
-                await refreshCollisionList();
-                const nList = Object.keys(project.json.nodes).filter(i => ["entity", "tile", "text"].includes(project.json.nodes[i].type)).sort((a, b) => project.json.nodes[a].position - project.json.nodes[b].position);
-                for (const j of nList) {
-                    const i1 = project.json.nodes[j];
-                    switch (i1.type) {
-                        case "entity":
-                            const entity = await createEntity(i1.properties);
-                            entity.update = r => r;
-                            if (entity) entity.init();
-                            entity.nodeId = j;
-                            entity.collisionTiles = [];
-                            if (i1.properties.collisionBorder.value) entity.collisions.forEach(i => {
-                                if (!(i instanceof RectangleCollision)) return;
-                                const t = new Tile(entity.x, entity.y);
-                                t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
-                                t.init();
-                                entity.collisionTiles.push(t);
-                            });
-                            break;
-                        case "tile":
-                            const tile = await createTile(i1.properties);
-                            tile.update = r => r;
-                            if (tile) tile.init();
-                            tile.nodeId = j;
-                            tile.collisionTiles = [];
-                            if (i1.properties.collisionBorder.value) tile.collisions.forEach(i => {
-                                if (!(i instanceof RectangleCollision)) return;
-                                const t = new Tile(tile.x, tile.y);
-                                t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
-                                t.init();
-                                tile.collisionTiles.push(t);
-                            });
-                            break;
-                        case "text":
-                            const textTile = new Tile(0, 0);
-                            textTile.x = i1.properties.x.value * 1;
-                            textTile.y = i1.properties.y.value * 1;
-                            const textModel = await createModel({type: "model-text", properties: i1.properties});
-                            textModel.offsetX = 0;
-                            textModel.offsetY = 0;
-                            textTile.addModel(textModel);
-                            textTile.init();
-                            textTile.nodeId = j;
-                            const size = TextModel.calculateTextSize(textModel.text, textModel.size, textModel.font, textModel.maxWidth);
-                            const coll = new RectangleCollision(0, textModel.size / 3, size.width, size.height);
-                            textTile.addCollision(coll);
-                            if (i1.properties.collisionBorder.value) {
-                                const t = new Tile(textTile.x, textTile.y);
-                                t.addModel(new RectangleModel(0, textModel.size / 3, size.width, size.height, null, themes[theme].json["general-color"]));
-                                t.init();
-                                textTile.collisionTiles = [t];
-                            }
-                            break;
+        const createModel = async ({type, properties}) => {
+            switch (type) {
+                case "model-image":
+                    const model = new ImageModel(
+                        properties.x.value * 1,
+                        properties.y.value * 1,
+                        properties.width.value * 1,
+                        properties.height.value * 1,
+                        properties.opacity.value * 1
+                    );
+                    if (properties.image.value) model.setImage(await ImageModel.loadImage(properties.image.value));
+                    return model;
+                case "model-text":
+                    return new TextModel(
+                        properties.x.value * 1,
+                        properties.y.value * 1,
+                        properties.text.value,
+                        properties.font.value,
+                        properties.size.value * 1,
+                        properties.color.value,
+                        properties.maxWidth.value * 1 || null,
+                        properties.opacity.value * 1
+                    );
+                case "model-rectangle":
+                    return new RectangleModel(
+                        properties.x.value * 1,
+                        properties.y.value * 1,
+                        properties.width.value * 1,
+                        properties.height.value * 1,
+                        properties.fillColor.value,
+                        properties.strokeColor.value,
+                        properties.opacity.value * 1
+                    );
+                case "model-circle":
+                    return new CircleModel(
+                        properties.x.value * 1,
+                        properties.y.value * 1,
+                        properties.radius.value,
+                        properties.fillColor.value,
+                        properties.strokeColor.value,
+                        properties.opacity.value * 1
+                    );
+            }
+            return null;
+        };
+        const createCollision = async props => {
+            const scr = await loadProjectScript(props.customScript.value);
+            let collisionClass = sceneType === "game" ? scr || RectangleCollision : RectangleCollision;
+            let collision;
+            try {
+                collision = new collisionClass(
+                    props.x.value * 1,
+                    props.y.value * 1,
+                    props.width.value * 1,
+                    props.height.value * 1
+                );
+            } catch (e) {
+                collision = new RectangleCollision(
+                    props.x.value * 1,
+                    props.y.value * 1,
+                    props.width.value * 1,
+                    props.height.value * 1
+                );
+            }
+            Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => collision[i] = props[i].value);
+            collision.offsetX = props.x.value * 1;
+            collision.offsetY = props.y.value * 1;
+            collision.width = props.width.value * 1;
+            collision.height = props.height.value * 1;
+            return collision;
+        };
+        const createEntity = async (props) => {
+            const scr = await loadProjectScript(props.customScript.value);
+            let entityClass = sceneType === "game" ? scr || Entity : Entity;
+            let entity;
+            try {
+                entity = new entityClass(props.x.value * 1, props.y.value * 1);
+            } catch (e) {
+                entity = new Entity(props.x.value * 1, props.y.value * 1);
+            }
+            entity.x = props.x.value * 1;
+            entity.x = props.x.value * 1;
+            (props.models.value || "").split(",").forEach(m => {
+                const mdl = project.json.nodes[m];
+                if (mdl) entity.addModel(modelList[m]);
+            });
+            (props.collisions.value || "").split(",").forEach(m => {
+                const cls = project.json.nodes[m];
+                if (cls) entity.addCollision(collisionList[m]);
+            });
+            entity.rotation = props.rotation.value;
+            entity.gravityEnabled = props.gravityEnabled.value;
+            entity.gravity = props.gravity.value;
+            entity.terminalGravityVelocity = props.terminalGravityVelocity.value;
+            entity.motionDivision = new Vector2(props.motionDivision.value, props.motionDivision.value);
+            entity.visible = !props.invisible.value;
+            Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => entity[i] = props[i].value);
+            return entity;
+        };
+        const createTile = async (props) => {
+            const scr = await loadProjectScript(props.customScript.value);
+            let tileClass = sceneType === "game" ? scr || Tile : Tile;
+            let tile;
+            try {
+                tile = new tileClass(props.x.value * 1, props.y.value * 1);
+            } catch (e) {
+                tile = new Tile(props.x.value * 1, props.y.value * 1);
+            }
+            tile.x = props.x.value * 1;
+            tile.y = props.y.value * 1;
+            props.models.value.split(",").forEach(m => {
+                const mdl = project.json.nodes[m];
+                if (mdl) tile.addModel(modelList[m]);
+            });
+            props.collisions.value.split(",").forEach(m => {
+                const cls = project.json.nodes[m];
+                if (cls) tile.addCollision(collisionList[m]);
+            });
+            tile.rotation = props.rotation.value;
+            tile.visible = !props.invisible.value;
+            Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => tile[i] = props[i].value);
+            return tile;
+        };
+        const refreshModelList = async () => {
+            modelList = {};
+            const loadingModels = Object.keys(project.json.nodes).filter(i => project.json.nodes[i].type.startsWith("model-"));
+            for (let i = 0; i < loadingModels.length; i++) {
+                const m = loadingModels[i];
+                const n = project.json.nodes[m];
+                if (n.type === "model-custom") {
+                    if (sceneType === "game") {
+                        const scr = await loadProjectScript(n.properties.customScript.value);
+                        try {
+                            const mdl = new scr(n.properties.x.value * 1, n.properties.y.value * 1, n.properties.opacity.value * 1);
+                            mdl.offsetX = n.properties.x.value * 1;
+                            mdl.offsetY = n.properties.y.value * 1;
+                            mdl.opacity = n.properties.opacity.value * 1;
+                            Object.keys(n.properties).filter(i => !n.properties[i].isDefaultProperty).forEach(i => mdl[i] = n.properties[i].value);
+                            modelList[m] = mdl;
+                        } catch (e) {
+                        }
                     }
-                }
-                start_btn.hidden = undefined;
-                stop_btn.hidden = true;
-                break;
-            case "game":
-                consoleList = [];
-                renderConsole();
-                Scene.getInstance().destroy();
-                Scene.getInstance();
-                await refreshModelList();
-                await refreshCollisionList();
-                for (const i1 of Object.values(project.json.nodes).filter(i => ["entity", "tile", "text", "script"].includes(i.type))) {
-                    switch (i1.type) {
-                        case "entity":
-                            const entity = await createEntity(i1.properties);
-                            if (entity) entity.init();
-                            break;
-                        case "tile":
-                            const tile = await createTile(i1.properties);
-                            if (tile) tile.init();
-                            break;
-                        case "text":
-                            const textTile = new Tile(0, 0);
-                            const textModel = await createModel({type: "model-text", properties: i1.properties});
-                            textTile.addModel(textModel);
-                            textTile.init();
-                            break;
-                        case "script":
-                            const script = await loadProjectScript(i1.properties.file.value, false);
-                            try {
-                                const props = {};
-                                Object.keys(i1.properties).forEach(i => props[i] = i1.properties[i].value);
-                                new script(props);
-                            } catch (e) {
-                                console.error(e);
-                                console.info(`Script with file '${i1.properties.file.value}' gave error!`);
-                                log(e);
-                            }
-                            break;
-                    }
-                }
-                start_btn.hidden = true;
-                stop_btn.hidden = undefined;
-                break;
+                } else modelList[m] = await createModel(n);
+                if (modelList[m]) modelList[m].init();
+            }
         }
-    }
+        const refreshCollisionList = async () => {
+            collisionList = {};
+            const loadingCollisions = Object.keys(project.json.nodes).filter(i => project.json.nodes[i].type === "collision");
+            for (let i = 0; i < loadingCollisions.length; i++) {
+                const m = loadingCollisions[i];
+                const n = project.json.nodes[m];
+                (collisionList[m] = await createCollision(n.properties)).init();
+            }
+        }
+        const getProjectFilePath = path => /\w:\//i.test(path.substring(0, 3)) ? path : (path.startsWith(".") ? (path.startsWith("./") && /\w/i.test(path.charAt(2)) ? project.path + "/" + path.substring(2) : path) : project.path + "/" + path);
+        const loadProjectScript = async (file, addToList = true) => {
+            if (!file) return null;
+            if (loadedScriptList[file]) return loadedScriptList[file];
+            file = getProjectFilePath(file);
+            const script = await loadScript(file);
+            if (script.error) {
+                log("Invalid script.", file);
+                return console.info(`Script with file '${file}' not found or a folder!`);
+            }
+            const code = script.code;
+            const ____________i = setInterval;
+            const ____________t = setTimeout;
+            const ____________c = console;
+            const ____________e = eval;
+            const ____________x = XMLHttpRequest;
+            console = null;
+            eval = null;
+            XMLHttpRequest = null;
+            setInterval = (...args) => Scene.intervals.push(____________i(...args));
+            setTimeout = (...args) => Scene.intervals.push(____________t(...args));
+            exports = null;
+            try {
+                (() => {
+                    ____________e(code.length === 0 ? "null" : code);
+                    if (addToList) loadedScriptList[file] = exports;
+                })();
+            } catch (e) {
+                ____________c.error(e);
+                if (file) {
+                    ____________c.info(`Script with file '${file}' gave error!`);
+                    log(e, file);
+                }
+            }
+            window.XMLHttpRequest = ____________x;
+            window.eval = ____________e;
+            window.setInterval = ____________i;
+            window.setTimeout = ____________t;
+            window.console = ____________c;
+            return exports;
+        }
 
-    addWSOnceListener("get_projects", () => {
-        setSceneType("editor");
-        sceneCamera.x = project.json.camera.x;
-        sceneCamera.y = project.json.camera.y;
-    });
+        let canvasMouseDown = null;
+        let selectedEditorEntity = null;
+        const mouse = new Vector2(0, 0);
+        let mPos = new Vector2(0, 0);
+        let collidingCanvas = false;
 
-    function main_menu() {
-        window.location.href = "index.html";
-        ws.sendPacket("main_menu");
-    }
+        let _h = [];
+        let copying = false;
+        addEventListener("keydown", ev => {
+            _h.push(ev.key);
+            if (!copying && _h[0] === "Control" && (_h[1] === "C" || _h[1] === "c")) {
+                copying = true;
+            }
+        });
+        addEventListener("keyup", ev => {
+            _h = _h.filter(i => i !== ev.key);
+            if (_h.length < 2) copying = false;
+        });
+        addEventListener("blur", () => _h = []);
 
-    const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
-    const query = {};
-    _query.forEach(i => query[i[0]] = i[1]);
+        addEventListener("mousemove", ev => {
+            mouse.x = ev.clientX;
+            mouse.y = ev.clientY;
+            collidingCanvas = ev.path[0].id === "canvas";
+            mPos = Scene.getInstance().camera.add(ev.offsetX, ev.offsetY).floor();
+        });
 
-    setInterval(() => {
-        const canvas = document.getElementById("canvas");
-        if (canvas.width !== Math.floor(window.innerWidth * 0.601)) canvas.width = Math.floor(window.innerWidth * 0.601);
-        if (canvas.height !== Math.floor(window.innerHeight * 0.751)) canvas.height = Math.floor(window.innerHeight * 0.751);
-    });
+        canvas.addEventListener("mousemove", ev => {
+            if (!canvasMouseDown) return;
+            if (selectedEditorEntity) {
+                const pos = canvasMouseDown[2].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
+                const nodeId = selectedEditorEntity["nodeId"];
+                project.json.nodes[nodeId].properties.x.value = pos.x;
+                project.json.nodes[nodeId].properties.y.value = pos.y;
+                refresh_properties();
+                selectedEditorEntity.x = pos.x;
+                selectedEditorEntity.y = pos.y;
+                (selectedEditorEntity.collisionTiles || []).forEach(t => {
+                    if (!t) return;
+                    t.x = pos.x;
+                    t.y = pos.y;
+                });
+            } else {
+                const newCamera = canvasMouseDown[1].add(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
+                sceneCamera.x = newCamera.x;
+                sceneCamera.y = newCamera.y;
+            }
+        });
 
-    addWSListener("get_file", ({path, exists, type}) => {
-        if (path === query.path && (!exists || type !== "folder")) main_menu();
-    });
+        const getEntityByMouse = (x, y) => {
+            const cmr = (new Vector2(x + sceneCamera.x, y + sceneCamera.y));
+            return Scene.getInstance().entities.find(entity => entity instanceof Entity && (entity.collides(cmr)));
+        };
 
-    function checkProjectExists() {
-        ws.sendPacket("get_file", {path: query.path});
-    }
+        canvas.addEventListener("mousedown", ev => {
+            canvasMouseDown = [new Vector2(ev.offsetX, ev.offsetY), Scene.getInstance().camera.clone()];
+            if (sceneType === "editor") {
+                selectedEditorEntity = getEntityByMouse(ev.offsetX, ev.offsetY);
+                if (selectedEditorEntity) canvasMouseDown[2] = selectedEditorEntity.clone();
+            }
+        });
 
-    window.addEventListener("blur", checkProjectExists);
+        addEventListener("mouseup", ev => {
+            if (sceneType === "editor" && canvasMouseDown && canvasMouseDown[0] && canvasMouseDown[0].equals(new Vector2(ev.offsetX, ev.offsetY))) {
+                const ent = getEntityByMouse(ev.offsetX, ev.offsetY);
+                if (ent && ent["nodeId"]) select_node(ent["nodeId"]);
+            }
+            if (selectedEditorEntity && canvasMouseDown) {
+                const nodeId = selectedEditorEntity["nodeId"];
+                set_node_properties(nodeId, project.json.nodes[nodeId].properties);
+            }
+            selectedEditorEntity = null;
+            canvasMouseDown = false;
+        });
+
+        canvas.addEventListener("wheel", ev => {
+            if (sceneType !== "editor") return;
+            if (ev.deltaY > 0) Scene.instance.zoom -= 0.1;
+            else if (ev.deltaY < 0) Scene.instance.zoom += 0.1;
+            sceneZoom = Scene.instance.zoom;
+        });
+
+        let setupCamera = false;
+
+        async function setSceneType(type) {
+            loadedScriptList = {};
+            sceneType = type;
+            switch (sceneType) {
+                case "editor":
+                    Scene.getInstance().destroy();
+                    Scene.getInstance().camera = sceneCamera;
+                    Scene.getInstance().zoom = sceneZoom;
+                    Scene.getInstance().onUpdateStart = () => {
+                        ctx.fillStyle = "rgb(0, 255, 0)";
+                        ctx.fillRect(0, -sceneCamera.y, canvas.width, 1);
+                        ctx.fillStyle = "rgb(255, 0, 0)";
+                        ctx.fillRect(-sceneCamera.x, 0, 1, canvas.height);
+                    }
+                    Scene.getInstance().onUpdateEnd = () => {
+                        ctx.fillStyle = themes[theme].json["general-color"];
+                        ctx.font = "16px Calibri";
+                        ctx.fillText(sceneType === "editor" && collidingCanvas ? `X: ${-mPos.x}, Y: ${-mPos.y}, Zoom: ${Math.floor(Scene.getInstance().zoom * 100)}%` : "", 4, 16);
+                    }
+                    if (!setupCamera) {
+                        setupCamera = true;
+                        sceneCamera.x = -canvas.width / 2;
+                        sceneCamera.y = -canvas.height / 2;
+                    }
+                    await refreshModelList();
+                    await refreshCollisionList();
+                    const nList = Object.keys(project.json.nodes).sort((a, b) => project.json.nodes[b].position - project.json.nodes[a].position).filter(i => ["entity", "tile", "text", "camera"].includes(project.json.nodes[i].type)).sort((a, b) => project.json.nodes[a].position - project.json.nodes[b].position);
+                    for (const j of nList) {
+                        const i1 = project.json.nodes[j];
+                        switch (i1.type) {
+                            case "entity":
+                                const entity = await createEntity(i1.properties);
+                                entity.update = r => r;
+                                if (entity) entity.init();
+                                entity.nodeId = j;
+                                entity.collisionTiles = [];
+                                if (i1.properties.collisionBorder.value) entity.collisions.forEach(i => {
+                                    if (!(i instanceof RectangleCollision)) return;
+                                    const t = new Tile(entity.x, entity.y);
+                                    t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
+                                    t.init();
+                                    entity.collisionTiles.push(t);
+                                });
+                                break;
+                            case "tile":
+                                const tile = await createTile(i1.properties);
+                                tile.update = r => r;
+                                if (tile) tile.init();
+                                tile.nodeId = j;
+                                tile.collisionTiles = [];
+                                if (i1.properties.collisionBorder.value) tile.collisions.forEach(i => {
+                                    if (!(i instanceof RectangleCollision)) return;
+                                    const t = new Tile(tile.x, tile.y);
+                                    t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
+                                    t.init();
+                                    tile.collisionTiles.push(t);
+                                });
+                                break;
+                            case "text":
+                                const textTile = new Tile(0, 0);
+                                textTile.x = i1.properties.x.value * 1;
+                                textTile.y = i1.properties.y.value * 1;
+                                const textModel = await createModel({type: "model-text", properties: i1.properties});
+                                textModel.offsetX = 0;
+                                textModel.offsetY = 0;
+                                textTile.addModel(textModel);
+                                textTile.init();
+                                textTile.nodeId = j;
+                                const size = TextModel.calculateTextSize(textModel.text, textModel.size, textModel.font, textModel.maxWidth);
+                                const coll = new RectangleCollision(0, textModel.size / 3, size.width, size.height);
+                                textTile.addCollision(coll);
+                                if (i1.properties.collisionBorder.value) {
+                                    const t = new Tile(textTile.x, textTile.y);
+                                    t.addModel(new RectangleModel(0, textModel.size / 3, size.width, size.height, null, themes[theme].json["general-color"]));
+                                    t.init();
+                                    textTile.collisionTiles = [t];
+                                }
+                                break;
+                            case "camera":
+                                const cameraTile = new Tile(i1.properties.x.value * 1, i1.properties.y.value * 1);
+                                cameraTile.addModel(new RectangleModel(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]));
+                                cameraTile.addCollision(new RectangleCollision(0, 0, canvas.width, canvas.height));
+                                cameraTile.init();
+                                cameraTile.nodeId = j;
+                                break;
+                        }
+                    }
+                    start_btn.hidden = undefined;
+                    stop_btn.hidden = true;
+                    break;
+                case "game":
+                    const cameraNode = project.json.nodes.camera;
+                    if (!cameraNode) return window.location.href = window.location.href.toString();
+                    consoleList = [];
+                    renderConsole();
+                    Scene.getInstance().destroy();
+                    Scene.getInstance().camera.set(cameraNode.properties.x.value, cameraNode.properties.y.value);
+                    await refreshModelList();
+                    await refreshCollisionList();
+                    for (const i1 of Object.values(project.json.nodes).sort((a, b) => b.position - a.position).filter(i => ["entity", "tile", "text", "script"].includes(i.type))) {
+                        switch (i1.type) {
+                            case "entity":
+                                const entity = await createEntity(i1.properties);
+                                if (entity) entity.init();
+                                break;
+                            case "tile":
+                                const tile = await createTile(i1.properties);
+                                if (tile) tile.init();
+                                break;
+                            case "text":
+                                const textTile = new Tile(0, 0);
+                                const textModel = await createModel({type: "model-text", properties: i1.properties});
+                                textTile.addModel(textModel);
+                                textTile.init();
+                                break;
+                            case "script":
+                                if (!i1.properties.file.value) continue;
+                                const script = await loadProjectScript(i1.properties.file.value, false);
+                                if (script) continue;
+                                try {
+                                    const scr = new script();
+                                    Object.keys(i1.properties).forEach(i => scr[i] = i1.properties[i].value);
+                                    if (scr.init) scr.init();
+                                } catch (e) {
+                                    console.error(e);
+                                    const f = i1.properties.file.value;
+                                    if (f) {
+                                        console.info(`Script with file '${i1.properties.file.value}' gave error!`);
+                                        log(e, f);
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                    start_btn.hidden = true;
+                    stop_btn.hidden = undefined;
+                    break;
+            }
+        }
+
+        addWSOnceListener("get_projects", () => {
+            setSceneType("editor");
+            sceneCamera.x = project.json.camera.x;
+            sceneCamera.y = project.json.camera.y;
+            sceneZoom = project.json.zoom || 1.0;
+            Scene.instance.zoom = sceneZoom;
+        });
+
+        function main_menu() {
+            window.location.href = "index.html";
+            ws.sendPacket("main_menu");
+        }
+
+        const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
+        const query = {};
+        _query.forEach(i => query[i[0]] = i[1]);
+
+        setInterval(() => {
+            const canvas = document.getElementById("canvas");
+            if (canvas.width !== Math.floor(window.innerWidth * 0.601)) canvas.width = Math.floor(window.innerWidth * 0.601);
+            if (canvas.height !== Math.floor(window.innerHeight * 0.751)) canvas.height = Math.floor(window.innerHeight * 0.751);
+        });
+
+        addWSListener("get_file", ({path, exists, type}) => {
+            if (path === query.path && (!exists || type !== "folder")) main_menu();
+        });
+
+        function checkProjectExists() {
+            ws.sendPacket("get_file", {path: query.path});
+        }
+
+        window.addEventListener("blur", checkProjectExists);
+        document._light = {
+            main_menu,
+            setSceneType,
+            open_node_menu,
+            open_property_menu,
+            select_node,
+            end_prompt,
+            open_add_node_menu,
+            open_remove_node_menu,
+            open_rename_node_menu,
+            selected_node: null,
+            set_node_property
+        };
+    })()
 </script>
 </html>
