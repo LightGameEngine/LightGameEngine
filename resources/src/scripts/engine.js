@@ -483,6 +483,7 @@ class Vector2 {
 let printHandler = console.log;
 let _hK = {};
 const _mP = new Vector2(0, 0);
+const mouse = new Vector2(0, 0);
 addEventListener("keydown", ev => _hK[ev.key] = true);
 addEventListener("keyup", ev => delete _hK[ev.key]);
 addEventListener("mousemove", ev => {
@@ -490,9 +491,9 @@ addEventListener("mousemove", ev => {
     mouse.y = ev.offsetY;
 });
 
-function log(str) {
+function log(str, file) {
     if (str instanceof Error) {
-        printHandler("<span style='color: red'>" + str.message + "</span>")
+        printHandler((file ? file + " > " : "") + "<span style='color: red'>" + str.message + "</:span>")
     } else printHandler(JSON.stringify(str));
 }
 
@@ -535,11 +536,11 @@ class Model {
     }
 
     /**
-     * @param {CanvasRenderingContext2D} ctx
+     * @param {Scene} scene
      * @param {Entity} entity
      * @param {Vector2} position
      */
-    draw(ctx, entity, position) {
+    draw(scene, entity, position) {
     }
 }
 
@@ -602,12 +603,20 @@ class ImageModel extends Model {
         ImageModel.loadImage(urlOrImage).then(img => this.setImage(img));
     }
 
-    draw(ctx, entity, position) {
+    /**
+     * @param {Scene} scene
+     * @param {Entity} entity
+     * @param {Vector2} position
+     */
+    draw(scene, entity, position) {
         if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
-        ctx.rotateComplete(entity.rotation || 0, position.add(this.width / 2, this.height / 2));
+        const {ctx} = scene;
+        const width = scene.zoom * this.width;
+        const height = scene.zoom * this.height;
+        ctx.rotateComplete(entity.rotation || 0, position.add(width / 2, height / 2));
         ctx.globalAlpha = this.opacity;
-        if (this.image) ctx.drawImage(this.image, position.x, position.y, this.width, this.height);
+        if (this.image) ctx.drawImage(this.image, position.x, position.y, width, height);
         ctx.globalAlpha = 1;
         ctx.resetTransform();
     }
@@ -709,16 +718,24 @@ class TextModel extends Model {
         return {width, height};
     }
 
-    draw(ctx, entity, position) {
+    /**
+     * @param {Scene} scene
+     * @param {Entity} entity
+     * @param {Vector2} position
+     */
+    draw(scene, entity, position) {
         if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
-        const {width, height} = TextModel.calculateTextSize(this.text, this.size, this.font, this.maxWidth);
+        let {width, height} = TextModel.calculateTextSize(this.text, this.size, this.font, this.maxWidth);
         position = position.add(0, height);
+        const {ctx} = scene;
+        width *= scene.zoom;
+        height *= scene.zoom;
         ctx.rotateComplete(entity.rotation || 0, position.add(width / 2, height / 2));
         ctx.globalAlpha = this.opacity;
         ctx.fillStyle = this.color;
         ctx.font = this.size + "px " + this.font;
-        ctx.fillText(this.text, position.x, position.y, this.maxWidth === null ? undefined : this.maxWidth);
+        ctx.fillText(this.text, position.x, position.y, this.maxWidth === null ? undefined : this.maxWidth * scene.zoom);
         ctx.globalAlpha = 1;
         ctx.resetTransform();
     }
@@ -778,14 +795,20 @@ class PathModel extends Model {
         return this;
     }
 
-    draw(ctx, entity, position) {
+    /**
+     * @param {Scene} scene
+     * @param {Entity} entity
+     * @param {Vector2} position
+     */
+    draw(scene, entity, position) {
         if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
+        const {ctx} = scene;
         ctx.rotateComplete(entity.rotation || 0, position.add(this.middle[0], this.middle[1]));
         ctx.beginPath();
         ctx.globalAlpha = this.opacity;
-        ctx.moveTo(this.path[0].offsetX + position.x, this.path[0].offsetY + position.y);
-        [...this.path.slice(1), this.path[0]].forEach(p => ctx.lineTo(p.offsetX + position.x, p.offsetY + position.y));
+        ctx.moveTo(this.path[0].offsetX * scene.zoom + position.x, this.path[0].offsetY * scene.zoom + position.y);
+        [...this.path.slice(1), this.path[0]].forEach(p => ctx.lineTo(p.offsetX * scene.zoom + position.x, p.offsetY * scene.zoom + position.y));
         if (this.fillColor) {
             ctx.fillStyle = this.fillColor;
             ctx.fill();
@@ -902,15 +925,22 @@ class CircleModel extends Model {
         return this;
     }
 
-    draw(ctx, entity, position) {
+    /**
+     * @param {Scene} scene
+     * @param {Entity} entity
+     * @param {Vector2} position
+     */
+    draw(scene, entity, position) {
         if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
-        ctx.rotateComplete(entity.rotation || 0, position.add(this.radius, this.radius));
+        const {ctx} = scene;
+        const radius = scene.zoom * this.radius;
+        ctx.rotateComplete(entity.rotation || 0, position.add(radius, radius));
         ctx.beginPath();
         ctx.globalAlpha = this.opacity;
         ctx.fillStyle = this.fillColor;
         ctx.strokeStyle = this.strokeColor;
-        ctx.arc(this.offsetX + this.radius + position.x, this.offsetY + this.radius + position.y, this.radius, 0, Math.PI * 2);
+        ctx.arc(this.offsetX + radius + position.x, this.offsetY + radius + position.y, radius, 0, Math.PI * 2);
         if (this.fillColor) ctx.fill();
         if (this.strokeColor) ctx.stroke();
         ctx.globalAlpha = 1;
@@ -1008,10 +1038,11 @@ class RectangleCollision extends Collision {
         if (!(collision instanceof RectangleCollision)) collision = new RectangleCollision(0, 0, 1, 1);
         currentPosition = currentPosition.add(this.offsetX, this.offsetY);
         vector2 = vector2.add(collision.offsetX, collision.offsetY);
-        return currentPosition.x <= vector2.x + collision.width &&
-            vector2.x <= currentPosition.x + this.width &&
-            currentPosition.y <= vector2.y + collision.height &&
-            vector2.y <= currentPosition.y + this.height;
+        const zoom = Scene.instance.zoom;
+        return currentPosition.x <= vector2.x + collision.width * zoom &&
+            vector2.x <= currentPosition.x + this.width * zoom &&
+            currentPosition.y <= vector2.y + collision.height * zoom &&
+            vector2.y <= currentPosition.y + this.height * zoom;
     }
 }
 
@@ -1160,17 +1191,6 @@ class Entity extends Vector2 {
 
 class Tile extends Entity {
     gravityEnabled = false;
-
-    /**
-     * @param {number} x
-     * @param {number} y
-     */
-    constructor(x, y) {
-        super(x, y);
-    }
-
-    update() {
-    }
 }
 
 class TileMapModel extends Model {
@@ -1195,8 +1215,8 @@ class TileMapModel extends Model {
         this.subModels.push({x, y, model});
     }
 
-    draw(ctx, entity, position) {
-        this.subModels.forEach(i => i.model !== this ? i.model.draw(ctx, entity, position) : null);
+    draw(scene, entity, position) {
+        this.subModels.forEach(i => i.model !== this ? i.model.draw(scene, entity, position) : null);
     }
 }
 
@@ -1218,6 +1238,7 @@ class Scene {
     /*** @type {Entity[]} */
     entities = [];
     camera = new Vector2(0, 0);
+    zoom = 1.0;
     onUpdateStart = r => r;
     onUpdateEnd = r => r;
     /*** @type {number[]} */
@@ -1240,11 +1261,12 @@ class Scene {
     }
 
     update() {
+        if (this.zoom < 0.1) this.zoom = 0.1;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.onUpdateStart();
         this.entities.forEach(i => {
             i.update();
-            if (i.visible) i.models.forEach(model => model ? model.draw(this.ctx, i, i.clone().add(this.camera)) : null);
+            if (i.visible) i.models.forEach(model => model ? model.draw(this, i, i.clone().subtract(this.camera)) : null);
         });
         this.onUpdateEnd();
     }

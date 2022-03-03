@@ -89,7 +89,8 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "select-model-type": "Select model type",
     "rename-node-title": "Rename Node",
     "enter-node-new-name": "Enter node's new name",
-    "rename-node-button": "Rename"
+    "rename-node-button": "Rename",
+    "camera": "Camera"
 }));
 fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
@@ -171,7 +172,8 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "select-model-type": "Model türü seç",
     "rename-node-title": "Nesneyi Yeniden Adlandır",
     "enter-node-new-name": "Nesnenin yeni adını gir",
-    "rename-node-button": "Yeniden Adlandır"
+    "rename-node-button": "Yeniden Adlandır",
+    "camera": "Kamera"
 }));
 if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
 fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
@@ -327,6 +329,7 @@ class CacheManager {
             path,
             json: {
                 camera: {x: 0, y: 0},
+                zoom: 1.0,
                 nodes: {camera: CAMERA_PROPERTY()}
             },
             createdTimestamp: Date.now(),
@@ -358,6 +361,11 @@ class CacheManager {
     static setProjectCamera(path, x, y) {
         this.createProject(path);
         cache.projects[path].json.camera = {x, y};
+    }
+
+    static setProjectZoom(path, zoom) {
+        this.createProject(path);
+        cache.projects[path].json.zoom = zoom;
     }
 
     static getNode(path, node) {
@@ -953,6 +961,10 @@ wss.on("connection", async socket => {
                 case "set_project_camera":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.setProjectCamera(json.data.path, json.data.x, json.data.y);
+                    break;
+                case "set_project_zoom":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.setProjectZoom(json.data.path, json.data.zoom);
                     break;
                 case "main_menu":
                     browser.setPositionLimits();
