@@ -33,4 +33,5 @@
     --node-hover-background: rgba(169, 159, 159, 0.5);
     --node-selected-background: #4a7aa9;
     --node-selected-hover-background: #5e95cb;
+    --drop-selected: rgba(219, 226, 232, 0.5);
 }

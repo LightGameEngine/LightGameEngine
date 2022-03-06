@@ -34,6 +34,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "node-tile-map": "Tile Map",
     "node-group": "Group",
     "node-text": "Text",
+    "node-light": "Light",
     "node-script": "Script",
     "enter-node-name": "Enter node name",
     "add-node-title": "Add Node",
@@ -80,6 +81,11 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "property--file": "File",
     "property--customScript": "Script",
     "property--collisionBorder": "Collision Border",
+    "property--power": "Power",
+    "property--startAngle": "Start Angle",
+    "property--endAngle": "End Angle",
+    "property--rayPopulation": "Ray Population",
+    "property--lightenCamera": "Lighten Camera",
     "none": "none",
     "model-type-image": "Image",
     "model-type-text": "Text",
@@ -90,7 +96,9 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "rename-node-title": "Rename Node",
     "enter-node-new-name": "Enter node's new name",
     "rename-node-button": "Rename",
-    "camera": "Camera"
+    "camera": "Camera",
+    "rename-button": "Rename",
+    "rename-project-title": "Rename Project"
 }));
 fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
@@ -118,6 +126,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "node-tile-map": "Nesne Haritası",
     "node-group": "Grup",
     "node-text": "Yazı",
+    "node-light": "Işık",
     "node-script": "Skript",
     "enter-node-name": "Nesne adını girin",
     "add-node-title": "Nesne Ekle",
@@ -163,6 +172,11 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "property--file": "Dosya",
     "property--customScript": "Skript",
     "property--collisionBorder": "Sınır Çizgisi",
+    "property--power": "Güç",
+    "property--startAngle": "Baş Açı",
+    "property--endAngle": "Bitiş Açısı",
+    "property--rayPopulation": "Işın Popülasyonu",
+    "property--lightenCamera": "Kamerayı Işıklandır",
     "none": "yok",
     "model-type-image": "Resim",
     "model-type-text": "Yazı",
@@ -173,7 +187,9 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "rename-node-title": "Nesneyi Yeniden Adlandır",
     "enter-node-new-name": "Nesnenin yeni adını gir",
     "rename-node-button": "Yeniden Adlandır",
-    "camera": "Kamera"
+    "camera": "Kamera",
+    "rename-button": "Yeniden Adlandır",
+    "rename-project-title": "Projeyi Yeniden Adlandır"
 }));
 if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
 fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
@@ -213,7 +229,8 @@ fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
         "container-nav-background": "#5b5b5b",
         "node-selected-background": "#4a7aa9",
         "node-selected-hover-background": "#5e95cb",
-        "node-menu-background": "#545454"
+        "node-menu-background": "#545454",
+        "drop-selected": "rgba(219, 226, 232, 0.5)"
     }
 }));
 fs.writeFileSync(lightRoamingPath + "/themes/light.json", JSON.stringify({
@@ -253,7 +270,8 @@ fs.writeFileSync(lightRoamingPath + "/themes/light.json", JSON.stringify({
         "container-nav-background": "#868686",
         "node-selected-background": "#4a7aa9",
         "node-selected-hover-background": "#5e95cb",
-        "node-menu-background": "#7a7a7a"
+        "node-menu-background": "#7a7a7a",
+        "drop-selected": "rgba(219, 226, 232, 0.5)"
     }
 }));
 
@@ -377,6 +395,11 @@ class CacheManager {
         delete cache.projects[path].json.nodes[from];
     }
 
+    static copyNode(path, from, to) {
+        cache.projects[path].json.nodes[to] = JSON.parse(JSON.stringify(this.getNode(path, from)));
+        cache.projects[path].json.nodes[to].createdTimestamp = Date.now();
+    }
+
     static setNodePosition(path, node, position) {
         cache.projects[path].json.nodes[node].position = position;
     }
@@ -447,7 +470,7 @@ const property_list = {
             isDefaultProperty: true
         },
         opacity: {
-            type: "number",
+            type: "percent",
             value: 1,
             default: 1,
             isDefaultProperty: true
@@ -498,7 +521,7 @@ const property_list = {
             isDefaultProperty: true
         },
         opacity: {
-            type: "number",
+            type: "percent",
             value: 1,
             default: 1,
             isDefaultProperty: true
@@ -544,7 +567,7 @@ const property_list = {
             isDefaultProperty: true
         },
         opacity: {
-            type: "number",
+            type: "percent",
             value: 1,
             default: 1,
             isDefaultProperty: true
@@ -582,7 +605,7 @@ const property_list = {
             isDefaultProperty: true
         },
         opacity: {
-            type: "number",
+            type: "percent",
             value: 1,
             default: 1,
             isDefaultProperty: true
@@ -602,7 +625,7 @@ const property_list = {
             isDefaultProperty: true
         },
         opacity: {
-            type: "number",
+            type: "percent",
             value: 1,
             default: 1,
             isDefaultProperty: true
@@ -651,6 +674,80 @@ const property_list = {
             type: "file",
             value: null,
             default: null,
+            isDefaultProperty: true
+        }
+    },
+    light: {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        startAngle: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        endAngle: {
+            type: "number",
+            value: 360,
+            default: 360,
+            isDefaultProperty: true
+        },
+        rayPopulation: {
+            type: "percent",
+            value: 0.1,
+            default: 0.1,
+            isDefaultProperty: true
+        },
+        power: {
+            type: "percent",
+            value: 0.1,
+            default: 0.1,
+            isDefaultProperty: true
+        },
+        lightenCamera: {
+            type: "boolean",
+            value: true,
+            default: true,
+            isDefaultProperty: true
+        },
+        invisible: {
+            type: "boolean",
+            value: false,
+            default: false,
+            isDefaultProperty: true
+        },
+        color: {
+            type: "color",
+            value: "#ffffff",
+            default: "#ffffff",
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "percent",
+            value: 0.5,
+            default: 0.5,
+            isDefaultProperty: true
+        },
+        collisionBorder: {
+            type: "boolean",
+            value: true,
+            default: true,
+            isDefaultProperty: true
+        },
+        customScript: {
+            type: "file",
+            value: "",
+            default: "",
             isDefaultProperty: true
         }
     },
@@ -717,16 +814,16 @@ const property_list = {
             default: "",
             isDefaultProperty: true
         },
-        customScript: {
-            type: "file",
-            value: "",
-            default: "",
-            isDefaultProperty: true
-        },
         collisionBorder: {
             type: "boolean",
             value: true,
             default: true,
+            isDefaultProperty: true
+        },
+        customScript: {
+            type: "file",
+            value: "",
+            default: "",
             isDefaultProperty: true
         }
     },
@@ -787,7 +884,7 @@ const property_list = {
             isDefaultProperty: true
         },
         opacity: {
-            type: "number",
+            type: "percent",
             value: 1,
             default: 1,
             isDefaultProperty: true
@@ -898,6 +995,10 @@ wss.on("connection", async socket => {
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.removeProject(json.data.path);
                     break;
+                case "rename_project":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.renameProject(json.data.path, json.data.name);
+                    break;
                 case "get_file":
                     const exists = fs.existsSync(json.data.path);
                     const is_folderA = await is_folder(json.data.path);
@@ -957,6 +1058,10 @@ wss.on("connection", async socket => {
                 case "rename_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.renameNode(json.data.path, json.data.from, json.data.to);
+                    break;
+                case "copy_node":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.copyNode(json.data.path, json.data.from, json.data.to);
                     break;
                 case "set_project_camera":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
