@@ -1,0 +1,106 @@
+<canvas id="canvas" width="500" height="500"></canvas>
+<script>
+    /*** @type {HTMLCanvasElement} */
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function render() {
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#ffffff";
+        cast.x = mouse.x;
+        cast.y = mouse.y;
+        cast.render(walls);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 1;
+        walls.forEach(i => line(...Object.values(i)))
+        setTimeout(render);
+    }
+
+    const line = (x1, y1, x2, y2) => {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    class RayCast {
+        /**
+         * @param {number} x
+         * @param {number} y
+         * @param {number} power
+         */
+        constructor(x, y, power) {
+            this.x = x;
+            this.y = y;
+            this.power = power;
+        }
+
+        /**
+         * @param {{x1: number, y1: number, x2: number, y2: number}[]} boundaries
+         * @returns {{x1: number, y1: number, x2: number, y2: number}[]}
+         */
+        run(boundaries) {
+            const lines = [];
+            for (let i = 0; i < 360; i++) {
+                const ray = {
+                    x1: this.x,
+                    y1: this.y,
+                    x2: Math.sin(i * Math.PI / 180),
+                    y2: Math.cos(i * Math.PI / 180)
+                };
+                let m = [Infinity, {}, true];
+                for (const b of boundaries) {
+                    const {x1, y1, x2, y2} = b;
+                    const x3 = ray.x1;
+                    const y3 = ray.y1;
+                    const x4 = ray.x1 + ray.x2;
+                    const y4 = ray.y1 + ray.y2;
+                    const p = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+                    if (p === 0) continue;
+                    const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / p;
+                    const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / p;
+                    const n = t > 0 && t < 1 && u > 0 ? {x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1)} : null;
+                    if (n) {
+                        const d = Math.sqrt(Math.pow(this.x - n.x, 2) + Math.pow(this.y - n.y, 2));
+                        if (d < m[0]) m = [d, n];
+                    }
+                }
+                if (!m[2]) lines.push({x1: this.x, y1: this.y, x2: m[1].x, y2: m[1].y});
+            }
+            return lines;
+        }
+
+        /*** @param {{x1: number, y1: number, x2: number, y2: number}[]} boundaries */
+        render(boundaries) {
+            ctx.lineWidth = this.power;
+            this.run(boundaries).forEach(l => line(...Object.values(l)));
+            ctx.lineWidth = 1;
+        }
+    }
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    let walls = [
+        {x1: 0, y1: 0, x2: width, y2: 0},
+        {x1: width, y1: 0, x2: width, y2: height},
+        {x1: width, y1: height, x2: 0, y2: height},
+        {x1: 0, y1: height, x2: 0, y2: 0},
+        {x1: 100, y1: 100, x2: 150, y2: 150},
+        {x1: 300, y1: 100, x2: 150, y2: 150},
+        {x1: 300, y1: 100, x2: 150, y2: 300}
+    ];
+    const cast = new RayCast(0, 0, 0.1);
+    const mouse = {x: 0, y: 0};
+    addEventListener("mousemove", ev => {
+        mouse.x = ev.offsetX;
+        mouse.y = ev.offsetY;
+    });
+
+    render();
+</script>

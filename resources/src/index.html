@@ -181,9 +181,9 @@
             <div class="name">${i.name}</div>
             <div class="path">${i.path.startsWith(default_project_folder) ? "~" + i.path.substring(default_project_folder.length) : i.path}</div>
         </div>
+        <div class="edit_project_name" onclick="open_rename_project_menu('${i.path}')"></div>
         <div class="remove_project" onclick="open_remove_project_menu('${i.path}', '${i.name}')"></div>
-    </div>`)
-            .join("");
+    </div>`).join("");
         b = s;
     }
 
@@ -193,12 +193,28 @@
         remove_menu = true;
         create_popup(`<h1>${m("remove-project-menu-title")}</h1>
 <span>${m("remove-project-menu-content").replace("%0", name)}</span><br><br>
-<button class="btn" onclick="remove_project('${path}')">${m("remove-project-menu-button")}</button>`)
+<button class="btn" onclick="remove_project('${path}')">${m("remove-project-menu-button")}</button>`);
+    }
+
+    function open_rename_project_menu(path) {
+        create_popup(`
+<h1>${m("rename-project-title")}</h1>
+<span id="create_error" style="color:red"></span>
+<input spellcheck="false" id="project_name" maxlength="16" style="text-align:center;color:var(--popup-input-color);width: 110px;border:none;background:none;border-radius:3px;padding:4px;outline:none" placeholder="${m("project-name-input")}"><br><br>
+<button class="btn" onclick="rename_project('${path}', document.getElementById('project_name').value)">${m("rename-button")}</button>
+`);
+        document.getElementById("project_name").addEventListener("keydown", ev => ev.key === "Enter" ? rename_project(path, document.getElementById("project_name").value) : null);
     }
 
     function remove_project(path) {
         ws.sendPacket("remove_project", {path});
         ws.sendPacket("get_projects");
+    }
+
+    function rename_project(from, to) {
+        ws.sendPacket("rename_project", {path: from, name: to});
+        ws.sendPacket("get_projects");
+        close_popup();
     }
 
     addWSListener("get_projects", a => {

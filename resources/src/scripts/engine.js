@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-// Source: https://github.com/bgrins/javascript-astar
+// [CREDIT] Source: https://github.com/bgrins/javascript-astar
 
 (() => {
     function pathTo(node, sync) {
@@ -1145,7 +1145,7 @@ class Entity extends Vector2 {
 
     /**
      * @param {Model} model
-     * @returns {Entity}
+     * @returns {this}
      */
     addModel(model) {
         this.models.push(model);
@@ -1241,6 +1241,8 @@ class Scene {
     zoom = 1.0;
     onUpdateStart = r => r;
     onUpdateEnd = r => r;
+    /*** @type {{start: Vector2, end: Vector2}[]} */
+    boundaries = [];
     /*** @type {number[]} */
     static intervals = [];
     /*** @type {CanvasRenderingContext2D | null} */
@@ -1262,11 +1264,40 @@ class Scene {
 
     update() {
         if (this.zoom < 0.1) this.zoom = 0.1;
+        this.boundaries = [].concat(...[].concat(...this.entities.filter(i => i.visible && !(i instanceof RayCastEntity)).map(en => en.collisions.map(col => col instanceof RectangleCollision ? [
+            {
+                start: new Vector2(en.x + col.offsetX, en.y + col.offsetY),
+                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY)
+            },
+            {
+                start: new Vector2(en.x + col.offsetX, en.y + col.offsetY),
+                end: new Vector2(en.x + col.offsetX, en.y + col.offsetY + col.height)
+            },
+            {
+                start: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY),
+                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY + col.height)
+            },
+            {
+                start: new Vector2(en.x + col.offsetX, en.y + col.offsetY + col.height),
+                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY + col.height)
+            }
+        ] : null).filter(i => i)))).map(i => {
+            return {start: i.start.subtract(this.camera), end: i.end.subtract(this.camera)};
+        });
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.onUpdateStart();
+        const resetEffects = () => {
+            this.ctx.globalAlpha = 1;
+            this.ctx.fillStyle = "";
+            this.ctx.strokeStyle = "";
+            this.ctx.lineWidth = 1;
+            this.ctx.font = "12px Calibri";
+        };
         this.entities.forEach(i => {
+            resetEffects();
             i.update();
             if (i.visible) i.models.forEach(model => model ? model.draw(this, i, i.clone().subtract(this.camera)) : null);
+            resetEffects();
         });
         this.onUpdateEnd();
     }
@@ -1299,6 +1330,192 @@ class Sound {
 
     stop() {
         this.sound.pause();
+    }
+}
+
+class RayCast extends Vector2 {
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {number} power
+     */
+    constructor(x, y, power) {
+        super(x, y);
+        this.power = power;
+    }
+
+    /**
+     * @param {{start: Vector2, end: Vector2}[]} boundaries
+     * @param {number} startAngle
+     * @param {number} endAngle
+     * @param {number} rayPopulation
+     * @returns {{start: Vector2, end: Vector2}[]}
+     */
+    run(boundaries, startAngle, endAngle, rayPopulation) {
+        const lines = [];
+        for (let i = startAngle; i < endAngle; i += rayPopulation) {
+            const ray = {x1: this.x, y1: this.y, x2: Math.sin(i * Math.PI / 180), y2: Math.cos(i * Math.PI / 180)};
+            let m = [Infinity, {}, true];
+            for (const b of boundaries) {
+                // [CREDIT] Source: https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
+                let x1 = b.start.x, y1 = b.start.y, x2 = b.end.x, y2 = b.end.y, x3 = ray.x1, y3 = ray.y1,
+                    x4 = ray.x1 + ray.x2, y4 = ray.y1 + ray.y2, p = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+                if (p === 0) continue;
+                let t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / p,
+                    u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / p,
+                    n = t > 0 && t < 1 && u > 0 ? {x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1)} : null;
+                if (n) {
+                    const d = Math.sqrt(Math.pow(this.x - n.x, 2) + Math.pow(this.y - n.y, 2));
+                    if (d < m[0]) m = [d, n];
+                }
+            }
+            if (!m[2]) lines.push({start: new Vector2(this.x, this.y), end: new Vector2(m[1].x, m[1].y)});
+        }
+        return lines;
+    }
+}
+
+class RayCastEntity extends Tile {
+    static PROPERTIES = [
+        "x", "y", "rotation", "models", "gravityEnabled", "visible", "gravity", "gravityVelocity", "rayCast",
+        "terminalGravityVelocity", "fallDistance", "onGround", "motion", "motionDivision", "collisions",
+        "startAngle", "endAngle", "rayPopulation", "lightenCamera"
+    ];
+
+    /** @type {RayCast} */
+    rayCast;
+    startAngle = 0;
+    endAngle = 360;
+    rayPopulation = 1;
+    lightenCamera = true;
+
+    /**
+     * @param {RayCast} rayCast
+     * @param {number} x
+     * @param {number} y
+     */
+    constructor(rayCast, x, y) {
+        super(x, y)
+            .setRayCast(rayCast);
+    }
+
+    /**
+     * @param {RayCast} rayCast
+     * @returns {RayCastEntity}
+     */
+    setRayCast(rayCast) {
+        this.rayCast = rayCast;
+        return this;
+    }
+
+    /**
+     * @param {number} startAngle
+     * @returns {RayCastEntity}
+     */
+    setStartAngle(startAngle) {
+        this.startAngle = startAngle;
+        return this;
+    }
+
+    /**
+     * @param {number} endAngle
+     * @returns {RayCastEntity}
+     */
+    setEndAngle(endAngle) {
+        this.endAngle = endAngle;
+        return this;
+    }
+
+    /**
+     * @param {number} rayPopulation
+     * @returns {RayCastEntity}
+     */
+    setRayPopulation(rayPopulation) {
+        this.rayPopulation = rayPopulation;
+        return this;
+    }
+
+    /**
+     * @param {number} lightenCamera
+     * @returns {RayCastEntity}
+     */
+    setLightenCamera(lightenCamera) {
+        this.lightenCamera = lightenCamera;
+        return this;
+    }
+}
+
+class RayCastModel extends Model {
+    /**
+     * @param {number} offsetX
+     * @param {number} offsetY
+     * @param {string} color
+     * @param {RayCast} rayCast
+     * @param {number} opacity
+     */
+    constructor(offsetX, offsetY, color, rayCast, opacity) {
+        super(offsetX, offsetY, opacity)
+            .setColor(color)
+            .setRayCast(rayCast);
+    }
+
+    /**
+     * @param {RayCast} rayCast
+     * @returns {RayCastModel}
+     */
+    setRayCast(rayCast) {
+        this.rayCast = rayCast;
+        return this;
+    }
+
+    /**
+     * @param {string} color
+     * @returns {RayCastModel}
+     */
+    setColor(color) {
+        this.color = color;
+        return this;
+    }
+
+    draw(scene, entity, position) {
+        if (!(entity instanceof RayCastEntity)) return;
+        const ctx = scene.ctx;
+        ctx.globalAlpha = this.opacity;
+        ctx.lineWidth = this.rayCast.power;
+        ctx.strokeStyle = this.color;
+        this.rayCast.x = position.x + this.offsetX;
+        this.rayCast.y = position.y + this.offsetY;
+        const {startAngle, endAngle, rayPopulation, lightenCamera} = entity;
+        const boundaries = [
+            ...scene.boundaries,
+            ...(lightenCamera ? [{
+                start: new Vector2(0, 0),
+                end: new Vector2(scene.canvas.width, 0)
+            },
+                {
+                    start: new Vector2(0, 0),
+                    end: new Vector2(0, scene.canvas.height)
+                },
+                {
+                    start: new Vector2(scene.canvas.width, 0),
+                    end: new Vector2(scene.canvas.width, scene.canvas.height)
+                },
+                {
+                    start: new Vector2(0, scene.canvas.height),
+                    end: new Vector2(scene.canvas.width, scene.canvas.height)
+                }] : [])
+        ];
+        this.rayCast
+            .run(boundaries, startAngle, endAngle, rayPopulation)
+            .forEach(l => {
+                ctx.beginPath();
+                ctx.moveTo(l.start.x, l.start.y);
+                ctx.lineTo(l.end.x, l.end.y);
+                ctx.stroke();
+                ctx.closePath();
+            });
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 1;
     }
 }
 

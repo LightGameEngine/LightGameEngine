@@ -84,13 +84,20 @@
 <script src="scripts/engine.js"></script>
 <script>
     (() => {
+        addEventListener("keydown", ev => ev.key === "Enter" ? end_prompt(document.getElementById('prompt-input').value) : null);
         const letters = "abcçdefgğhıijklmnoprsştuüvyzqwx";
         document.getElementById("prompt-input").addEventListener("keydown", ev => ev.key === "Enter" ? document.getElementById("prompt-button").click() : null);
         /*** @type {HTMLCanvasElement} */
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        const node_types = ["entity", "model", "collision", "text", "tile"/*, "tile-map"*/, "script", "group"];
+        const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
+        const query = {};
+        _query.forEach(i => query[i[0]] = i[1]);
+
+        document._light = {project: null};
+
+        const node_types = ["entity", "model", "collision", "text", "tile", "light"/*, "tile-map"*/, "script", "group"];
 
         const start_btn = document.getElementById("start_btn");
         const stop_btn = document.getElementById("stop_btn");
@@ -119,34 +126,34 @@
                 languages[lang]["add-property-title"],
                 languages[lang]["property-name"],
                 languages[lang]["add-button"]
-            )
-                .then(r => {
-                    if (r === null) return;
-                    if (!document._light.selected_node) return;
-                    const node = project.json.nodes[document._light.selected_node];
-                    if (!r || r.split("").some(i => !(letters + "0123456789").split("").some(a => a.toLowerCase() === i.toLowerCase())) || "0123456789".split("").some(i => r.endsWith(i))) {
-                        open_property_menu();
-                        return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-property-name"];
-                    }
-                    if (!node) {
-                        open_property_menu();
-                        return document.getElementById("prompt-error").innerHTML = languages[lang]["node-not-selected"];
-                    }
-                    const extraProps = {
-                        entity: Entity.PROPERTIES,
-                        "model-image": ImageModel.PROPERTIES,
-                        "model-text": TextModel.PROPERTIES,
-                        "model-rectangle": RectangleModel.PROPERTIES,
-                        "model-circle": CircleModel.PROPERTIES,
-                        collision: RectangleCollision.PROPERTIES,
-                        tile: Tile.PROPERTIES
-                    }[node.type] || [];
-                    if (node.properties[r] || extraProps.includes(r)) {
-                        open_property_menu();
-                        return document.getElementById("prompt-error").innerHTML = languages[lang]["property-exists"];
-                    }
-                    add_node_property(document._light.selected_node, r);
-                });
+            ).then(r => {
+                if (r === null) return;
+                if (!document._light.selected_node) return;
+                const node = document._light.project.json.nodes[document._light.selected_node];
+                if (!r || r.split("").some(i => !(letters + "0123456789").split("").some(a => a.toLowerCase() === i.toLowerCase())) || "0123456789".split("").some(i => r.endsWith(i))) {
+                    open_property_menu();
+                    return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-property-name"];
+                }
+                if (!node) {
+                    open_property_menu();
+                    return document.getElementById("prompt-error").innerHTML = languages[lang]["node-not-selected"];
+                }
+                const extraProps = {
+                    entity: Entity.PROPERTIES,
+                    "model-image": ImageModel.PROPERTIES,
+                    "model-text": TextModel.PROPERTIES,
+                    "model-rectangle": RectangleModel.PROPERTIES,
+                    "model-circle": CircleModel.PROPERTIES,
+                    collision: RectangleCollision.PROPERTIES,
+                    tile: Tile.PROPERTIES,
+                    light: RayCastEntity.PROPERTIES
+                }[node.type] || [];
+                if (node.properties[r] || extraProps.includes(r)) {
+                    open_property_menu();
+                    return document.getElementById("prompt-error").innerHTML = languages[lang]["property-exists"];
+                }
+                add_node_property(document._light.selected_node, r);
+            });
         }
 
         let _p_c = null;
@@ -183,7 +190,7 @@
                     open_rename_node_menu(oldName);
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
                 }
-                if (project.json.nodes[r]) {
+                if (document._light.project.json.nodes[r]) {
                     open_rename_node_menu(oldName);
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
                 }
@@ -218,18 +225,15 @@
         }
 
         function add_node(type, name) {
-            if (project.json.nodes[name]) {
+            if (document._light.project.json.nodes[name]) {
                 open_add_node_menu(type.startsWith("model") ? "model" : type);
                 document.getElementById("prompt-error").innerHTML = languages[lang]["node-exists"];
                 return;
             }
-            ws.sendPacket("add_node", {path: project.path, node: {name, type}});
-            project.json.nodes[name] = {name, type};
+            ws.sendPacket("add_node", {path: document._light.project.path, node: {name, type}});
+            document._light.project.json.nodes[name] = {name, type};
             ws.sendPacket("get_projects");
-            addWSOnceListener("get_projects", () => {
-                select_node(name);
-                if (sceneType === "editor") setSceneType("editor");
-            });
+            addWSOnceListener("get_projects", () => select_node(name));
         }
 
         function open_remove_node_menu(name) {
@@ -242,46 +246,43 @@
         }
 
         function remove_node(name) {
-            ws.sendPacket("remove_node", {path: project.path, name});
-            delete project.json.nodes[name];
+            ws.sendPacket("remove_node", {path: document._light.project.path, name});
+            delete document._light.project.json.nodes[name];
             if (name === document._light.selected_node) select_node(null);
             refresh_nodes();
             if (sceneType === "editor") setSceneType("editor");
         }
 
         function add_node_property(name, property) {
-            project.json.nodes[name].properties[property] = {
+            document._light.project.json.nodes[name].properties[property] = {
                 value: "",
                 default: ""
             };
             ws.sendPacket("set_node_properties", {
-                path: project.path,
+                path: document._light.project.path,
                 name,
-                properties: project.json.nodes[name].properties
+                properties: document._light.project.json.nodes[name].properties
             });
             refresh_properties();
             ws.sendPacket("get_projects");
         }
 
         function remove_node_property(name, property) {
-            delete project.json.nodes[name].properties[property];
+            delete document._light.project.json.nodes[name].properties[property];
             ws.sendPacket("set_node_properties", {
-                path: project.path,
+                path: document._light.project.path,
                 name,
-                properties: project.json.nodes[name].properties
+                properties: document._light.project.json.nodes[name].properties
             });
             refresh_properties();
         }
 
         function set_node_property(nodeName, propertyName, propertyValue) {
-            if (!project.json.nodes[nodeName] || !project.json.nodes[nodeName].properties[propertyName]) return;
-            const node = project.json.nodes[nodeName];
+            if (!document._light.project.json.nodes[nodeName] || !document._light.project.json.nodes[nodeName].properties[propertyName]) return;
+            const node = document._light.project.json.nodes[nodeName];
             const prop = node.properties[propertyName];
             switch (prop.type) {
-                case "boolean":
-                    break;
-                case "color":
-                    break;
+                case "percent":
                 case "number":
                     if (prop.array) {
                         propertyValue = (propertyValue || "").split(",").map(j => j.toString().split("").filter(i => !isNaN(i * 1) || i === "-" || i === ".").join("")).map(i => i.length !== 0 ? i * 1 : undefined).filter(i => i !== undefined).map(i => isNaN(i) ? prop.default : i).join(",");
@@ -298,9 +299,9 @@
                 case "model":
                 case "collision":
                     if (prop.array) {
-                        propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => project.json.nodes[i] && (prop.type === "model" ? project.json.nodes[i].type.startsWith("model-") : project.json.nodes[i].type === prop.type) && nodeName !== i))).join(",");
+                        propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => document._light.project.json.nodes[i] && (prop.type === "model" ? document._light.project.json.nodes[i].type.startsWith("model-") : document._light.project.json.nodes[i].type === prop.type) && nodeName !== i))).join(",");
                     } else {
-                        if (!project.json.nodes[propertyValue] || (prop.type === "model" ? project.json.nodes[propertyValue].type.startsWith("model-") : project.json.nodes[propertyValue].type !== prop.type) || nodeName === propertyValue) propertyValue = prop.default;
+                        if (!document._light.project.json.nodes[propertyValue] || (prop.type === "model" ? document._light.project.json.nodes[propertyValue].type.startsWith("model-") : document._light.project.json.nodes[propertyValue].type !== prop.type) || nodeName === propertyValue) propertyValue = prop.default;
                     }
                     break;
                 case undefined:
@@ -320,39 +321,48 @@
             }
             node.properties[propertyName].value = propertyValue;
             ws.sendPacket("set_node_properties", {
-                path: project.path, name: nodeName, properties: node.properties
+                path: document._light.project.path, name: nodeName, properties: node.properties
             });
             if (sceneType === "editor") setSceneType("editor");
         }
 
         function set_node_properties(nodeName, properties) {
-            if (!project.json.nodes[nodeName]) return;
-            project.json.nodes[nodeName].properties = properties;
+            if (!document._light.project.json.nodes[nodeName]) return;
+            document._light.project.json.nodes[nodeName].properties = properties;
             ws.sendPacket("set_node_properties", {
-                path: project.path, name: nodeName, properties
+                path: document._light.project.path, name: nodeName, properties
             });
         }
 
         function rename_node(from, to) {
-            project.json.nodes[to] = project.json.nodes[from];
-            delete project.json.nodes[from];
-            ws.sendPacket("rename_node", {path: project.path, from, to});
+            document._light.project.json.nodes[to] = document._light.project.json.nodes[from];
+            delete document._light.project.json.nodes[from];
+            ws.sendPacket("rename_node", {path: document._light.project.path, from, to});
             select_node(to);
             if (sceneType === "editor") setSceneType("editor");
         }
 
+        function copy_node(node) {
+            let n = 1;
+            while (document._light.project.json.nodes[node + "" + n]) n++;
+            document._light.project.json.nodes[node + "" + n] = document._light.project.json.nodes[node];
+            ws.sendPacket("copy_node", {path: document._light.project.path, from: node, to: node + "" + n});
+            select_node(node + "" + n);
+            if (sceneType === "editor") setSceneType("editor");
+        }
+
         function switch_node_positions(from, to) {
-            ws.sendPacket("switch_node_positions", {path: project.path, from, to});
+            ws.sendPacket("switch_node_positions", {path: document._light.project.path, from, to});
             ws.sendPacket("get_projects");
         }
 
         function set_node_position(node, position) {
-            ws.sendPacket("set_node_position", {path: project.path, node, position});
+            ws.sendPacket("set_node_position", {path: document._light.project.path, node, position});
             ws.sendPacket("get_projects");
         }
 
         function set_node_group(node, group) {
-            ws.sendPacket("set_node_group", {path: project.path, node, group});
+            ws.sendPacket("set_node_group", {path: document._light.project.path, node, group});
             ws.sendPacket("get_projects");
         }
 
@@ -362,8 +372,8 @@
         });
 
         const sortNodeKeyPosition = (a, b) => {
-            a = project.json.nodes[a];
-            b = project.json.nodes[b];
+            a = document._light.project.json.nodes[a];
+            b = document._light.project.json.nodes[b];
             return a.position - b.position;
         };
 
@@ -371,25 +381,35 @@
 
         const mapNodeKey = key => `<div draggable="true" id="node_key_${key}">
     <div class="node${document._light.selected_node === key ? " node_selected" : ""}" id="node_pos_${key}" onclick="document._light.select_node('${key}')">
-        <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${project.json.nodes[key].type === "group" ? "group_closed" : project.json.nodes[key].type.replaceAll("-", "_")}.png">
+        <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${document._light.project.json.nodes[key].type === "group" ? "group_closed" : document._light.project.json.nodes[key].type.replaceAll("-", "_")}.png">
         <span class="node_name">${key === "camera" ? m("camera") : key}</span>
     </div>
-    ${project.json.nodes[key].type === "camera" ? "" : `<div onclick="document._light.open_remove_node_menu('${key}')" class="remove_node"></div>
-    <div onclick="document._light.open_rename_node_menu('${key}')" class="rename_node"></div>
-    <div id="group_node_content_${key}" style="margin-left: 10px" hidden>${Object.keys(project.json.nodes).filter(k => project.json.nodes[k].group === key).sort(sortNodeKeyPosition).map(mapNodeKey).join("")}</div>`}
+    ${document._light.project.json.nodes[key].type === "camera" ? "" : `<div title="Delete" onclick="document._light.open_remove_node_menu('${key}')" class="remove_node"></div>
+    <div title="F2" onclick="document._light.open_rename_node_menu('${key}')" class="rename_node"></div>
+    <div title="CTRL + C" onclick="document._light.copy_node('${key}')" class="copy_node"></div>
+    <div id="group_node_content_${key}" style="margin-left: 10px" hidden>${Object.keys(document._light.project.json.nodes).filter(k => document._light.project.json.nodes[k].group === key).sort(sortNodeKeyPosition).map(mapNodeKey).join("")}</div>`}
 </div>`;
+        let held = {};
+        addEventListener("keydown", ev => {
+            held[ev.key] = true;
+            const node = document._light.selected_node;
+            if (node && node !== "camera" && !_p_c && held["Delete"]) open_remove_node_menu(node);
+            if (node && node !== "camera" && !_p_c && held["Control"] && (held["C"] || held["c"])) copy_node(node);
+            if (node && node !== "camera" && !_p_c && held["F2"]) open_rename_node_menu(node);
+        });
+        addEventListener("keyup", ev => delete held[ev.key]);
 
         function refresh_nodes() {
-            for (let i = 0; i < Object.keys(project.json.nodes).length; i++) {
-                const nodeId = Object.keys(project.json.nodes)[i];
-                const node = project.json.nodes[nodeId];
-                if (node.group && !project.json.nodes[node.group]) {
+            for (let i = 0; i < Object.keys(document._light.project.json.nodes).length; i++) {
+                const nodeId = Object.keys(document._light.project.json.nodes)[i];
+                const node = document._light.project.json.nodes[nodeId];
+                if (node.group && !document._light.project.json.nodes[node.group]) {
                     return set_node_group(nodeId, null);
                 }
             }
-            document.getElementById("nodes").innerHTML = Object.keys(project.json.nodes).filter(key => !project.json.nodes[key].group).sort(sortNodeKeyPosition).map(mapNodeKey).join("");
+            document.getElementById("nodes").innerHTML = Object.keys(document._light.project.json.nodes).filter(key => !document._light.project.json.nodes[key].group).sort(sortNodeKeyPosition).map(mapNodeKey).join("");
             let currentDragging;
-            Object.keys(project.json.nodes).filter(key => !project.json.nodes[key].group).forEach(key => {
+            Object.keys(document._light.project.json.nodes).filter(key => !document._light.project.json.nodes[key].group).forEach(key => {
                 const el = document.getElementById("node_key_" + key);
                 el.addEventListener("dragstart", ev => {
                     currentDragging = key;
@@ -397,11 +417,11 @@
                 });
                 el.addEventListener("dragover", ev => {
                     ev.preventDefault();
-                    //if (!currentDragging) return;
-                    //const targetId = ev.target.id.replace("node_pos_", "");
-                    //if (targetId !== currentDragging && ev.target.id.startsWith("node_pos_")) el.style.border = "2px solid white";
+                    if (!currentDragging) return;
+                    const targetId = ev.target.id.replace("node_pos_", "");
+                    if (targetId !== currentDragging && ev.target.id.startsWith("node_pos_")) el.classList.add("drop_selected");
                 });
-                el.addEventListener("dragleave", () => el.style.border = "");
+                el.addEventListener("dragleave", () => el.classList.remove("drop_selected"));
                 el.addEventListener("dragend", () => currentDragging = null);
                 el.addEventListener("drop", ev => {
                     ev.preventDefault();
@@ -409,28 +429,28 @@
                     if (dr && ev.path.some(i => i.id && i.id.startsWith("node_key_") && i.id !== dr)) {
                         const clickedKey = dr.replace("node_key_", "");
                         const draggedKey = key;
-                        const clicked = project.json.nodes[clickedKey];
-                        const dragged = project.json.nodes[draggedKey];
+                        const clicked = document._light.project.json.nodes[clickedKey];
+                        const dragged = document._light.project.json.nodes[draggedKey];
                         if (dragged.type === "group" && clicked.type !== "group") {
                             set_node_group(clickedKey, draggedKey);
                         } else if (clicked.group && dragged.type !== "group") {
                             set_node_group(clickedKey, null);
                             set_node_position(clickedKey, dragged.position + 1);
-                            Object.keys(project.json.nodes)
-                                .filter(i => !project.json.nodes[i].group && project.json.nodes[i].position > dragged.position)
-                                .forEach(i => set_node_position(i, project.json.nodes[i].position + 1));
+                            Object.keys(document._light.project.json.nodes)
+                                .filter(i => !document._light.project.json.nodes[i].group && document._light.project.json.nodes[i].position > dragged.position)
+                                .forEach(i => set_node_position(i, document._light.project.json.nodes[i].position + 1));
                         } else {
                             switch_node_positions(clickedKey, draggedKey);
                         }
                     } else el.style.border = "";
                 });
             });
-            Object.keys(project.json.nodes).filter(key => project.json.nodes[key].type === "group").forEach(i => toggle_group_node(i, true));
+            Object.keys(document._light.project.json.nodes).filter(key => document._light.project.json.nodes[key].type === "group").forEach(i => toggle_group_node(i, true));
         }
 
         function refresh_properties() {
-            if (!document._light.selected_node || !project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
-            const node = project.json.nodes[document._light.selected_node];
+            if (!document._light.selected_node || !document._light.project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
+            const node = document._light.project.json.nodes[document._light.selected_node];
             const props = node.properties;
             document.getElementById("properties").innerHTML = Object.keys(props).filter(i => props[i].visible !== false).map(key => {
                 let input = `<input onchange="document._light.set_node_property('${document._light.selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" spellcheck="false" class="property_value" style="position: absolute; margin-left: -3px; margin-top: -10px; height: 19px" value="${props[key].value === null ? "" : props[key].value}" placeholder="<${languages[lang]["none"]}>">`;
@@ -451,13 +471,13 @@ ${input}
         }
 
         function select_node(name, v = false) {
-            if (name && project.json.nodes[name].type === "group") return toggle_group_node(name);
+            if (name && document._light.project.json.nodes[name].type === "group") return toggle_group_node(name);
             if (document._light.selected_node === name && !v) {
                 name = null;
                 property_delete_mode = false;
             }
             document.getElementById("property-remove").src = property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
-            const s = name && project.json.nodes[name].type !== "camera";
+            const s = name && document._light.project.json.nodes[name].type !== "camera";
             document.getElementById("property-add").hidden = s ? undefined : true;
             document.getElementById("property-remove").hidden = s ? undefined : true;
             document._light.selected_node = name;
@@ -466,7 +486,7 @@ ${input}
         }
 
         function toggle_group_node(key, r = false) {
-            const node = project.json.nodes[key];
+            const node = document._light.project.json.nodes[key];
             if (!node || node.type !== "group") return;
             const gN = document.getElementById("group_node_content_" + key);
             const is_open = open_groups[key];
@@ -476,11 +496,10 @@ ${input}
             if (r) toggle_group_node(key);
         }
 
-        let project = {};
         addWSListener("get_language", () => setLanguage(lang, false));
         addWSListener("get_projects", ({projects}) => {
-            project = projects[query.path];
-            document.getElementById("title").innerHTML = "Light - " + project.name;
+            document._light.project = projects[query.path];
+            document.getElementById("title").innerHTML = "Light - " + document._light.project.name;
             refresh_nodes();
             if (sceneType === "editor") setSceneType("editor");
         });
@@ -492,15 +511,14 @@ ${input}
         Scene.ctx = ctx;
         let modelList = {};
         let collisionList = {};
-        let loadedScriptList = {};
 
         setInterval(() => {
             ws.sendPacket("set_project_camera", {
-                path: project.path, x: sceneCamera.x, y: sceneCamera.y
+                path: document._light.project.path,
+                x: sceneCamera.x,
+                y: sceneCamera.y
             });
-            ws.sendPacket("set_project_zoom", {
-                path: project.path, zoom: sceneZoom
-            });
+            ws.sendPacket("set_project_zoom", {path: document._light.project.path, zoom: sceneZoom});
         }, 5000);
 
         const createModel = async ({type, properties}) => {
@@ -586,11 +604,11 @@ ${input}
             entity.x = props.x.value * 1;
             entity.x = props.x.value * 1;
             (props.models.value || "").split(",").forEach(m => {
-                const mdl = project.json.nodes[m];
+                const mdl = document._light.project.json.nodes[m];
                 if (mdl) entity.addModel(modelList[m]);
             });
             (props.collisions.value || "").split(",").forEach(m => {
-                const cls = project.json.nodes[m];
+                const cls = document._light.project.json.nodes[m];
                 if (cls) entity.addCollision(collisionList[m]);
             });
             entity.rotation = props.rotation.value;
@@ -614,11 +632,11 @@ ${input}
             tile.x = props.x.value * 1;
             tile.y = props.y.value * 1;
             props.models.value.split(",").forEach(m => {
-                const mdl = project.json.nodes[m];
+                const mdl = document._light.project.json.nodes[m];
                 if (mdl) tile.addModel(modelList[m]);
             });
             props.collisions.value.split(",").forEach(m => {
-                const cls = project.json.nodes[m];
+                const cls = document._light.project.json.nodes[m];
                 if (cls) tile.addCollision(collisionList[m]);
             });
             tile.rotation = props.rotation.value;
@@ -628,10 +646,10 @@ ${input}
         };
         const refreshModelList = async () => {
             modelList = {};
-            const loadingModels = Object.keys(project.json.nodes).filter(i => project.json.nodes[i].type.startsWith("model-"));
+            const loadingModels = Object.keys(document._light.project.json.nodes).filter(i => document._light.project.json.nodes[i].type.startsWith("model-"));
             for (let i = 0; i < loadingModels.length; i++) {
                 const m = loadingModels[i];
-                const n = project.json.nodes[m];
+                const n = document._light.project.json.nodes[m];
                 if (n.type === "model-custom") {
                     if (sceneType === "game") {
                         const scr = await loadProjectScript(n.properties.customScript.value);
@@ -651,53 +669,12 @@ ${input}
         }
         const refreshCollisionList = async () => {
             collisionList = {};
-            const loadingCollisions = Object.keys(project.json.nodes).filter(i => project.json.nodes[i].type === "collision");
+            const loadingCollisions = Object.keys(document._light.project.json.nodes).filter(i => document._light.project.json.nodes[i].type === "collision");
             for (let i = 0; i < loadingCollisions.length; i++) {
                 const m = loadingCollisions[i];
-                const n = project.json.nodes[m];
+                const n = document._light.project.json.nodes[m];
                 (collisionList[m] = await createCollision(n.properties)).init();
             }
-        }
-        const getProjectFilePath = path => /\w:\//i.test(path.substring(0, 3)) ? path : (path.startsWith(".") ? (path.startsWith("./") && /\w/i.test(path.charAt(2)) ? project.path + "/" + path.substring(2) : path) : project.path + "/" + path);
-        const loadProjectScript = async (file, addToList = true) => {
-            if (!file) return null;
-            if (loadedScriptList[file]) return loadedScriptList[file];
-            file = getProjectFilePath(file);
-            const script = await loadScript(file);
-            if (script.error) {
-                log("Invalid script.", file);
-                return console.info(`Script with file '${file}' not found or a folder!`);
-            }
-            const code = script.code;
-            const ____________i = setInterval;
-            const ____________t = setTimeout;
-            const ____________c = console;
-            const ____________e = eval;
-            const ____________x = XMLHttpRequest;
-            console = null;
-            eval = null;
-            XMLHttpRequest = null;
-            setInterval = (...args) => Scene.intervals.push(____________i(...args));
-            setTimeout = (...args) => Scene.intervals.push(____________t(...args));
-            exports = null;
-            try {
-                (() => {
-                    ____________e(code.length === 0 ? "null" : code);
-                    if (addToList) loadedScriptList[file] = exports;
-                })();
-            } catch (e) {
-                ____________c.error(e);
-                if (file) {
-                    ____________c.info(`Script with file '${file}' gave error!`);
-                    log(e, file);
-                }
-            }
-            window.XMLHttpRequest = ____________x;
-            window.eval = ____________e;
-            window.setInterval = ____________i;
-            window.setTimeout = ____________t;
-            window.console = ____________c;
-            return exports;
         }
 
         let canvasMouseDown = null;
@@ -732,8 +709,8 @@ ${input}
             if (selectedEditorEntity) {
                 const pos = canvasMouseDown[2].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
                 const nodeId = selectedEditorEntity["nodeId"];
-                project.json.nodes[nodeId].properties.x.value = pos.x;
-                project.json.nodes[nodeId].properties.y.value = pos.y;
+                document._light.project.json.nodes[nodeId].properties.x.value = pos.x;
+                document._light.project.json.nodes[nodeId].properties.y.value = pos.y;
                 refresh_properties();
                 selectedEditorEntity.x = pos.x;
                 selectedEditorEntity.y = pos.y;
@@ -749,27 +726,28 @@ ${input}
             }
         });
 
-        const getEntityByMouse = (x, y) => {
+        const getEntitiesByMouse = (x, y) => {
             const cmr = (new Vector2(x + sceneCamera.x, y + sceneCamera.y));
-            return Scene.getInstance().entities.find(entity => entity instanceof Entity && (entity.collides(cmr)));
+            return Scene.getInstance().entities.filter(entity => entity instanceof Entity && (entity.collides(cmr)));
         };
 
         canvas.addEventListener("mousedown", ev => {
             canvasMouseDown = [new Vector2(ev.offsetX, ev.offsetY), Scene.getInstance().camera.clone()];
             if (sceneType === "editor") {
-                selectedEditorEntity = getEntityByMouse(ev.offsetX, ev.offsetY);
+                selectedEditorEntity = getEntitiesByMouse(ev.offsetX, ev.offsetY);
+                selectedEditorEntity = document._light.selected_node ? (selectedEditorEntity.find(i => i && i["nodeId"] === document._light.selected_node) || selectedEditorEntity[0]) : selectedEditorEntity[0];
                 if (selectedEditorEntity) canvasMouseDown[2] = selectedEditorEntity.clone();
             }
         });
 
         addEventListener("mouseup", ev => {
             if (sceneType === "editor" && canvasMouseDown && canvasMouseDown[0] && canvasMouseDown[0].equals(new Vector2(ev.offsetX, ev.offsetY))) {
-                const ent = getEntityByMouse(ev.offsetX, ev.offsetY);
+                const ent = getEntitiesByMouse(ev.offsetX, ev.offsetY)[0];
                 if (ent && ent["nodeId"]) select_node(ent["nodeId"]);
             }
             if (selectedEditorEntity && canvasMouseDown) {
                 const nodeId = selectedEditorEntity["nodeId"];
-                set_node_properties(nodeId, project.json.nodes[nodeId].properties);
+                set_node_properties(nodeId, document._light.project.json.nodes[nodeId].properties);
             }
             selectedEditorEntity = null;
             canvasMouseDown = false;
@@ -783,9 +761,21 @@ ${input}
         });
 
         let setupCamera = false;
+        let cameraTile = new Tile(0, 0);
+        cameraTile.nodeId = "camera";
+
+        addEventListener("resize", () => {
+            if (!cameraTile) return;
+            cameraTile.model.setWidth(canvas.width).setHeight(canvas.height);
+            cameraTile.collision.setWidth(canvas.width).setHeight(canvas.height);
+        });
 
         async function setSceneType(type) {
-            loadedScriptList = {};
+            document._light.loadedScriptList = {};
+            cameraTile.model = new RectangleModel(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
+            cameraTile.addModel(cameraTile.model);
+            cameraTile.collision = new RectangleCollision(0, 0, canvas.width, canvas.height);
+            cameraTile.addCollision(cameraTile.collision);
             sceneType = type;
             switch (sceneType) {
                 case "editor":
@@ -801,7 +791,7 @@ ${input}
                     Scene.getInstance().onUpdateEnd = () => {
                         ctx.fillStyle = themes[theme].json["general-color"];
                         ctx.font = "16px Calibri";
-                        ctx.fillText(sceneType === "editor" && collidingCanvas ? `X: ${-mPos.x}, Y: ${-mPos.y}, Zoom: ${Math.floor(Scene.getInstance().zoom * 100)}%` : "", 4, 16);
+                        ctx.fillText(sceneType === "editor" && collidingCanvas ? `X: ${mPos.x}, Y: ${mPos.y}, Zoom: ${Math.floor(Scene.getInstance().zoom * 100)}%` : "", 4, 16);
                     }
                     if (!setupCamera) {
                         setupCamera = true;
@@ -810,9 +800,9 @@ ${input}
                     }
                     await refreshModelList();
                     await refreshCollisionList();
-                    const nList = Object.keys(project.json.nodes).sort((a, b) => project.json.nodes[b].position - project.json.nodes[a].position).filter(i => ["entity", "tile", "text", "camera"].includes(project.json.nodes[i].type)).sort((a, b) => project.json.nodes[a].position - project.json.nodes[b].position);
+                    const nList = Object.keys(document._light.project.json.nodes).sort((a, b) => document._light.project.json.nodes[b].position - document._light.project.json.nodes[a].position).filter(i => ["entity", "tile", "text", "camera", "light"].includes(document._light.project.json.nodes[i].type)).sort((a, b) => document._light.project.json.nodes[a].position - document._light.project.json.nodes[b].position);
                     for (const j of nList) {
-                        const i1 = project.json.nodes[j];
+                        const i1 = document._light.project.json.nodes[j];
                         switch (i1.type) {
                             case "entity":
                                 const entity = await createEntity(i1.properties);
@@ -863,11 +853,27 @@ ${input}
                                 }
                                 break;
                             case "camera":
-                                const cameraTile = new Tile(i1.properties.x.value * 1, i1.properties.y.value * 1);
-                                cameraTile.addModel(new RectangleModel(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]));
-                                cameraTile.addCollision(new RectangleCollision(0, 0, canvas.width, canvas.height));
+                                cameraTile.x = i1.properties.x.value * 1;
+                                cameraTile.y = i1.properties.y.value * 1;
                                 cameraTile.init();
-                                cameraTile.nodeId = j;
+                                break;
+                            case "light":
+                                const rayCast = new RayCast(0, 0, i1.properties.power.value);
+                                const ray = new RayCastEntity(rayCast, i1.properties.x.value * 1, i1.properties.y.value * 1);
+                                if (i1.properties.collisionBorder.value) {
+                                    ray.addModel(ray.model = (new RectangleModel(-25, -25, 50, 50, null, themes[theme].json["general-color"])));
+                                    ray.addModel(new RectangleModel(-5, -5, 10, 10, null, themes[theme].json["general-color"]));
+                                }
+                                ray.collision = new RectangleCollision(-25, -25, ray.model.width, ray.model.height);
+                                ray.addCollision(ray.collision)
+                                    .addModel(new RayCastModel(0, 0, i1.properties.color.value, rayCast, i1.properties.opacity.value));
+                                ray.setStartAngle(i1.properties.startAngle.value)
+                                    .setEndAngle(i1.properties.endAngle.value)
+                                    .setRayPopulation(i1.properties.rayPopulation.value)
+                                    .setLightenCamera(i1.properties.lightenCamera.value);
+                                ray.init();
+                                ray.visible = !i1.properties.invisible.value;
+                                ray.nodeId = j;
                                 break;
                         }
                     }
@@ -875,7 +881,7 @@ ${input}
                     stop_btn.hidden = true;
                     break;
                 case "game":
-                    const cameraNode = project.json.nodes.camera;
+                    const cameraNode = document._light.project.json.nodes.camera;
                     if (!cameraNode) return window.location.href = window.location.href.toString();
                     consoleList = [];
                     renderConsole();
@@ -883,7 +889,7 @@ ${input}
                     Scene.getInstance().camera.set(cameraNode.properties.x.value, cameraNode.properties.y.value);
                     await refreshModelList();
                     await refreshCollisionList();
-                    for (const i1 of Object.values(project.json.nodes).sort((a, b) => b.position - a.position).filter(i => ["entity", "tile", "text", "script"].includes(i.type))) {
+                    for (const i1 of Object.values(document._light.project.json.nodes).sort((a, b) => b.position - a.position).filter(i => ["entity", "tile", "text", "script", "light"].includes(i.type))) {
                         switch (i1.type) {
                             case "entity":
                                 const entity = await createEntity(i1.properties);
@@ -916,6 +922,17 @@ ${input}
                                     }
                                 }
                                 break;
+                            case "light":
+                                const rayCast = new RayCast(0, 0, i1.properties.power.value);
+                                const ray = new RayCastEntity(rayCast, i1.properties.x.value * 1, i1.properties.y.value * 1);
+                                ray.addModel(new RayCastModel(0, 0, i1.properties.color.value, rayCast, i1.properties.opacity.value))
+                                ray.setStartAngle(i1.properties.startAngle.value)
+                                    .setEndAngle(i1.properties.endAngle.value)
+                                    .setRayPopulation(i1.properties.rayPopulation.value)
+                                    .setLightenCamera(i1.properties.lightenCamera.value);
+                                ray.init();
+                                ray.visible = !i1.properties.invisible.value;
+                                break;
                         }
                     }
                     start_btn.hidden = true;
@@ -926,9 +943,9 @@ ${input}
 
         addWSOnceListener("get_projects", () => {
             setSceneType("editor");
-            sceneCamera.x = project.json.camera.x;
-            sceneCamera.y = project.json.camera.y;
-            sceneZoom = project.json.zoom || 1.0;
+            sceneCamera.x = document._light.project.json.camera.x;
+            sceneCamera.y = document._light.project.json.camera.y;
+            sceneZoom = document._light.project.json.zoom || 1.0;
             Scene.instance.zoom = sceneZoom;
         });
 
@@ -936,10 +953,6 @@ ${input}
             window.location.href = "index.html";
             ws.sendPacket("main_menu");
         }
-
-        const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
-        const query = {};
-        _query.forEach(i => query[i[0]] = i[1]);
 
         setInterval(() => {
             const canvas = document.getElementById("canvas");
@@ -966,9 +979,51 @@ ${input}
             open_add_node_menu,
             open_remove_node_menu,
             open_rename_node_menu,
+            copy_node,
             selected_node: null,
-            set_node_property
+            set_node_property,
+            loadedScriptList: []
         };
-    })()
+    })();
+    const loadProjectScript = async (file, addToList = true) => {
+        if (!file) return null;
+        if (document._light.loadedScriptList[file]) return document._light.loadedScriptList[file];
+        file = /\w:\//i.test(file.substring(0, 3)) ? file : (file.startsWith(".") ? (file.startsWith("./") && /\w/i.test(file.charAt(2)) ? document._light.project.path + "/" + file.substring(2) : file) : document._light.project.path + "/" + file);
+        const script = await loadScript(file);
+        if (script.error) {
+            log("Invalid script.", file);
+            return console.info(`Script with file '${file}' not found or a folder!`);
+        }
+        const code = script.code;
+        const ____________i = setInterval;
+        const ____________t = setTimeout;
+        const ____________c = console;
+        const ____________e = eval;
+        const ____________x = XMLHttpRequest;
+        console = null;
+        eval = null;
+        XMLHttpRequest = null;
+        setInterval = (...args) => Scene.intervals.push(____________i(...args));
+        setTimeout = (...args) => Scene.intervals.push(____________t(...args));
+        exports = null;
+        try {
+            (() => {
+                ____________e(code.length === 0 ? "null" : code);
+                if (addToList) document._light.loadedScriptList[file] = exports;
+            })();
+        } catch (e) {
+            ____________c.error(e);
+            if (file) {
+                ____________c.info(`Script with file '${file}' gave error!`);
+                log(e, file);
+            }
+        }
+        window.XMLHttpRequest = ____________x;
+        window.eval = ____________e;
+        window.setInterval = ____________i;
+        window.setTimeout = ____________t;
+        window.console = ____________c;
+        return exports;
+    }
 </script>
 </html>
