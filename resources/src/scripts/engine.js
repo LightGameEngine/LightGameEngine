@@ -1241,7 +1241,7 @@ class Scene {
     zoom = 1.0;
     onUpdateStart = r => r;
     onUpdateEnd = r => r;
-    /*** @type {{start: Vector2, end: Vector2}[]} */
+    /*** @type {{start: Vector2, end: Vector2, entity: Entity}[]} */
     boundaries = [];
     /*** @type {number[]} */
     static intervals = [];
@@ -1249,6 +1249,7 @@ class Scene {
     static ctx = null;
     /*** @type {Scene | null} */
     static instance = null;
+    cameraTile;
 
     /*** @returns {Scene} */
     static getInstance() {
@@ -1262,28 +1263,38 @@ class Scene {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    update() {
-        if (this.zoom < 0.1) this.zoom = 0.1;
-        this.boundaries = [].concat(...[].concat(...this.entities.filter(i => i.visible && !(i instanceof RayCastEntity)).map(en => en.collisions.map(col => col instanceof RectangleCollision ? [
+    static fetchEntityBoundaries(en) {
+        return en.collisions.map(col => col instanceof RectangleCollision ? [
             {
                 start: new Vector2(en.x + col.offsetX, en.y + col.offsetY),
-                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY)
+                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY),
+                entity: en
             },
             {
                 start: new Vector2(en.x + col.offsetX, en.y + col.offsetY),
-                end: new Vector2(en.x + col.offsetX, en.y + col.offsetY + col.height)
+                end: new Vector2(en.x + col.offsetX, en.y + col.offsetY + col.height),
+                entity: en
             },
             {
                 start: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY),
-                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY + col.height)
+                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY + col.height),
+                entity: en
             },
             {
                 start: new Vector2(en.x + col.offsetX, en.y + col.offsetY + col.height),
-                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY + col.height)
+                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY + col.height),
+                entity: en
             }
-        ] : null).filter(i => i)))).map(i => {
-            return {start: i.start.subtract(this.camera), end: i.end.subtract(this.camera)};
-        });
+        ] : null).filter(i => i);
+    }
+
+    update() {
+        if (this.zoom < 0.1) this.zoom = 0.1;
+        this.boundaries = [].concat(...[].concat(...this.entities.filter(i => i.visible && !(i instanceof RayCastEntity)).map(en => Scene.fetchEntityBoundaries(en)))).map(i => [{
+            start: i.start.subtract(this.camera),
+            end: i.end.subtract(this.camera),
+            entity: i.entity
+        }][0]);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.onUpdateStart();
         const resetEffects = () => {
@@ -1388,6 +1399,7 @@ class RayCastEntity extends Tile {
     endAngle = 360;
     rayPopulation = 1;
     lightenCamera = true;
+    inactiveNodes = [];
 
     /**
      * @param {RayCast} rayCast
@@ -1397,6 +1409,15 @@ class RayCastEntity extends Tile {
     constructor(rayCast, x, y) {
         super(x, y)
             .setRayCast(rayCast);
+    }
+
+    /**
+     * @param {string[]} inactiveNodes
+     * @returns {RayCastEntity}
+     */
+    setInactiveNodes(inactiveNodes) {
+        this.inactiveNodes = inactiveNodes;
+        return this;
     }
 
     /**
@@ -1487,7 +1508,7 @@ class RayCastModel extends Model {
         this.rayCast.y = position.y + this.offsetY;
         const {startAngle, endAngle, rayPopulation, lightenCamera} = entity;
         const boundaries = [
-            ...scene.boundaries,
+            ...scene.boundaries.filter(i => i.entity["lightTile"] !== entity.__nodeId).filter(i => !lightenCamera ? i.entity["__nodeId"] !== "camera" : true).filter(i => !entity.inactiveNodes.includes(i.entity["__nodeId"])),
             ...(lightenCamera ? [{
                 start: new Vector2(0, 0),
                 end: new Vector2(scene.canvas.width, 0)

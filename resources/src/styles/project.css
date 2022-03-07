@@ -271,6 +271,34 @@
     margin-top: -20px;
 }
 
+.lock_node {
+    position: absolute;
+    background: url("../../assets/locked.png");
+    background-size: 18px 18px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin-top: -20px;
+}
+
+.ln_1 {
+    right: 66px;
+}
+
+.ln_2 {
+    right: 4px;
+}
+
+.unlock_node {
+    position: absolute;
+    background: url("../../assets/unlocked.png");
+    background-size: 18px 18px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin-top: -20px;
+}
+
 .drop_selected {
     background: var(--drop-selected);
 }

@@ -81,11 +81,12 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "property--file": "File",
     "property--customScript": "Script",
     "property--collisionBorder": "Collision Border",
-    "property--power": "Power",
+    "property--power": "Line Width",
     "property--startAngle": "Start Angle",
     "property--endAngle": "End Angle",
     "property--rayPopulation": "Ray Population",
     "property--lightenCamera": "Lighten Camera",
+    "property--inactiveNodes": "Inactive Nodes",
     "none": "none",
     "model-type-image": "Image",
     "model-type-text": "Text",
@@ -172,11 +173,12 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "property--file": "Dosya",
     "property--customScript": "Skript",
     "property--collisionBorder": "Sınır Çizgisi",
-    "property--power": "Güç",
+    "property--power": "Kalınlık",
     "property--startAngle": "Baş Açı",
     "property--endAngle": "Bitiş Açısı",
     "property--rayPopulation": "Işın Popülasyonu",
     "property--lightenCamera": "Kamerayı Işıklandır",
+    "property--inactiveNodes": "Etkisiz Nesneler",
     "none": "yok",
     "model-type-image": "Resim",
     "model-type-text": "Yazı",
@@ -299,11 +301,12 @@ if (!fs.existsSync(cachePath)) {
         default_project_folder: null
     }));
 }
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {camera: {x: number, y: number}, nodes: Object<string, {type: string, group?: string | null, properties: Object<string, Object>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
+/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {camera: {x: number, y: number}, nodes: Object<string, {type: string, locked: boolean, group?: string | null, properties: Object<string, Object>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
 const cache = JSON.parse(fs.readFileSync(cachePath).toString());
 
 const CAMERA_PROPERTY = (position = 0) => ({
     type: "camera",
+    locked: false,
     properties: {
         x: {
             type: "number",
@@ -398,6 +401,18 @@ class CacheManager {
     static copyNode(path, from, to) {
         cache.projects[path].json.nodes[to] = JSON.parse(JSON.stringify(this.getNode(path, from)));
         cache.projects[path].json.nodes[to].createdTimestamp = Date.now();
+        if (cache.projects[path].json.nodes[from].type === "group") {
+            Object.keys(cache.projects[path].json.nodes).filter(i => i !== from && cache.projects[path].json.nodes[i].group === from).forEach(i => {
+                let n = 1;
+                while (cache.projects[path].json.nodes[i + "" + n]) n++;
+                CacheManager.copyNode(path, i, i + "" + n);
+                CacheManager.setNodeGroup(path, i + "" + n, to);
+            });
+        }
+    }
+
+    static setNodeLocked(path, node, value) {
+        cache.projects[path].json.nodes[node].locked = value;
     }
 
     static setNodePosition(path, node, position) {
@@ -720,6 +735,13 @@ const property_list = {
             default: true,
             isDefaultProperty: true
         },
+        inactiveNodes: {
+            type: "node",
+            array: true,
+            value: "",
+            default: "",
+            isDefaultProperty: true
+        },
         invisible: {
             type: "boolean",
             value: false,
@@ -1024,6 +1046,7 @@ wss.on("connection", async socket => {
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     cache.projects[json.data.path].json.nodes[json.data.node.name] = {
                         type: json.data.node.type,
+                        locked: false,
                         properties: property_list[json.data.node.type],
                         position: (Object.values(cache.projects[json.data.path].json.nodes).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
                         createdTimestamp: Date.now()
@@ -1062,6 +1085,10 @@ wss.on("connection", async socket => {
                 case "copy_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.copyNode(json.data.path, json.data.from, json.data.to);
+                    break;
+                case "set_node_locked":
+                    if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.setNodeLocked(json.data.path, json.data.node, json.data.value);
                     break;
                 case "set_project_camera":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;

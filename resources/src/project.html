@@ -41,7 +41,7 @@
              class="right_nav_add"
              src="../assets/add.png">
         <img draggable="false"
-             onclick="document._light.property_delete_mode = !document._light.property_delete_mode; document._light.select_node(document._light.selected_node, true)"
+             onclick="document._light.property_delete_mode = !document._light.property_delete_mode; document._light.refresh_properties()"
              id="property-remove" hidden class="right_nav_remove"
              src="../assets/trash_closed.png">
         <div style="text-align: center; color: var(--general-color)" id="lC-prp">
@@ -118,8 +118,6 @@
             document.getElementById("node_menu").hidden = undefined;
         }
 
-        let property_delete_mode = false;
-
         function open_property_menu() {
             if (!document._light.selected_node) return;
             prompt(
@@ -148,7 +146,7 @@
                     tile: Tile.PROPERTIES,
                     light: RayCastEntity.PROPERTIES
                 }[node.type] || [];
-                if (node.properties[r] || extraProps.includes(r)) {
+                if (node.properties[r] || Object.values(extraProps).some(i => i.includes(r)) || r === "__nodeId") {
                     open_property_menu();
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["property-exists"];
                 }
@@ -298,10 +296,11 @@
                     break;
                 case "model":
                 case "collision":
+                case "node":
                     if (prop.array) {
-                        propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => document._light.project.json.nodes[i] && (prop.type === "model" ? document._light.project.json.nodes[i].type.startsWith("model-") : document._light.project.json.nodes[i].type === prop.type) && nodeName !== i))).join(",");
+                        propertyValue = Array.from(new Set((propertyValue || "").split(",").filter(i => document._light.project.json.nodes[i] && (prop.type === "model" ? document._light.project.json.nodes[i].type.startsWith("model-") : (document._light.project.json.nodes[i].type === prop.type || prop.type === "node")) && nodeName !== i))).join(",");
                     } else {
-                        if (!document._light.project.json.nodes[propertyValue] || (prop.type === "model" ? document._light.project.json.nodes[propertyValue].type.startsWith("model-") : document._light.project.json.nodes[propertyValue].type !== prop.type) || nodeName === propertyValue) propertyValue = prop.default;
+                        if (!document._light.project.json.nodes[propertyValue] || (prop.type === "model" ? document._light.project.json.nodes[propertyValue].type.startsWith("model-") : (document._light.project.json.nodes[propertyValue].type !== prop.type || prop.type === "node")) || nodeName === propertyValue) propertyValue = prop.default;
                     }
                     break;
                 case undefined:
@@ -347,8 +346,17 @@
             while (document._light.project.json.nodes[node + "" + n]) n++;
             document._light.project.json.nodes[node + "" + n] = document._light.project.json.nodes[node];
             ws.sendPacket("copy_node", {path: document._light.project.path, from: node, to: node + "" + n});
-            select_node(node + "" + n);
-            if (sceneType === "editor") setSceneType("editor");
+            ws.sendPacket("get_projects");
+            addWSOnceListener("get_projects", () => select_node(node + "" + n));
+        }
+
+        function toggle_node_lock(node) {
+            set_node_locked(node, !document._light.project.json.nodes[node].locked);
+        }
+
+        function set_node_locked(node, value) {
+            ws.sendPacket("set_node_locked", {path: document._light.project.path, node, value});
+            ws.sendPacket("get_projects");
         }
 
         function switch_node_positions(from, to) {
@@ -384,7 +392,9 @@
         <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${document._light.project.json.nodes[key].type === "group" ? "group_closed" : document._light.project.json.nodes[key].type.replaceAll("-", "_")}.png">
         <span class="node_name">${key === "camera" ? m("camera") : key}</span>
     </div>
-    ${document._light.project.json.nodes[key].type === "camera" ? "" : `<div title="Delete" onclick="document._light.open_remove_node_menu('${key}')" class="remove_node"></div>
+    <div title="CTRL + L" onclick="document._light.toggle_node_lock('${key}')" class="${document._light.project.json.nodes[key].locked ? "lock_node" : "unlock_node"} ${document._light.project.json.nodes[key].type !== "camera" ? "ln_1" : "ln_2"}"></div>
+    ${document._light.project.json.nodes[key].type === "camera" ? "" : `
+    <div title="Delete" onclick="document._light.open_remove_node_menu('${key}')" class="remove_node"></div>
     <div title="F2" onclick="document._light.open_rename_node_menu('${key}')" class="rename_node"></div>
     <div title="CTRL + C" onclick="document._light.copy_node('${key}')" class="copy_node"></div>
     <div id="group_node_content_${key}" style="margin-left: 10px" hidden>${Object.keys(document._light.project.json.nodes).filter(k => document._light.project.json.nodes[k].group === key).sort(sortNodeKeyPosition).map(mapNodeKey).join("")}</div>`}
@@ -395,6 +405,7 @@
             const node = document._light.selected_node;
             if (node && node !== "camera" && !_p_c && held["Delete"]) open_remove_node_menu(node);
             if (node && node !== "camera" && !_p_c && held["Control"] && (held["C"] || held["c"])) copy_node(node);
+            if (node && !_p_c && held["Control"] && (held["L"] || held["l"])) toggle_node_lock(node);
             if (node && node !== "camera" && !_p_c && held["F2"]) open_rename_node_menu(node);
         });
         addEventListener("keyup", ev => delete held[ev.key]);
@@ -449,6 +460,8 @@
         }
 
         function refresh_properties() {
+            document.getElementById("property-remove").src = document._light.property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
+            document.getElementById("property-remove").hidden = document._light.selected_node && document._light.project.json.nodes[document._light.selected_node].type !== "camera" ? undefined : true;
             if (!document._light.selected_node || !document._light.project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
             const node = document._light.project.json.nodes[document._light.selected_node];
             const props = node.properties;
@@ -463,7 +476,7 @@
                         break;
                 }
                 return `
-<tr><td class="property_name${property_delete_mode && !props[key].isDefaultProperty ? ` remove_mode` : ""}"${property_delete_mode && !props[key].isDefaultProperty ? `onclick="document._light.remove_node_property(document._light.selected_node, '${key}')"` : ""}>${props[key].isDefaultProperty ? languages[lang]["property--" + key] : key}</td><td>
+<tr><td class="property_name${document._light.property_delete_mode && !props[key].isDefaultProperty ? ` remove_mode` : ""}"${document._light.property_delete_mode && !props[key].isDefaultProperty ? `onclick="document._light.remove_node_property(document._light.selected_node, '${key}')"` : ""}>${props[key].isDefaultProperty ? languages[lang]["property--" + key] : key}</td><td>
 ${input}
 </td></tr>
 `;
@@ -474,12 +487,10 @@ ${input}
             if (name && document._light.project.json.nodes[name].type === "group") return toggle_group_node(name);
             if (document._light.selected_node === name && !v) {
                 name = null;
-                property_delete_mode = false;
+                document._light.property_delete_mode = false;
             }
-            document.getElementById("property-remove").src = property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
             const s = name && document._light.project.json.nodes[name].type !== "camera";
             document.getElementById("property-add").hidden = s ? undefined : true;
-            document.getElementById("property-remove").hidden = s ? undefined : true;
             document._light.selected_node = name;
             refresh_properties();
             refresh_nodes();
@@ -489,6 +500,7 @@ ${input}
             const node = document._light.project.json.nodes[key];
             if (!node || node.type !== "group") return;
             const gN = document.getElementById("group_node_content_" + key);
+            if (!gN) return;
             const is_open = open_groups[key];
             open_groups[key] = !open_groups[key];
             gN.hidden = is_open ? true : undefined;
@@ -708,7 +720,7 @@ ${input}
             if (!canvasMouseDown) return;
             if (selectedEditorEntity) {
                 const pos = canvasMouseDown[2].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
-                const nodeId = selectedEditorEntity["nodeId"];
+                const nodeId = selectedEditorEntity["__nodeId"];
                 document._light.project.json.nodes[nodeId].properties.x.value = pos.x;
                 document._light.project.json.nodes[nodeId].properties.y.value = pos.y;
                 refresh_properties();
@@ -728,14 +740,14 @@ ${input}
 
         const getEntitiesByMouse = (x, y) => {
             const cmr = (new Vector2(x + sceneCamera.x, y + sceneCamera.y));
-            return Scene.getInstance().entities.filter(entity => entity instanceof Entity && (entity.collides(cmr)));
+            return Scene.getInstance().entities.filter(entity => entity instanceof Entity && (entity.collides(cmr))).filter(i => i["__nodeId"] ? !document._light.project.json.nodes[i["__nodeId"]].locked : true);
         };
 
         canvas.addEventListener("mousedown", ev => {
             canvasMouseDown = [new Vector2(ev.offsetX, ev.offsetY), Scene.getInstance().camera.clone()];
             if (sceneType === "editor") {
                 selectedEditorEntity = getEntitiesByMouse(ev.offsetX, ev.offsetY);
-                selectedEditorEntity = document._light.selected_node ? (selectedEditorEntity.find(i => i && i["nodeId"] === document._light.selected_node) || selectedEditorEntity[0]) : selectedEditorEntity[0];
+                selectedEditorEntity = document._light.selected_node ? (selectedEditorEntity.find(i => i && i["__nodeId"] === document._light.selected_node) || selectedEditorEntity[0]) : selectedEditorEntity[0];
                 if (selectedEditorEntity) canvasMouseDown[2] = selectedEditorEntity.clone();
             }
         });
@@ -743,10 +755,10 @@ ${input}
         addEventListener("mouseup", ev => {
             if (sceneType === "editor" && canvasMouseDown && canvasMouseDown[0] && canvasMouseDown[0].equals(new Vector2(ev.offsetX, ev.offsetY))) {
                 const ent = getEntitiesByMouse(ev.offsetX, ev.offsetY)[0];
-                if (ent && ent["nodeId"]) select_node(ent["nodeId"]);
+                if (ent && ent["__nodeId"]) select_node(ent["__nodeId"]);
             }
             if (selectedEditorEntity && canvasMouseDown) {
-                const nodeId = selectedEditorEntity["nodeId"];
+                const nodeId = selectedEditorEntity["__nodeId"];
                 set_node_properties(nodeId, document._light.project.json.nodes[nodeId].properties);
             }
             selectedEditorEntity = null;
@@ -762,7 +774,7 @@ ${input}
 
         let setupCamera = false;
         let cameraTile = new Tile(0, 0);
-        cameraTile.nodeId = "camera";
+        cameraTile.__nodeId = "camera";
 
         addEventListener("resize", () => {
             if (!cameraTile) return;
@@ -782,6 +794,7 @@ ${input}
                     Scene.getInstance().destroy();
                     Scene.getInstance().camera = sceneCamera;
                     Scene.getInstance().zoom = sceneZoom;
+                    Scene.getInstance().cameraTile = cameraTile;
                     Scene.getInstance().onUpdateStart = () => {
                         ctx.fillStyle = "rgb(0, 255, 0)";
                         ctx.fillRect(0, -sceneCamera.y, canvas.width, 1);
@@ -808,7 +821,7 @@ ${input}
                                 const entity = await createEntity(i1.properties);
                                 entity.update = r => r;
                                 if (entity) entity.init();
-                                entity.nodeId = j;
+                                entity.__nodeId = j;
                                 entity.collisionTiles = [];
                                 if (i1.properties.collisionBorder.value) entity.collisions.forEach(i => {
                                     if (!(i instanceof RectangleCollision)) return;
@@ -822,7 +835,7 @@ ${input}
                                 const tile = await createTile(i1.properties);
                                 tile.update = r => r;
                                 if (tile) tile.init();
-                                tile.nodeId = j;
+                                tile.__nodeId = j;
                                 tile.collisionTiles = [];
                                 if (i1.properties.collisionBorder.value) tile.collisions.forEach(i => {
                                     if (!(i instanceof RectangleCollision)) return;
@@ -841,7 +854,7 @@ ${input}
                                 textModel.offsetY = 0;
                                 textTile.addModel(textModel);
                                 textTile.init();
-                                textTile.nodeId = j;
+                                textTile.__nodeId = j;
                                 const size = TextModel.calculateTextSize(textModel.text, textModel.size, textModel.font, textModel.maxWidth);
                                 const coll = new RectangleCollision(0, textModel.size / 3, size.width, size.height);
                                 textTile.addCollision(coll);
@@ -870,10 +883,11 @@ ${input}
                                 ray.setStartAngle(i1.properties.startAngle.value)
                                     .setEndAngle(i1.properties.endAngle.value)
                                     .setRayPopulation(i1.properties.rayPopulation.value)
-                                    .setLightenCamera(i1.properties.lightenCamera.value);
+                                    .setLightenCamera(i1.properties.lightenCamera.value)
+                                    .setInactiveNodes((i1.properties.inactiveNodes.value || "").split(","));
                                 ray.init();
                                 ray.visible = !i1.properties.invisible.value;
-                                ray.nodeId = j;
+                                ray.__nodeId = j;
                                 break;
                         }
                     }
@@ -889,21 +903,25 @@ ${input}
                     Scene.getInstance().camera.set(cameraNode.properties.x.value, cameraNode.properties.y.value);
                     await refreshModelList();
                     await refreshCollisionList();
-                    for (const i1 of Object.values(document._light.project.json.nodes).sort((a, b) => b.position - a.position).filter(i => ["entity", "tile", "text", "script", "light"].includes(i.type))) {
+                    for (const j of Object.keys(document._light.project.json.nodes).sort((a, b) => document._light.project.json.nodes[b].position - document._light.project.json.nodes[a].position).filter(i => ["entity", "tile", "text", "script", "light"].includes(document._light.project.json.nodes[i].type))) {
+                        const i1 = document._light.project.json.nodes[j];
                         switch (i1.type) {
                             case "entity":
                                 const entity = await createEntity(i1.properties);
                                 if (entity) entity.init();
+                                entity.__nodeId = j;
                                 break;
                             case "tile":
                                 const tile = await createTile(i1.properties);
                                 if (tile) tile.init();
+                                tile.__nodeId = j;
                                 break;
                             case "text":
                                 const textTile = new Tile(0, 0);
                                 const textModel = await createModel({type: "model-text", properties: i1.properties});
                                 textTile.addModel(textModel);
                                 textTile.init();
+                                textTile.__nodeId = j;
                                 break;
                             case "script":
                                 if (!i1.properties.file.value) continue;
@@ -929,9 +947,11 @@ ${input}
                                 ray.setStartAngle(i1.properties.startAngle.value)
                                     .setEndAngle(i1.properties.endAngle.value)
                                     .setRayPopulation(i1.properties.rayPopulation.value)
-                                    .setLightenCamera(i1.properties.lightenCamera.value);
+                                    .setLightenCamera(i1.properties.lightenCamera.value)
+                                    .setInactiveNodes((i1.properties.inactiveNodes.value || "").split(","));
                                 ray.init();
                                 ray.visible = !i1.properties.invisible.value;
+                                ray.__nodeId = j;
                                 break;
                         }
                     }
@@ -980,8 +1000,12 @@ ${input}
             open_remove_node_menu,
             open_rename_node_menu,
             copy_node,
+            toggle_node_lock,
             selected_node: null,
             set_node_property,
+            refresh_properties,
+            remove_node_property,
+            property_delete_mode: false,
             loadedScriptList: []
         };
     })();
