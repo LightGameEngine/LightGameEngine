@@ -15,6 +15,9 @@
         <a onclick="document._light.main_menu()" id="lC-cb">
             Close
             <script>lU(() => document.getElementById("lC-cb").innerHTML = m("close-button"))</script>
+        </a>&nbsp;&nbsp;
+        <a onclick="document._light.open_logs()" id="lC-cbb">
+            <script>lU(() => document.getElementById("lC-cbb").innerHTML = m("logs-button"))</script>
         </a>
     </div>
     <div style="position: absolute; left: 78%; top: 0.8%; width: 5%">
@@ -245,10 +248,7 @@
 
         function remove_node(name) {
             ws.sendPacket("remove_node", {path: document._light.project.path, name});
-            delete document._light.project.json.nodes[name];
-            if (name === document._light.selected_node) select_node(null);
-            refresh_nodes();
-            if (sceneType === "editor") setSceneType("editor");
+            ws.sendPacket("get_projects");
         }
 
         function add_node_property(name, property) {
@@ -512,6 +512,7 @@ ${input}
         addWSListener("get_projects", ({projects}) => {
             document._light.project = projects[query.path];
             document.getElementById("title").innerHTML = "Light - " + document._light.project.name;
+            if (!projects[query.path].json.nodes[document._light.selected_node]) document._light.selected_node = null;
             refresh_nodes();
             if (sceneType === "editor") setSceneType("editor");
         });
@@ -782,7 +783,12 @@ ${input}
             cameraTile.collision.setWidth(canvas.width).setHeight(canvas.height);
         });
 
+        let scene_process = false;
+        let _sid = 0;
+
         async function setSceneType(type) {
+            const sid = _sid++;
+            scene_process = sid;
             document._light.loadedScriptList = {};
             cameraTile.model = new RectangleModel(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
             cameraTile.addModel(cameraTile.model);
@@ -974,6 +980,16 @@ ${input}
             ws.sendPacket("main_menu");
         }
 
+        function open_logs() {
+            prompt(m("logs-title"), "<div style='height: 100px;overflow-y: scroll;'>" + (document._light.project.actions || []).map(action => {
+                return `<div class="action">
+    <div>${action.id}</div>
+    <!--<div>${JSON.stringify(action.from)}</div>
+    <div>${JSON.stringify(action.to)}</div>-->
+</div>`
+            }).reverse().join("") + "</div>", m("okay-button"), false);
+        }
+
         setInterval(() => {
             const canvas = document.getElementById("canvas");
             if (canvas.width !== Math.floor(window.innerWidth * 0.601)) canvas.width = Math.floor(window.innerWidth * 0.601);
@@ -991,6 +1007,7 @@ ${input}
         window.addEventListener("blur", checkProjectExists);
         document._light = {
             main_menu,
+            open_logs,
             setSceneType,
             open_node_menu,
             open_property_menu,

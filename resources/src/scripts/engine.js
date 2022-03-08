@@ -1508,26 +1508,34 @@ class RayCastModel extends Model {
         this.rayCast.y = position.y + this.offsetY;
         const {startAngle, endAngle, rayPopulation, lightenCamera} = entity;
         const boundaries = [
-            ...scene.boundaries.filter(i => i.entity["lightTile"] !== entity.__nodeId).filter(i => !lightenCamera ? i.entity["__nodeId"] !== "camera" : true).filter(i => !entity.inactiveNodes.includes(i.entity["__nodeId"])),
+            ...scene.boundaries.filter(i => i.entity["lightTile"] !== entity.__nodeId).filter(i => lightenCamera ? true : i.entity["__nodeId"] !== "camera").filter(i => !entity.inactiveNodes.filter(i => i !== "camera").includes(i.entity["__nodeId"])),
             ...(lightenCamera ? [{
                 start: new Vector2(0, 0),
-                end: new Vector2(scene.canvas.width, 0)
+                end: new Vector2(scene.canvas.width, 0),
+                entity: new Entity(0, 0)
             },
                 {
                     start: new Vector2(0, 0),
-                    end: new Vector2(0, scene.canvas.height)
+                    end: new Vector2(0, scene.canvas.height),
+                    entity: new Entity(0, 0)
                 },
                 {
                     start: new Vector2(scene.canvas.width, 0),
-                    end: new Vector2(scene.canvas.width, scene.canvas.height)
+                    end: new Vector2(scene.canvas.width, scene.canvas.height),
+                    entity: new Entity(0, 0)
                 },
                 {
                     start: new Vector2(0, scene.canvas.height),
-                    end: new Vector2(scene.canvas.width, scene.canvas.height)
+                    end: new Vector2(scene.canvas.width, scene.canvas.height),
+                    entity: new Entity(0, 0)
                 }] : [])
         ];
         this.rayCast
-            .run(boundaries, startAngle, endAngle, rayPopulation)
+            .run(boundaries.map(i => [{
+                start: i.start.multiply(scene.zoom, scene.zoom),
+                end: i.end.multiply(scene.zoom, scene.zoom),
+                entity: i.entity
+            }][0]), startAngle, endAngle, rayPopulation)
             .forEach(l => {
                 ctx.beginPath();
                 ctx.moveTo(l.start.x, l.start.y);
