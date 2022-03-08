@@ -69,6 +69,7 @@ const convertDate = cnv({
                 Logger.info("[" + b + "] [\x1b[47m" + (" ".repeat(Math.floor(i / files.length * spaceCount))) + "\x1b[0m" + (" ".repeat(spaceCount - Math.floor(i / files.length * spaceCount))) + "] " + Math.floor(i / files.length * 100) + "% Downloading " + (files[i] || "").split("/").reverse()[0] + "...");
             };
             const download = file => new Promise(r => {
+                fs.unlinkSync(file);
                 const f = fs.createWriteStream("./" + file);
                 https.get("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + file, res => {
                     res.pipe(f);
