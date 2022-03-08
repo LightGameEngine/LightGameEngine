@@ -99,7 +99,22 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "rename-node-button": "Rename",
     "camera": "Camera",
     "rename-button": "Rename",
-    "rename-project-title": "Rename Project"
+    "rename-project-title": "Rename Project",
+    "logs-title": "Logs",
+    "logs-button": "Logs",
+    "add_node": "Added Node",
+    "copy_node": "Copied Node",
+    "set_node_position": "Changed Node Position",
+    "set_node_group": "Changed Node Group",
+    "set_node_locked": "Changed Node Locked",
+    "remove_node": "Removed Node",
+    "rename_node": "Renamed Node",
+    "add_bulk_node": "Added Bulk Node",
+    "remove_bulk_node": "Removed Bulk Node",
+    "add_property": "Added Property",
+    "set_property": "Added Property",
+    "set_bulk_property": "Changed Bulk Property",
+    "remove_property": "Removed Property"
 }));
 fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
@@ -191,7 +206,22 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "rename-node-button": "Yeniden Adlandır",
     "camera": "Kamera",
     "rename-button": "Yeniden Adlandır",
-    "rename-project-title": "Projeyi Yeniden Adlandır"
+    "rename-project-title": "Projeyi Yeniden Adlandır",
+    "logs-title": "Kayıtlar",
+    "logs-button": "Kayıtlar",
+    "add_node": "Nesne Eklendi",
+    "copy_node": "Nesne Kopyalandı",
+    "set_node_position": "Nesne Pozisyonu Değiştirildi",
+    "set_node_group": "Nesne Grubu Ayarlandı",
+    "set_node_locked": "Nesne Kilidi Değiştirildi",
+    "remove_node": "Nesne Silindi",
+    "rename_node": "Nesne Yeniden Adlandırıldı",
+    "add_bulk_node": "Birden Fazla Nesne Eklendi",
+    "remove_bulk_node": "Birden Fazla Nesne Silindi",
+    "add_property": "Özellik Eklendi",
+    "set_property": "Özellik Ayarlandı",
+    "set_bulk_property": "Birden Fazla Özellik Ayarlandı",
+    "remove_property": "Özellik Silindi"
 }));
 if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
 fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
@@ -301,7 +331,8 @@ if (!fs.existsSync(cachePath)) {
         default_project_folder: null
     }));
 }
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, json: {camera: {x: number, y: number}, nodes: Object<string, {type: string, locked: boolean, group?: string | null, properties: Object<string, Object>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
+
+/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, actions: {id: "add_node" | "copy_node" | "set_node_position" | "set_node_group" | "set_node_locked" | "remove_node" | "rename_node" | "add_bulk_node" | "remove_bulk_node" | "add_property" | "set_bulk_property" | "set_property" | "remove_property", createdTimestamp: number, from: *, to: *}[], json: {camera: {x: number, y: number}, nodes: Object<string, {type: string, locked: boolean, group?: string | null, properties: Object<string, Object>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
 const cache = JSON.parse(fs.readFileSync(cachePath).toString());
 
 const CAMERA_PROPERTY = (position = 0) => ({
@@ -353,6 +384,7 @@ class CacheManager {
                 zoom: 1.0,
                 nodes: {camera: CAMERA_PROPERTY()}
             },
+            actions: [],
             createdTimestamp: Date.now(),
             lastOpenTimestamp: 0
         };
@@ -377,6 +409,28 @@ class CacheManager {
 
     static removeProject(path) {
         delete cache.projects[path];
+    }
+
+    static getProjectActions(path) {
+        if (!cache.projects[path].actions) cache.projects[path].actions = [];
+        return cache.projects[path].actions;
+    }
+
+    /**
+     * @param {string} path
+     * @param {"add_node" | "copy_node" | "set_node_position" | "set_node_group" | "set_node_locked" | "remove_node" | "rename_node" | "add_bulk_node" | "remove_bulk_node" | "add_property" | "set_property" | "set_bulk_property" | "remove_property"} actionId
+     * @param {*} from
+     * @param {*} to
+     */
+    static addAction(path, actionId, from, to) {
+        CacheManager.getProjectActions(path);
+        cache.projects[path].actions.push({
+            id: actionId, from, to, createdTimestamp: Date.now()
+        });
+    }
+
+    static removeLastAction(path) {
+        cache.projects[path].actions = cache.projects[path].actions.reverse().slice(1).reverse();
     }
 
     static setProjectCamera(path, x, y) {
@@ -1044,50 +1098,119 @@ wss.on("connection", async socket => {
                     break;
                 case "add_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    cache.projects[json.data.path].json.nodes[json.data.node.name] = {
+                    const node = {
                         type: json.data.node.type,
                         locked: false,
                         properties: property_list[json.data.node.type],
                         position: (Object.values(cache.projects[json.data.path].json.nodes).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
                         createdTimestamp: Date.now()
                     };
+                    cache.projects[json.data.path].json.nodes[json.data.node.name] = node;
+                    CacheManager.addAction(json.data.path, "add_node", null, {
+                        id: json.data.node.name,
+                        node
+                    });
                     break;
                 case "remove_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.addAction(json.data.path, "remove_node", {
+                        id: json.data.name,
+                        node: cache.projects[json.data.path].json.nodes[json.data.name]
+                    }, null);
                     delete cache.projects[json.data.path].json.nodes[json.data.name];
                     break;
                 case "set_node_properties":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.addAction(json.data.path, "set_bulk_property", {
+                        id: json.data.name,
+                        properties: cache.projects[json.data.path].json.nodes[json.data.name].properties
+                    }, {
+                        id: json.data.name,
+                        properties: json.data.properties
+                    });
                     cache.projects[json.data.path].json.nodes[json.data.name].properties = json.data.properties;
-                    break;
-                case "set_node_type":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    cache.projects[json.data.path].json.nodes[json.data.name].type = json.data.type;
                     break;
                 case "switch_node_positions":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     const a = CacheManager.getNode(json.data.path, json.data.from).position;
                     CacheManager.setNodePosition(json.data.path, json.data.from, CacheManager.getNode(json.data.path, json.data.to).position);
+                    CacheManager.addAction(json.data.path, "set_node_position", {
+                            id: json.data.from,
+                            position: a
+                        },
+                        {
+                            id: json.data.from,
+                            position: CacheManager.getNode(json.data.path, json.data.to).position
+                        });
+                    const b = CacheManager.getNode(json.data.path, json.data.to).position;
                     CacheManager.setNodePosition(json.data.path, json.data.to, a);
+                    CacheManager.addAction(json.data.path, "set_node_position", {
+                            id: json.data.to,
+                            position: b
+                        },
+                        {
+                            id: json.data.to,
+                            position: a
+                        });
                     break;
                 case "set_node_position":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.addAction(json.data.path, "set_node_position", {
+                            id: json.data.node,
+                            position: CacheManager.getNode(json.data.path, json.data.node).position
+                        },
+                        {
+                            id: json.data.node,
+                            position: json.data.position
+                        });
                     CacheManager.setNodePosition(json.data.path, json.data.node, json.data.position);
                     break;
                 case "set_node_group":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.setNodeGroup(json.data.path, json.data.node, json.data.group);
+                    CacheManager.addAction(json.data.path, "set_node_group", {
+                            id: json.data.node,
+                            group: CacheManager.getNode(json.data.path, json.data.node).group
+                        },
+                        {
+                            id: json.data.node,
+                            group: json.data.group
+                        });
                     break;
                 case "rename_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.renameNode(json.data.path, json.data.from, json.data.to);
+                    CacheManager.addAction(json.data.path, "rename_node", {
+                            id: json.data.from,
+                            name: json.data.from
+                        },
+                        {
+                            id: json.data.to,
+                            name: json.data.to
+                        })
                     break;
                 case "copy_node":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
                     CacheManager.copyNode(json.data.path, json.data.from, json.data.to);
+                    CacheManager.addAction(json.data.path, "copy_node", {
+                            id: json.data.from,
+                            node: CacheManager.getNode(json.data.path, json.data.from)
+                        },
+                        {
+                            id: json.data.to,
+                            node: CacheManager.getNode(json.data.path, json.data.to)
+                        });
                     break;
                 case "set_node_locked":
                     if (!CacheManager.existsProjectPath(json.data.path)) return;
+                    CacheManager.addAction(json.data.path, "set_node_locked", {
+                            id: json.data.node,
+                            locked: CacheManager.getNode(json.data.path, json.data.node).locked
+                        },
+                        {
+                            id: json.data.node,
+                            locked: json.data.value
+                        });
                     CacheManager.setNodeLocked(json.data.path, json.data.node, json.data.value);
                     break;
                 case "set_project_camera":
