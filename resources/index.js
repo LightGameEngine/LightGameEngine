@@ -6,6 +6,7 @@ if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
 const cachePath = lightRoamingPath + "/.cache";
 const Logger = require("../Logger");
 let screen_info;
+const is_folder = path => new Promise(r => fs.readFile(path, err => err ? r(true) : r(false)));
 
 if (!fs.existsSync(lightRoamingPath + "/languages")) fs.mkdirSync(lightRoamingPath + "/languages");
 fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
@@ -114,7 +115,10 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "add_property": "Added Property",
     "set_property": "Added Property",
     "set_bulk_property": "Changed Bulk Property",
-    "remove_property": "Removed Property"
+    "remove_property": "Removed Property",
+    "block-button": "Block Script",
+    "code-button": "Code Script",
+    "back-button": "Back"
 }));
 fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
@@ -221,7 +225,10 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "add_property": "Özellik Eklendi",
     "set_property": "Özellik Ayarlandı",
     "set_bulk_property": "Birden Fazla Özellik Ayarlandı",
-    "remove_property": "Özellik Silindi"
+    "remove_property": "Özellik Silindi",
+    "block-button": "Blok Skript",
+    "code-button": "Kod Skript",
+    "back-button": "Geri"
 }));
 if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
 fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
@@ -332,179 +339,18 @@ if (!fs.existsSync(cachePath)) {
     }));
 }
 
-/*** @type {{default_project_folder: string | null, theme: string, lang: string, projects: Object<string, {name: string, path: string, actions: {id: "add_node" | "copy_node" | "set_node_position" | "set_node_group" | "set_node_locked" | "remove_node" | "rename_node" | "add_bulk_node" | "remove_bulk_node" | "add_property" | "set_bulk_property" | "set_property" | "remove_property", createdTimestamp: number, from: *, to: *}[], json: {camera: {x: number, y: number}, nodes: Object<string, {type: string, locked: boolean, group?: string | null, properties: Object<string, Object>, position: number, createdTimestamp: number}>}, createdTimestamp: number, lastOpenTimestamp: number}>}} */
-const cache = JSON.parse(fs.readFileSync(cachePath).toString());
-
-const CAMERA_PROPERTY = (position = 0) => ({
-    type: "camera",
-    locked: false,
-    properties: {
-        x: {
-            type: "number",
-            value: 0,
-            default: 0,
-            isDefaultProperty: true
-        },
-        y: {
-            type: "number",
-            value: 0,
-            default: 0,
-            isDefaultProperty: true
-        }
-    },
-    position,
-    createdTimestamp: Date.now(),
-    group: null
-});
-
-class CacheManager {
-    static async getProjects() {
-        const p = {};
-        for (let i = 0; i < Object.keys(cache.projects).length; i++) {
-            const project = cache.projects[Object.keys(cache.projects)[i]];
-            project.valid = fs.existsSync(project.path) ? (await is_folder(project.path)) : false;
-            if (!project.valid) delete cache.projects[project.path];
-            p[project.path] = project;
-        }
-        return p;
-    }
-
-    static existsProjectPath(path) {
-        return !!cache.projects[path];
-    }
-
-    /*** @param {string} path */
-    static createProject(path) {
-        if (this.existsProjectPath(path)) return;
-        cache.projects[path] = {
-            name: path.split("/").reverse()[0],
-            path,
-            json: {
-                camera: {x: 0, y: 0},
-                zoom: 1.0,
-                nodes: {camera: CAMERA_PROPERTY()}
-            },
-            actions: [],
-            createdTimestamp: Date.now(),
-            lastOpenTimestamp: 0
-        };
-        if (!fs.existsSync(path)) fs.mkdirSync(path);
-    }
-
-    static openProject(socket, path) {
-        this.createProject(path);
-        if (!cache.projects[path].json.nodes.camera) cache.projects[path].json.nodes.camera = CAMERA_PROPERTY((Object.values(cache.projects[path].json.nodes).map(i => i.position).sort((a, b) => b - a)[0] || 0) + 1);
-        cache.projects[path].lastOpenTimestamp = Date.now();
-        browser.hide();
-        socket.sendPacket("open_project", {name: cache.projects[path].name, path});
-        browser.resetPositionLimits();
-        browser.maximize();
-        browser.show();
-    }
-
-    static renameProject(path, name) {
-        this.createProject(path);
-        cache.projects[path].name = name;
-    }
-
-    static removeProject(path) {
-        delete cache.projects[path];
-    }
-
-    static getProjectActions(path) {
-        if (!cache.projects[path].actions) cache.projects[path].actions = [];
-        return cache.projects[path].actions;
-    }
-
-    /**
-     * @param {string} path
-     * @param {"add_node" | "copy_node" | "set_node_position" | "set_node_group" | "set_node_locked" | "remove_node" | "rename_node" | "add_bulk_node" | "remove_bulk_node" | "add_property" | "set_property" | "set_bulk_property" | "remove_property"} actionId
-     * @param {*} from
-     * @param {*} to
-     */
-    static addAction(path, actionId, from, to) {
-        CacheManager.getProjectActions(path);
-        cache.projects[path].actions.push({
-            id: actionId, from, to, createdTimestamp: Date.now()
-        });
-    }
-
-    static removeLastAction(path) {
-        cache.projects[path].actions = cache.projects[path].actions.reverse().slice(1).reverse();
-    }
-
-    static setProjectCamera(path, x, y) {
-        this.createProject(path);
-        cache.projects[path].json.camera = {x, y};
-    }
-
-    static setProjectZoom(path, zoom) {
-        this.createProject(path);
-        cache.projects[path].json.zoom = zoom;
-    }
-
-    static getNode(path, node) {
-        return cache.projects[path].json.nodes[node];
-    }
-
-    static renameNode(path, from, to) {
-        cache.projects[path].json.nodes[to] = this.getNode(path, from);
-        delete cache.projects[path].json.nodes[from];
-    }
-
-    static copyNode(path, from, to) {
-        cache.projects[path].json.nodes[to] = JSON.parse(JSON.stringify(this.getNode(path, from)));
-        cache.projects[path].json.nodes[to].createdTimestamp = Date.now();
-        if (cache.projects[path].json.nodes[from].type === "group") {
-            Object.keys(cache.projects[path].json.nodes).filter(i => i !== from && cache.projects[path].json.nodes[i].group === from).forEach(i => {
-                let n = 1;
-                while (cache.projects[path].json.nodes[i + "" + n]) n++;
-                CacheManager.copyNode(path, i, i + "" + n);
-                CacheManager.setNodeGroup(path, i + "" + n, to);
-            });
-        }
-    }
-
-    static setNodeLocked(path, node, value) {
-        cache.projects[path].json.nodes[node].locked = value;
-    }
-
-    static setNodePosition(path, node, position) {
-        cache.projects[path].json.nodes[node].position = position;
-    }
-
-    static setNodeGroup(path, node, group) {
-        cache.projects[path].json.nodes[node].group = group;
-    }
-
-    static getDefaultProjectFolder() {
-        if (!fs.existsSync(cache.default_project_folder)) cache.default_project_folder = null;
-        return cache.default_project_folder;
-    }
-
-    static setDefaultProjectFolder(folder) {
-        cache.default_project_folder = folder;
-    }
-
-    static setTheme(theme) {
-        cache.theme = theme;
-    }
-
-    static setLanguage(lang) {
-        cache.lang = lang;
-    }
-
-    static save() {
-        fs.writeFileSync(cachePath, JSON.stringify(cache));
-    }
-}
-
-setInterval(CacheManager.save, 40000);
+const CacheManager = require("../CacheManager");
+const {cache} = CacheManager;
 
 const wss = new (require("ws"))["Server"]({port: 9009});
-let socketClients = [];
+wss.on("error", () => {
+    Logger.alert("Light is already on!");
+    if (global.browser) global.browser.hide();
+    while (true) {
+    }
+});
 
-const is_folder = path => new Promise(r => fs.readFile(path, err => err ? r(true) : r(false)));
+let socketClients = [];
 
 const property_list = {
     "model-image": {
@@ -1263,8 +1109,8 @@ app.whenReady().then(async () => {
     await create_window();
     globalShortcut.register("F5", Logger.debug);
     globalShortcut.unregister("F5");
-    globalShortcut.register("CommandOrControl+R", () => global.browser.reload());
-    globalShortcut.register("CommandOrControl+D", () => global.browser.webContents.openDevTools());
+    if (Logger.debugging) globalShortcut.register("CommandOrControl+R", () => global.browser.reload());
+    if (Logger.debugging) globalShortcut.register("CommandOrControl+D", () => global.browser.webContents.openDevTools());
     app.on("activate", () => BrowserWindow.getAllWindows().length === 0 ? create_window() : null);
 });
 

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--suppress HtmlRequiredTitleElement -->
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/resources/assets/icon.png">
+</head>
+<body style="background: #ceac32">
+<img style="position: absolute;left: 0;top: 0"
+     src="https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/resources/assets/start.gif">
+<span id="file_name"
+      style="position: absolute; top: 64%; left: 0; width: 100%; text-align: center; font-family: Calibri, serif"></span>
+<span id="percent" style="position: absolute; top: 72%; left: 3%; font-family: Calibri, serif"></span>
+<canvas width="450" height="25"
+        style="background: white; position: absolute; top: 70%; left: 50%; transform: translateX(-50%); border: 1px solid black; border-radius: 5px"
+        id="canvas"></canvas>
+<script>
+    /*** @type {HTMLCanvasElement} */
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const ws = new WebSocket("ws://localhost:9009/");
+    ws.onopen = () => {
+        ws.onmessage = msg => {
+            const {action, data} = JSON.parse(msg.data.toString());
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#c2af35";
+            ctx.fillRect(0, 0, data.loaded / data.all * canvas.width, canvas.height);
+            document.getElementById("file_name").innerHTML = data.current;
+            document.getElementById("percent").innerHTML = Math.floor(data.loaded / data.all * 100) + "%";
+        };
+    };
+</script>
+</body>
+</html>

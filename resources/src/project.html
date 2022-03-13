@@ -9,7 +9,7 @@
     <script src="scripts/lang.js"></script>
     <script src="scripts/themeManager.js"></script>
 </head>
-<body>
+<body style="overflow-x: hidden">
 <div class="body">
     <div class="bar">
         <a onclick="document._light.main_menu()" id="lC-cb">
@@ -47,6 +47,10 @@
              onclick="document._light.property_delete_mode = !document._light.property_delete_mode; document._light.refresh_properties()"
              id="property-remove" hidden class="right_nav_remove"
              src="../assets/trash_closed.png">
+        <img draggable="false"
+             onclick="document._light.selected_node?document._light.block_code(document._light.selected_node):null"
+             id="node-block-script" hidden class="right_nav_script"
+             src="../assets/script.png">
         <div style="text-align: center; color: var(--general-color)" id="lC-prp">
             <script>lU(() => document.getElementById("lC-prp").innerHTML = m("properties-title"))</script>
         </div>
@@ -460,8 +464,10 @@
         }
 
         function refresh_properties() {
+            const prP = document._light.selected_node && document._light.project.json.nodes[document._light.selected_node].type !== "camera" ? undefined : true;
             document.getElementById("property-remove").src = document._light.property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
-            document.getElementById("property-remove").hidden = document._light.selected_node && document._light.project.json.nodes[document._light.selected_node].type !== "camera" ? undefined : true;
+            document.getElementById("property-remove").hidden = prP;
+            document.getElementById("node-block-script").hidden = prP;
             if (!document._light.selected_node || !document._light.project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
             const node = document._light.project.json.nodes[document._light.selected_node];
             const props = node.properties;
@@ -789,6 +795,8 @@ ${input}
         async function setSceneType(type) {
             const sid = _sid++;
             scene_process = sid;
+            const cameraNode = document._light.project.json.nodes.camera;
+            if (!cameraNode) return window.location.href = window.location.href.toString();
             document._light.loadedScriptList = {};
             cameraTile.model = new RectangleModel(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
             cameraTile.addModel(cameraTile.model);
@@ -802,6 +810,8 @@ ${input}
                     Scene.getInstance().zoom = sceneZoom;
                     Scene.getInstance().cameraTile = cameraTile;
                     Scene.getInstance().onUpdateStart = () => {
+                        ctx.fillStyle = cameraNode.properties.color.value.toString();
+                        ctx.fillRect(-sceneCamera.x + cameraTile.x, -sceneCamera.y + cameraTile.y, canvas.width * Scene.instance.zoom, canvas.height * Scene.instance.zoom);
                         ctx.fillStyle = "rgb(0, 255, 0)";
                         ctx.fillRect(0, -sceneCamera.y, canvas.width, 1);
                         ctx.fillStyle = "rgb(255, 0, 0)";
@@ -901,12 +911,14 @@ ${input}
                     stop_btn.hidden = true;
                     break;
                 case "game":
-                    const cameraNode = document._light.project.json.nodes.camera;
-                    if (!cameraNode) return window.location.href = window.location.href.toString();
                     consoleList = [];
                     renderConsole();
                     Scene.getInstance().destroy();
                     Scene.getInstance().camera.set(cameraNode.properties.x.value, cameraNode.properties.y.value);
+                    Scene.getInstance().onUpdateStart = () => {
+                        ctx.fillStyle = cameraNode.properties.color.value.toString();
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    };
                     await refreshModelList();
                     await refreshCollisionList();
                     for (const j of Object.keys(document._light.project.json.nodes).sort((a, b) => document._light.project.json.nodes[b].position - document._light.project.json.nodes[a].position).filter(i => ["entity", "tile", "text", "script", "light"].includes(document._light.project.json.nodes[i].type))) {
@@ -1004,6 +1016,10 @@ ${input}
             ws.sendPacket("get_file", {path: query.path});
         }
 
+        function block_code(node) {
+            window.location.href = "./block.html?" + window.location.href.split("?")[1] + "&node=" + node;
+        }
+
         window.addEventListener("blur", checkProjectExists);
         document._light = {
             main_menu,
@@ -1023,6 +1039,7 @@ ${input}
             refresh_properties,
             remove_node_property,
             property_delete_mode: false,
+            block_code,
             loadedScriptList: []
         };
     })();

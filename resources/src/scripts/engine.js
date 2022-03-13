@@ -1264,28 +1264,36 @@ class Scene {
     }
 
     static fetchEntityBoundaries(en) {
-        return en.collisions.map(col => col instanceof RectangleCollision ? [
-            {
-                start: new Vector2(en.x + col.offsetX, en.y + col.offsetY),
-                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY),
-                entity: en
-            },
-            {
-                start: new Vector2(en.x + col.offsetX, en.y + col.offsetY),
-                end: new Vector2(en.x + col.offsetX, en.y + col.offsetY + col.height),
-                entity: en
-            },
-            {
-                start: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY),
-                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY + col.height),
-                entity: en
-            },
-            {
-                start: new Vector2(en.x + col.offsetX, en.y + col.offsetY + col.height),
-                end: new Vector2(en.x + col.offsetX + col.width, en.y + col.offsetY + col.height),
-                entity: en
+        return en.collisions.map(col => {
+            if (col instanceof RectangleCollision) {
+                const width = col.width;
+                const height = col.height;
+                const offX = col.offsetX;
+                const offY = col.offsetY;
+                return [
+                    {
+                        start: en.add(offX, offY),
+                        end: en.add(offX + width, offY),
+                        entity: en
+                    },
+                    {
+                        start: en.add(offX, offY),
+                        end: en.add(offX, offY + height),
+                        entity: en
+                    },
+                    {
+                        start: en.add(offX + width, offY),
+                        end: en.add(offX + width, offY + height),
+                        entity: en
+                    },
+                    {
+                        start: en.add(offX, offY + height),
+                        end: en.add(offX + width, offY + height),
+                        entity: en
+                    }
+                ];
             }
-        ] : null).filter(i => i);
+        }).filter(i => i);
     }
 
     update() {

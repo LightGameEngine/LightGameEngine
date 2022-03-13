@@ -145,6 +145,14 @@
     width: 6%;
 }
 
+.right_nav_script {
+    position: absolute;
+    cursor: pointer;
+    margin-left: 24%;
+    margin-top: 1%;
+    width: 6%;
+}
+
 .node_select {
     cursor: pointer;
 }
