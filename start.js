@@ -1,9 +1,13 @@
+// noinspection InfiniteLoopJS
+
 const fs = require("fs");
 const fetch = require("node-fetch");
 if (!fs.existsSync("./.changes.json")) fs.writeFileSync("./.changes.json", "[]");
 const oldChanges = require("./.changes.json");
 const Logger = require("./Logger");
 const https = require("https");
+const electron = require("electron");
+const {app, BrowserWindow, globalShortcut, NativeImage} = electron;
 const lightRoamingPath = process.env.HOME.replaceAll("\\", "/") + "/AppData/Roaming/lightge";
 if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
 
@@ -12,11 +16,6 @@ const setPromptTitle = title => process.stdout.write(String.fromCharCode(27) + "
 module.exports.setPromptTitle = setPromptTitle;
 
 Logger.debugging = false;
-
-console.clear = () => {
-    console.log("\033[2J");
-    process.stdout.write("\033c");
-}
 
 const cnv = map => c => {
     let b;
@@ -41,81 +40,149 @@ const convertDate = cnv({
     d: 24 * 60 * 60 * 1000
 });
 
+let browser;
+let wss;
+
 (async () => {
     let n = 0;
     const start = Date.now();
     const isFirstVersion = oldChanges.length === 0;
     setPromptTitle("Light - Checking " + (isFirstVersion ? "connection" : "updates") + "...");
     Logger.info(isFirstVersion ? "Installing Light..." : "Checking updates...");
+
     try {
         const currentVersion = oldChanges.length * 1;
         const response = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/.changes.json");
         const body = await response.text();
         let bytes = 0;
         if (currentVersion < JSON.parse(body).length) {
-            const files = Array.from(new Set([].concat(...JSON.parse(body).slice(currentVersion))));
-            setPromptTitle("Light - " + (isFirstVersion ? "Installing" : "Updating") + "...");
-            const sendFileMessage = () => {
-                console.clear();
-                if (!isFirstVersion) {
-                    Logger.warning("Update detected!");
-                    Logger.info("Updating...");
-                } else {
-                    Logger.warning("Installing is available!");
-                    Logger.info("Installing...");
+            wss = new (require("ws"))["Server"]({port: 9009});
+            wss.on("error", () => {
+                Logger.alert("Light is already being " + (isFirstVersion ? "installed" : "updated") + "!");
+                if (browser) browser.hide();
+                while (true) {
                 }
-                const spaceCount = 20;
-                const b = convertBytes(bytes);
-                Logger.info("[" + b + "] [\x1b[47m" + (" ".repeat(Math.floor(i / files.length * spaceCount))) + "\x1b[0m" + (" ".repeat(spaceCount - Math.floor(i / files.length * spaceCount))) + "] " + Math.floor(i / files.length * 100) + "% Downloading " + (files[i] || "").split("/").reverse()[0] + "...");
+            });
+
+            const create_window = async () => {
+                const scr = new BrowserWindow({
+                    width: 606,
+                    height: 600
+                }); // 700 600
+                scr.setPositionLimits = (w = 700, h = 600) => {
+                    scr.unmaximize();
+                    scr.setSize(w, h);
+                    scr.setResizable(false);
+                    scr.setMaximizable(false);
+                }
+                scr.resetPositionLimits = () => {
+                    scr.setResizable(true);
+                    scr.setMaximizable(true);
+                }
+                scr.setPositionLimits(606, 600);
+                scr.hide();
+                //scr.setIcon(electron.NativeImage.createFromDataURL("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/resources/assets/icon.png"));
+                scr.setMenu(null);
+                await scr.loadFile(__dirname + "/update.html");
+                scr.setTitle("Light - " + (isFirstVersion ? "Setup" : "Update"));
+                scr.show();
+                browser = scr;
             };
-            const download = file => new Promise(r => {
-                fs.unlinkSync(file);
-                const f = fs.createWriteStream("./" + file);
-                https.get("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + file, res => {
-                    res.pipe(f);
-                    const chunks = [];
-                    res.on("data", chunk => {
-                        chunks.push(chunk);
-                        bytes += chunk.toString().length;
-                        if (++n % 10 === 0) sendFileMessage();
+            app.whenReady().then(async () => {
+                await create_window();
+                globalShortcut.register("F5", Logger.debug);
+                globalShortcut.unregister("F5");
+                app.on("activate", () => BrowserWindow.getAllWindows().length === 0 ? create_window() : null);
+            });
+            app.on("window-all-closed", () => {
+                Logger.alert("Cancelling " + (isFirstVersion ? "setup" : "update") + "...");
+                if (process.platform !== "darwin") app.quit();
+            });
+            let connected = false;
+            wss.on("connection", async socket => {
+                if (socket._socket.address().address !== "::1") return socket.close();
+                connected = true;
+                socket.sendPacket = (action, data) => socket.send(JSON.stringify({action, data}));
+                socket.on("close", async () => {
+                    Logger.alert("Connection is gone.");
+                    wss.close();
+                    browser.hide();
+                    await browser.close();
+                    while (true) {
+                    }
+                });
+                const files = Array.from(new Set([].concat(...JSON.parse(body).slice(currentVersion))));
+                setPromptTitle("Light - " + (isFirstVersion ? "Installing" : "Updating") + "...");
+                const sendFileMessage = () => {
+                    const b = convertBytes(bytes);
+                    socket.sendPacket("update", {
+                        bytes,
+                        byte_converted: b,
+                        loaded: i,
+                        all: files.length,
+                        current: files[i]
                     });
-                    res.on("error", e => {
-                        throw e;
-                    });
-                    res.on("end", () => {
-                        const raw = chunks.join("");
-                        r({data: raw, bytes: raw.length});
+                    return;
+                    console.clear();
+                    if (!isFirstVersion) {
+                        Logger.warning("Update detected!");
+                        Logger.info("Updating...");
+                    } else {
+                        Logger.warning("Installing is available!");
+                        Logger.info("Installing...");
+                    }
+                    const spaceCount = 20;
+                    Logger.info("[" + b + "] [\x1b[47m" + (" ".repeat(Math.floor(i / files.length * spaceCount))) + "\x1b[0m" + (" ".repeat(spaceCount - Math.floor(i / files.length * spaceCount))) + "] " + Math.floor(i / files.length * 100) + "% Downloading " + (files[i] || "").split("/").reverse()[0] + "...");
+                };
+                const download = file => new Promise(r => {
+                    if (fs.existsSync(file)) fs.unlinkSync(file);
+                    const f = fs.createWriteStream("./" + file);
+                    https.get("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + file, res => {
+                        res.pipe(f);
+                        const chunks = [];
+                        res.on("data", chunk => {
+                            chunks.push(chunk);
+                            bytes += chunk.toString().length;
+                            if (++n % 10 === 0) sendFileMessage();
+                        });
+                        res.on("error", e => {
+                            throw e;
+                        });
+                        res.on("end", () => {
+                            const raw = chunks.join("");
+                            r({data: raw, bytes: raw.length});
+                        });
                     });
                 });
+                let i = 0;
+                for (i = 0; i < files.length; i++) {
+                    sendFileMessage();
+                    const f = files[i];
+                    const file = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + f);
+                    const con = await file.text();
+                    if (con !== "404: Not Found") {
+                        const dirs = f.split("/").reverse().slice(1).reverse();
+                        dirs.forEach((j, d) => {
+                            const dir = dirs.slice(0, d + 1).join("/");
+                            if (!fs.existsSync("./" + dir)) fs.mkdirSync("./" + dir);
+                        });
+                        await download(f);
+                    } else if (fs.existsSync("./" + f)) fs.unlinkSync("./" + f);
+                }
+                console.clear();
+                Logger.warning("[" + convertBytes(bytes) + "] [" + convertDate(Date.now() - start) + "] Light has been " + (isFirstVersion ? "installed" : "downloaded") + "!")
+                Logger.info(isFirstVersion ? "Light has been successfully installed." : "Update completed, please restart.");
+                fs.writeFileSync("./.changes.json", body);
+                setPromptTitle("Light - " + (isFirstVersion ? "Installed" : "Updated") + ", please restart");
+                if (wss) wss.close();
+                if (browser) {
+                    browser.hide();
+                    await browser.close();
+                }
+                while (true) {
+                }
             });
-            let i = 0;
-            for (i = 0; i < files.length; i++) {
-                sendFileMessage();
-                const f = files[i];
-                Logger.debug("Loading '" + f + "'...");
-                const file = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + f);
-                const con = await file.text();
-                if (con !== "404: Not Found") {
-                    const dirs = f.split("/").reverse().slice(1).reverse();
-                    dirs.forEach((j, d) => {
-                        const dir = dirs.slice(0, d + 1).join("/");
-                        if (!fs.existsSync("./" + dir)) {
-                            Logger.debug("Directory '" + dir + "' not found, creating directory...");
-                            fs.mkdirSync("./" + dir);
-                            Logger.debug("Created directory '" + dir + "'!");
-                        }
-                    });
-                    await download(f);
-                    Logger.debug("Loaded '" + f + "'!");
-                } else if (fs.existsSync("./" + f)) fs.unlinkSync("./" + f);
-            }
-            console.clear();
-            Logger.warning("[" + convertBytes(bytes) + "] [" + convertDate(Date.now() - start) + "] Light has been " + (isFirstVersion ? "installed" : "downloaded") + "!")
-            Logger.info(isFirstVersion ? "Light has been successfully installed." : "Update completed, please restart.");
-            fs.writeFileSync("./.changes.json", body);
-            setPromptTitle("Light - " + (isFirstVersion ? "Installed" : "Updated") + ", please restart");
-            while (true) {
-            }
+            setTimeout(() => !connected ? Logger.alert("Light didn't connect socket server.") : null, 20000);
         } else {
             console.clear();
             Logger.info("Perfect, engine is up to date!");
@@ -123,6 +190,11 @@ const convertDate = cnv({
             require("./resources/index");
         }
     } catch (e) {
+        if (wss) wss.close();
+        if (browser) {
+            browser.hide();
+            await browser.close();
+        }
         console.clear();
         console.info(e);
         Logger.alert((isFirstVersion ? "Installation failed" : "Update failed") + ", please check your connection.");

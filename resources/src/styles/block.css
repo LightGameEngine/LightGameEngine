@@ -1,0 +1,21 @@
+* {
+    user-select: none;
+    font-family: Calibri, serif;
+}
+
+.close-hover {
+    position: absolute;
+    top: 3px;
+    cursor: pointer;
+    color: var(--general-color)
+}
+
+.close-hover:hover {
+    color: var(--bar-a-hover);
+}
+
+svg {
+    position: absolute;
+    background: var(--background);
+    left: 0;
+}
