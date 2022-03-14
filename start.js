@@ -67,7 +67,7 @@ let wss;
             const create_window = async () => {
                 const scr = new BrowserWindow({
                     width: 606,
-                    height: 600
+                    height: 269
                 }); // 700 600
                 scr.setPositionLimits = (w = 700, h = 600) => {
                     scr.unmaximize();
@@ -79,7 +79,7 @@ let wss;
                     scr.setResizable(true);
                     scr.setMaximizable(true);
                 }
-                scr.setPositionLimits(606, 600);
+                scr.setPositionLimits(606, 269);
                 scr.hide();
                 //scr.setIcon(electron.NativeImage.createFromDataURL("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/resources/assets/icon.png"));
                 scr.setMenu(null);
