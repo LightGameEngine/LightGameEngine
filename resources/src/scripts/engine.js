@@ -1230,6 +1230,13 @@ class TileMap extends Entity {
     }
 }
 
+class Particle extends Entity {
+}
+
+function spawnParticle(x, y, models = []) {
+    // TODO
+}
+
 class Scene {
     /*** @type {HTMLCanvasElement | null} */
     canvas = null;
