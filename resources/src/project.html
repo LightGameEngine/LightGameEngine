@@ -149,9 +149,10 @@
                     "model-text": TextModel.PROPERTIES,
                     "model-rectangle": RectangleModel.PROPERTIES,
                     "model-circle": CircleModel.PROPERTIES,
+                    "model-light": RayCastModel.PROPERTIES,
                     collision: RectangleCollision.PROPERTIES,
                     tile: Tile.PROPERTIES,
-                    light: RayCastEntity.PROPERTIES
+                    light: Tile.PROPERTIES
                 }[node.type] || [];
                 if (node.properties[r] || Object.values(extraProps).some(i => i.includes(r)) || r === "__nodeId") {
                     open_property_menu();
@@ -182,7 +183,7 @@
             });
         }
 
-        const modelTypes = ["image", "text", "rectangle", "circle", "custom"];
+        const modelTypes = ["image", "text", "rectangle", "circle", "light", "custom"];
 
         function open_rename_node_menu(oldName) {
             prompt(
@@ -396,7 +397,7 @@
         <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${document._light.project.json.nodes[key].type === "group" ? "group_closed" : document._light.project.json.nodes[key].type.replaceAll("-", "_")}.png">
         <span class="node_name">${key === "camera" ? m("camera") : key}</span>
     </div>
-    <div title="CTRL + L" onclick="document._light.toggle_node_lock('${key}')" class="${document._light.project.json.nodes[key].locked ? "lock_node" : "unlock_node"} ${document._light.project.json.nodes[key].type !== "camera" ? "ln_1" : "ln_2"}"></div>
+    <div title="CTRL + L" onclick="document._light.toggle_node_lock('${key}')" class="${document._light.project.json.nodes[key].locked ? "unlock_node" : "lock_node"} ${document._light.project.json.nodes[key].type !== "camera" ? "ln_1" : "ln_2"}"></div>
     ${document._light.project.json.nodes[key].type === "camera" ? "" : `
     <div title="Delete" onclick="document._light.open_remove_node_menu('${key}')" class="remove_node"></div>
     <div title="F2" onclick="document._light.open_rename_node_menu('${key}')" class="rename_node"></div>
@@ -580,6 +581,13 @@ ${input}
                         properties.radius.value,
                         properties.fillColor.value,
                         properties.strokeColor.value,
+                        properties.opacity.value * 1
+                    );
+                case "model-light":
+                    return new RayCastModel(
+                        properties.x.value * 1,
+                        properties.y.value * 1,
+                        properties.color.value,
                         properties.opacity.value * 1
                     );
             }
@@ -799,9 +807,9 @@ ${input}
             if (!cameraNode) return window.location.href = window.location.href.toString();
             document._light.loadedScriptList = {};
             cameraTile.model = new RectangleModel(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
-            cameraTile.addModel(cameraTile.model);
+            cameraTile.models = [cameraTile.model];
             cameraTile.collision = new RectangleCollision(0, 0, canvas.width, canvas.height);
-            cameraTile.addCollision(cameraTile.collision);
+            cameraTile.collisions = [cameraTile.collision];
             sceneType = type;
             switch (sceneType) {
                 case "editor":
@@ -836,28 +844,28 @@ ${input}
                             case "entity":
                                 const entity = await createEntity(i1.properties);
                                 entity.update = r => r;
-                                if (entity) entity.init();
+                                if (entity) entity.initToScene();
                                 entity.__nodeId = j;
                                 entity.collisionTiles = [];
                                 if (i1.properties.collisionBorder.value) entity.collisions.forEach(i => {
                                     if (!(i instanceof RectangleCollision)) return;
                                     const t = new Tile(entity.x, entity.y);
                                     t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
-                                    t.init();
+                                    t.initToScene();
                                     entity.collisionTiles.push(t);
                                 });
                                 break;
                             case "tile":
                                 const tile = await createTile(i1.properties);
                                 tile.update = r => r;
-                                if (tile) tile.init();
+                                if (tile) tile.initToScene();
                                 tile.__nodeId = j;
                                 tile.collisionTiles = [];
                                 if (i1.properties.collisionBorder.value) tile.collisions.forEach(i => {
                                     if (!(i instanceof RectangleCollision)) return;
                                     const t = new Tile(tile.x, tile.y);
                                     t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
-                                    t.init();
+                                    t.initToScene();
                                     tile.collisionTiles.push(t);
                                 });
                                 break;
@@ -869,7 +877,7 @@ ${input}
                                 textModel.offsetX = 0;
                                 textModel.offsetY = 0;
                                 textTile.addModel(textModel);
-                                textTile.init();
+                                textTile.initToScene();
                                 textTile.__nodeId = j;
                                 const size = TextModel.calculateTextSize(textModel.text, textModel.size, textModel.font, textModel.maxWidth);
                                 const coll = new RectangleCollision(0, textModel.size / 3, size.width, size.height);
@@ -877,31 +885,33 @@ ${input}
                                 if (i1.properties.collisionBorder.value) {
                                     const t = new Tile(textTile.x, textTile.y);
                                     t.addModel(new RectangleModel(0, textModel.size / 3, size.width, size.height, null, themes[theme].json["general-color"]));
-                                    t.init();
+                                    t.initToScene();
                                     textTile.collisionTiles = [t];
                                 }
                                 break;
                             case "camera":
                                 cameraTile.x = i1.properties.x.value * 1;
                                 cameraTile.y = i1.properties.y.value * 1;
-                                cameraTile.init();
+                                cameraTile.initToScene();
                                 break;
                             case "light":
-                                const rayCast = new RayCast(0, 0, i1.properties.power.value);
-                                const ray = new RayCastEntity(rayCast, i1.properties.x.value * 1, i1.properties.y.value * 1);
+                                const ray = new Tile(i1.properties.x.value * 1, i1.properties.y.value * 1);
                                 if (i1.properties.collisionBorder.value) {
                                     ray.addModel(ray.model = (new RectangleModel(-25, -25, 50, 50, null, themes[theme].json["general-color"])));
                                     ray.addModel(new RectangleModel(-5, -5, 10, 10, null, themes[theme].json["general-color"]));
                                 }
                                 ray.collision = new RectangleCollision(-25, -25, ray.model.width, ray.model.height);
                                 ray.addCollision(ray.collision)
-                                    .addModel(new RayCastModel(0, 0, i1.properties.color.value, rayCast, i1.properties.opacity.value));
-                                ray.setStartAngle(i1.properties.startAngle.value)
-                                    .setEndAngle(i1.properties.endAngle.value)
-                                    .setRayPopulation(i1.properties.rayPopulation.value)
-                                    .setLightenCamera(i1.properties.lightenCamera.value)
-                                    .setInactiveNodes((i1.properties.inactiveNodes.value || "").split(","));
-                                ray.init();
+                                    .addModel(
+                                        new RayCastModel(0, 0, i1.properties.color.value, i1.properties.opacity.value)
+                                            .setStartAngle(i1.properties.startAngle.value)
+                                            .setEndAngle(i1.properties.endAngle.value)
+                                            .setRayPopulation(i1.properties.rayPopulation.value)
+                                            .setLightenCamera(i1.properties.lightenCamera.value)
+                                            .setInactiveNodes((i1.properties.inactiveNodes.value || "").split(","))
+                                            .setLineWidth(i1.properties.power.value)
+                                    );
+                                ray.initToScene();
                                 ray.visible = !i1.properties.invisible.value;
                                 ray.__nodeId = j;
                                 break;
@@ -926,19 +936,19 @@ ${input}
                         switch (i1.type) {
                             case "entity":
                                 const entity = await createEntity(i1.properties);
-                                if (entity) entity.init();
+                                if (entity) entity.initToScene();
                                 entity.__nodeId = j;
                                 break;
                             case "tile":
                                 const tile = await createTile(i1.properties);
-                                if (tile) tile.init();
+                                if (tile) tile.initToScene();
                                 tile.__nodeId = j;
                                 break;
                             case "text":
                                 const textTile = new Tile(0, 0);
                                 const textModel = await createModel({type: "model-text", properties: i1.properties});
                                 textTile.addModel(textModel);
-                                textTile.init();
+                                textTile.initToScene();
                                 textTile.__nodeId = j;
                                 break;
                             case "script":
@@ -959,15 +969,17 @@ ${input}
                                 }
                                 break;
                             case "light":
-                                const rayCast = new RayCast(0, 0, i1.properties.power.value);
-                                const ray = new RayCastEntity(rayCast, i1.properties.x.value * 1, i1.properties.y.value * 1);
-                                ray.addModel(new RayCastModel(0, 0, i1.properties.color.value, rayCast, i1.properties.opacity.value))
-                                ray.setStartAngle(i1.properties.startAngle.value)
-                                    .setEndAngle(i1.properties.endAngle.value)
-                                    .setRayPopulation(i1.properties.rayPopulation.value)
-                                    .setLightenCamera(i1.properties.lightenCamera.value)
-                                    .setInactiveNodes((i1.properties.inactiveNodes.value || "").split(","));
-                                ray.init();
+                                const ray = new Tile(i1.properties.x.value * 1, i1.properties.y.value * 1);
+                                ray.addModel(
+                                    new RayCastModel(0, 0, i1.properties.color.value, i1.properties.opacity.value)
+                                        .setStartAngle(i1.properties.startAngle.value)
+                                        .setEndAngle(i1.properties.endAngle.value)
+                                        .setRayPopulation(i1.properties.rayPopulation.value)
+                                        .setLightenCamera(i1.properties.lightenCamera.value)
+                                        .setInactiveNodes((i1.properties.inactiveNodes.value || "").split(","))
+                                        .setLineWidth(i1.properties.power.value)
+                                )
+                                ray.initToScene();
                                 ray.visible = !i1.properties.invisible.value;
                                 ray.__nodeId = j;
                                 break;
@@ -1043,7 +1055,7 @@ ${input}
             loadedScriptList: []
         };
     })();
-    const loadProjectScript = async (file, addToList = true) => {
+    const loadProjectScript = async (file, addToList = true, cb = r => r) => {
         if (!file) return null;
         if (document._light.loadedScriptList[file]) return document._light.loadedScriptList[file];
         file = /\w:\//i.test(file.substring(0, 3)) ? file : (file.startsWith(".") ? (file.startsWith("./") && /\w/i.test(file.charAt(2)) ? document._light.project.path + "/" + file.substring(2) : file) : document._light.project.path + "/" + file);
@@ -1065,10 +1077,8 @@ ${input}
         setTimeout = (...args) => Scene.intervals.push(____________t(...args));
         exports = null;
         try {
-            (() => {
-                ____________e(code.length === 0 ? "null" : code);
-                if (addToList) document._light.loadedScriptList[file] = exports;
-            })();
+            ____________e(cb(code.length === 0 ? "null" : code));
+            if (addToList) document._light.loadedScriptList[file] = exports;
         } catch (e) {
             ____________c.error(e);
             if (file) {

@@ -1084,7 +1084,7 @@ class Entity extends Vector2 {
         super(x, y);
     }
 
-    init() {
+    initToScene() {
         Scene.getInstance().entities.push(this);
     }
 
@@ -1273,8 +1273,8 @@ class Scene {
     static fetchEntityBoundaries(en) {
         return en.collisions.map(col => {
             if (col instanceof RectangleCollision) {
-                const width = col.width;
-                const height = col.height;
+                const width = col.width * Scene.instance.zoom;
+                const height = col.height * Scene.instance.zoom;
                 const offX = col.offsetX;
                 const offY = col.offsetY;
                 return [
@@ -1305,7 +1305,7 @@ class Scene {
 
     update() {
         if (this.zoom < 0.1) this.zoom = 0.1;
-        this.boundaries = [].concat(...[].concat(...this.entities.filter(i => i.visible && !(i instanceof RayCastEntity)).map(en => Scene.fetchEntityBoundaries(en)))).map(i => [{
+        this.boundaries = [].concat(...[].concat(...this.entities.filter(i => i.visible).map(en => Scene.fetchEntityBoundaries(en)))).map(i => [{
             start: i.start.subtract(this.camera),
             end: i.end.subtract(this.camera),
             entity: i.entity
@@ -1359,149 +1359,56 @@ class Sound {
     }
 }
 
-class RayCast extends Vector2 {
-    /**
-     * @param {number} x
-     * @param {number} y
-     * @param {number} power
-     */
-    constructor(x, y, power) {
-        super(x, y);
-        this.power = power;
-    }
-
-    /**
-     * @param {{start: Vector2, end: Vector2}[]} boundaries
-     * @param {number} startAngle
-     * @param {number} endAngle
-     * @param {number} rayPopulation
-     * @returns {{start: Vector2, end: Vector2}[]}
-     */
-    run(boundaries, startAngle, endAngle, rayPopulation) {
-        const lines = [];
-        for (let i = startAngle; i < endAngle; i += rayPopulation) {
-            const ray = {x1: this.x, y1: this.y, x2: Math.sin(i * Math.PI / 180), y2: Math.cos(i * Math.PI / 180)};
-            let m = [Infinity, {}, true];
-            for (const b of boundaries) {
-                // [CREDIT] Source: https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
-                let x1 = b.start.x, y1 = b.start.y, x2 = b.end.x, y2 = b.end.y, x3 = ray.x1, y3 = ray.y1,
-                    x4 = ray.x1 + ray.x2, y4 = ray.y1 + ray.y2, p = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-                if (p === 0) continue;
-                let t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / p,
-                    u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / p,
-                    n = t > 0 && t < 1 && u > 0 ? {x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1)} : null;
-                if (n) {
-                    const d = Math.sqrt(Math.pow(this.x - n.x, 2) + Math.pow(this.y - n.y, 2));
-                    if (d < m[0]) m = [d, n];
-                }
+/**
+ * @param {number} x
+ * @param {number} y
+ * @param {{start: Vector2, end: Vector2}[]} boundaries
+ * @param {number} startAngle
+ * @param {number} endAngle
+ * @param {number} rayPopulation
+ * @returns {{start: Vector2, end: Vector2}[]}
+ */
+function runRayCast(x, y, boundaries, startAngle, endAngle, rayPopulation) {
+    const lines = [];
+    for (let i = startAngle; i < endAngle; i += rayPopulation) {
+        const ray = {x1: x, y1: y, x2: Math.sin(i * Math.PI / 180), y2: Math.cos(i * Math.PI / 180)};
+        let m = [Infinity, {}, true];
+        for (const b of boundaries) {
+            // [CREDIT] Source: https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
+            let x1 = b.start.x, y1 = b.start.y, x2 = b.end.x, y2 = b.end.y, x3 = ray.x1, y3 = ray.y1,
+                x4 = ray.x1 + ray.x2, y4 = ray.y1 + ray.y2, p = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (p === 0) continue;
+            let t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / p,
+                u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / p,
+                n = t > 0 && t < 1 && u > 0 ? {x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1)} : null;
+            if (n) {
+                const d = Math.sqrt(Math.pow(x - n.x, 2) + Math.pow(y - n.y, 2));
+                if (d < m[0]) m = [d, n];
             }
-            if (!m[2]) lines.push({start: new Vector2(this.x, this.y), end: new Vector2(m[1].x, m[1].y)});
         }
-        return lines;
+        if (!m[2]) lines.push({start: new Vector2(x, y), end: new Vector2(m[1].x, m[1].y)});
     }
+    return lines;
 }
 
-class RayCastEntity extends Tile {
-    static PROPERTIES = [
-        "x", "y", "rotation", "models", "gravityEnabled", "visible", "gravity", "gravityVelocity", "rayCast",
-        "terminalGravityVelocity", "fallDistance", "onGround", "motion", "motionDivision", "collisions",
-        "startAngle", "endAngle", "rayPopulation", "lightenCamera"
-    ];
-
-    /** @type {RayCast} */
-    rayCast;
+class RayCastModel extends Model {
+    static PROPERTIES = ["startAngle", "endAngle", "rayPopulation", "lightenCamera", "inactiveNodes", "lineWidth"];
     startAngle = 0;
     endAngle = 360;
     rayPopulation = 1;
     lightenCamera = true;
     inactiveNodes = [];
+    lineWidth = 1;
 
-    /**
-     * @param {RayCast} rayCast
-     * @param {number} x
-     * @param {number} y
-     */
-    constructor(rayCast, x, y) {
-        super(x, y)
-            .setRayCast(rayCast);
-    }
-
-    /**
-     * @param {string[]} inactiveNodes
-     * @returns {RayCastEntity}
-     */
-    setInactiveNodes(inactiveNodes) {
-        this.inactiveNodes = inactiveNodes;
-        return this;
-    }
-
-    /**
-     * @param {RayCast} rayCast
-     * @returns {RayCastEntity}
-     */
-    setRayCast(rayCast) {
-        this.rayCast = rayCast;
-        return this;
-    }
-
-    /**
-     * @param {number} startAngle
-     * @returns {RayCastEntity}
-     */
-    setStartAngle(startAngle) {
-        this.startAngle = startAngle;
-        return this;
-    }
-
-    /**
-     * @param {number} endAngle
-     * @returns {RayCastEntity}
-     */
-    setEndAngle(endAngle) {
-        this.endAngle = endAngle;
-        return this;
-    }
-
-    /**
-     * @param {number} rayPopulation
-     * @returns {RayCastEntity}
-     */
-    setRayPopulation(rayPopulation) {
-        this.rayPopulation = rayPopulation;
-        return this;
-    }
-
-    /**
-     * @param {number} lightenCamera
-     * @returns {RayCastEntity}
-     */
-    setLightenCamera(lightenCamera) {
-        this.lightenCamera = lightenCamera;
-        return this;
-    }
-}
-
-class RayCastModel extends Model {
     /**
      * @param {number} offsetX
      * @param {number} offsetY
      * @param {string} color
-     * @param {RayCast} rayCast
      * @param {number} opacity
      */
-    constructor(offsetX, offsetY, color, rayCast, opacity) {
+    constructor(offsetX, offsetY, color, opacity) {
         super(offsetX, offsetY, opacity)
-            .setColor(color)
-            .setRayCast(rayCast);
-    }
-
-    /**
-     * @param {RayCast} rayCast
-     * @returns {RayCastModel}
-     */
-    setRayCast(rayCast) {
-        this.rayCast = rayCast;
-        return this;
+            .setColor(color);
     }
 
     /**
@@ -1513,44 +1420,99 @@ class RayCastModel extends Model {
         return this;
     }
 
+    /**
+     * @param {string[]} inactiveNodes
+     * @returns {RayCastModel}
+     */
+    setInactiveNodes(inactiveNodes) {
+        this.inactiveNodes = inactiveNodes;
+        return this;
+    }
+
+    /**
+     * @param {number} startAngle
+     * @returns {RayCastModel}
+     */
+    setStartAngle(startAngle) {
+        this.startAngle = startAngle;
+        return this;
+    }
+
+    /**
+     * @param {number} endAngle
+     * @returns {RayCastModel}
+     */
+    setEndAngle(endAngle) {
+        this.endAngle = endAngle;
+        return this;
+    }
+
+    /**
+     * @param {number} rayPopulation
+     * @returns {RayCastModel}
+     */
+    setRayPopulation(rayPopulation) {
+        this.rayPopulation = rayPopulation;
+        return this;
+    }
+
+    /**
+     * @param {number} lightenCamera
+     * @returns {RayCastModel}
+     */
+    setLightenCamera(lightenCamera) {
+        this.lightenCamera = lightenCamera;
+        return this;
+    }
+
+    /**
+     * @param {number} lineWidth
+     * @returns {RayCastModel}
+     */
+    setLineWidth(lineWidth) {
+        this.lineWidth = lineWidth;
+        return this;
+    }
+
     draw(scene, entity, position) {
-        if (!(entity instanceof RayCastEntity)) return;
-        const ctx = scene.ctx;
+        const {ctx} = scene;
         ctx.globalAlpha = this.opacity;
-        ctx.lineWidth = this.rayCast.power;
+        ctx.lineWidth = this.lineWidth;
         ctx.strokeStyle = this.color;
-        this.rayCast.x = position.x + this.offsetX;
-        this.rayCast.y = position.y + this.offsetY;
-        const {startAngle, endAngle, rayPopulation, lightenCamera} = entity;
-        const boundaries = [
-            ...scene.boundaries.filter(i => i.entity["lightTile"] !== entity.__nodeId).filter(i => lightenCamera ? true : i.entity["__nodeId"] !== "camera").filter(i => !entity.inactiveNodes.filter(i => i !== "camera").includes(i.entity["__nodeId"])),
-            ...(lightenCamera ? [{
-                start: new Vector2(0, 0),
-                end: new Vector2(scene.canvas.width, 0),
-                entity: new Entity(0, 0)
-            },
+        const {startAngle, endAngle, rayPopulation, lightenCamera} = this;
+        const boundaries = scene.boundaries.filter(i => entity !== i.entity && i.entity["lightTile"] !== entity["__nodeId"] && i.entity["__nodeId"] !== "camera").filter(i => lightenCamera ? true : i.entity["__nodeId"] !== "camera").filter(i => !this.inactiveNodes.filter(i => i !== "camera").includes(i.entity["__nodeId"]));
+        if (lightenCamera) {
+            const sx = position.x < 0 ? position.x : 0;
+            const sy = position.y < 0 ? position.y : 0;
+            const w = position.x > scene.canvas.width ? position.x : scene.canvas.width;
+            const h = position.y > scene.canvas.height ? position.y : scene.canvas.height;
+            boundaries.push(
                 {
-                    start: new Vector2(0, 0),
-                    end: new Vector2(0, scene.canvas.height),
+                    start: new Vector2(sx, sy),
+                    end: new Vector2(w, sy),
                     entity: new Entity(0, 0)
                 },
                 {
-                    start: new Vector2(scene.canvas.width, 0),
-                    end: new Vector2(scene.canvas.width, scene.canvas.height),
+                    start: new Vector2(sx, sy),
+                    end: new Vector2(sx, h),
                     entity: new Entity(0, 0)
                 },
                 {
-                    start: new Vector2(0, scene.canvas.height),
-                    end: new Vector2(scene.canvas.width, scene.canvas.height),
+                    start: new Vector2(w, sy),
+                    end: new Vector2(w, h),
                     entity: new Entity(0, 0)
-                }] : [])
-        ];
-        this.rayCast
-            .run(boundaries.map(i => [{
-                start: i.start.multiply(scene.zoom, scene.zoom),
-                end: i.end.multiply(scene.zoom, scene.zoom),
-                entity: i.entity
-            }][0]), startAngle, endAngle, rayPopulation)
+                },
+                {
+                    start: new Vector2(sx, h),
+                    end: new Vector2(w, h),
+                    entity: new Entity(0, 0)
+                });
+        }
+        runRayCast(position.x + this.offsetX, position.y + this.offsetY, boundaries.map(i => [{
+            start: i.start,
+            end: i.end,
+            entity: i.entity
+        }][0]), startAngle, endAngle, rayPopulation)
             .forEach(l => {
                 ctx.beginPath();
                 ctx.moveTo(l.start.x, l.start.y);

@@ -93,6 +93,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "model-type-text": "Text",
     "model-type-rectangle": "Rectangle",
     "model-type-circle": "Circle",
+    "model-type-light": "Light",
     "model-type-custom": "Custom",
     "select-model-type": "Select model type",
     "rename-node-title": "Rename Node",
@@ -203,6 +204,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "model-type-text": "Yazı",
     "model-type-rectangle": "Kare",
     "model-type-circle": "Yuvarlak",
+    "model-type-light": "Işık",
     "model-type-custom": "Özel",
     "select-model-type": "Model türü seç",
     "rename-node-title": "Nesneyi Yeniden Adlandır",
@@ -523,6 +525,87 @@ const property_list = {
             type: "percent",
             value: 1,
             default: 1,
+            isDefaultProperty: true
+        }
+    },
+    "model-light": {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        startAngle: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        endAngle: {
+            type: "number",
+            value: 360,
+            default: 360,
+            isDefaultProperty: true
+        },
+        rayPopulation: {
+            type: "percent",
+            value: 0.1,
+            default: 0.1,
+            isDefaultProperty: true
+        },
+        power: {
+            type: "percent",
+            value: 0.1,
+            default: 0.1,
+            isDefaultProperty: true
+        },
+        lightenCamera: {
+            type: "boolean",
+            value: true,
+            default: true,
+            isDefaultProperty: true
+        },
+        inactiveNodes: {
+            type: "node",
+            array: true,
+            value: "",
+            default: "",
+            isDefaultProperty: true
+        },
+        invisible: {
+            type: "boolean",
+            value: false,
+            default: false,
+            isDefaultProperty: true
+        },
+        color: {
+            type: "color",
+            value: "#ffffff",
+            default: "#ffffff",
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "percent",
+            value: 0.5,
+            default: 0.5,
+            isDefaultProperty: true
+        },
+        collisionBorder: {
+            type: "boolean",
+            value: true,
+            default: true,
+            isDefaultProperty: true
+        },
+        customScript: {
+            type: "file",
+            value: "",
+            default: "",
             isDefaultProperty: true
         }
     },

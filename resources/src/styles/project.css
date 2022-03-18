@@ -256,3 +256,31 @@
     background: url("../../assets/trash_open.png");
     background-size: 15px 19px;
 }
+
+.lock_node {
+    background: url("../../assets/locked.png");
+    background-size: 16px 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.unlock_node {
+    background: url("../../assets/unlocked.png");
+    background-size: 16px 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.ln_1 {
+    position: absolute;
+    cursor: pointer;
+    right: 25px;
+    margin-top: -20px;
+}
+
+.ln_2 {
+    position: absolute;
+    cursor: pointer;
+    right: 4px;
+    margin-top: -20px;
+}
