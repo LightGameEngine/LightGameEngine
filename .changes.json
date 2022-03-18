@@ -12,5 +12,6 @@
   ["resources/assets/locked.png", "resources/assets/unlocked.png", "resources/index.js", "resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/styles/project.css"],
   ["resources/src/scripts/engine.js", "resources/index.js", "resources/src/styles/project.css", "resources/src/project.html"],
   ["CacheManager.js", "resources/index.js", "resources/src/block.html", "resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/styles/block.css", "resources/src/styles/project.css", "update.html"],
-  ["CacheManager.js", "resources/src/scripts/engine.js", "update.html"]
+  ["CacheManager.js", "resources/src/scripts/engine.js", "update.html"],
+  ["resources/index.js", "resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/start.html", "resources/src/styles/project.css", "update.html"]
 ]
