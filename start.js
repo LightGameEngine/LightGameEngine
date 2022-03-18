@@ -15,7 +15,7 @@ const setPromptTitle = title => process.stdout.write(String.fromCharCode(27) + "
 
 module.exports.setPromptTitle = setPromptTitle;
 
-Logger.debugging = false;
+Logger.debugging = true;
 
 const cnv = map => c => {
     let b;
