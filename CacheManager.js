@@ -1,7 +1,9 @@
 const fs = require("fs");
-const lightRoamingPath = process.env.HOME.replaceAll("\\", "/") + "/AppData/Roaming/lightge";
+const lightRoamingPath = require("./start").lightGlobPath;
+const defaultProjectFolder = process.env.HOME + "\\LightProjects";
+if (!fs.existsSync(defaultProjectFolder)) fs.mkdirSync(defaultProjectFolder);
 if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
-const cachePath = lightRoamingPath + "/.cache";
+const cachePath = lightRoamingPath + "\\.cache";
 const is_folder = path => new Promise(r => fs.readFile(path, err => err ? r(true) : r(false)));
 const CAMERA_PROPERTY = (position = 0) => ({
     type: "camera",
@@ -54,7 +56,7 @@ class CacheManager {
     static createProject(path) {
         if (this.existsProjectPath(path)) return;
         CacheManager.cache.projects[path] = {
-            name: path.split("/").reverse()[0],
+            name: path.replaceAll("\\", "/").split("/").reverse()[0],
             path,
             json: {
                 camera: {x: 0, y: 0},
@@ -163,6 +165,7 @@ class CacheManager {
     }
 
     static getDefaultProjectFolder() {
+        if (!CacheManager.cache.default_project_folder) CacheManager.cache.default_project_folder = defaultProjectFolder;
         if (!fs.existsSync(CacheManager.cache.default_project_folder)) CacheManager.cache.default_project_folder = null;
         return CacheManager.cache.default_project_folder;
     }

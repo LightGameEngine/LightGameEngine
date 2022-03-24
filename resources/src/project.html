@@ -51,6 +51,10 @@
              onclick="document._light.selected_node?document._light.block_code(document._light.selected_node):null"
              id="node-block-script" hidden class="right_nav_script"
              src="../assets/script.png">
+        <!--<img draggable="false"
+             onclick="document._light.selected_node?document._light.open_paint(document._light.selected_node):null"
+             id="node-paint" hidden class="right_nav_paint"
+             src="../assets/pen.png">-->
         <div style="text-align: center; color: var(--general-color)" id="lC-prp">
             <script>lU(() => document.getElementById("lC-prp").innerHTML = m("properties-title"))</script>
         </div>
@@ -392,12 +396,14 @@
 
         const open_groups = {};
 
+        const lockable = ["entity", "tile", "camera"];
+
         const mapNodeKey = key => `<div draggable="true" id="node_key_${key}">
     <div class="node${document._light.selected_node === key ? " node_selected" : ""}" id="node_pos_${key}" onclick="document._light.select_node('${key}')">
         <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${document._light.project.json.nodes[key].type === "group" ? "group_closed" : document._light.project.json.nodes[key].type.replaceAll("-", "_")}.png">
         <span class="node_name">${key === "camera" ? m("camera") : key}</span>
     </div>
-    <div title="CTRL + L" onclick="document._light.toggle_node_lock('${key}')" class="${document._light.project.json.nodes[key].locked ? "unlock_node" : "lock_node"} ${document._light.project.json.nodes[key].type !== "camera" ? "ln_1" : "ln_2"}"></div>
+    ${lockable.includes(document._light.project.json.nodes[key].type) ? `<div title="CTRL + L" onclick="document._light.toggle_node_lock('${key}')" class="${document._light.project.json.nodes[key].locked ? "lock_node" : "unlock_node"} ${document._light.project.json.nodes[key].type !== "camera" ? "ln_1" : "ln_2"}"></div>` : ""}
     ${document._light.project.json.nodes[key].type === "camera" ? "" : `
     <div title="Delete" onclick="document._light.open_remove_node_menu('${key}')" class="remove_node"></div>
     <div title="F2" onclick="document._light.open_rename_node_menu('${key}')" class="rename_node"></div>
@@ -410,7 +416,7 @@
             const node = document._light.selected_node;
             if (node && node !== "camera" && !_p_c && held["Delete"]) open_remove_node_menu(node);
             if (node && node !== "camera" && !_p_c && held["Control"] && (held["C"] || held["c"])) copy_node(node);
-            if (node && !_p_c && held["Control"] && (held["L"] || held["l"])) toggle_node_lock(node);
+            if (node && !_p_c && lockable.includes(document._light.project.json.nodes[node].type) && held["Control"] && (held["L"] || held["l"])) toggle_node_lock(node);
             if (node && node !== "camera" && !_p_c && held["F2"]) open_rename_node_menu(node);
         });
         addEventListener("keyup", ev => delete held[ev.key]);
@@ -469,6 +475,8 @@
             document.getElementById("property-remove").src = document._light.property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
             document.getElementById("property-remove").hidden = prP;
             document.getElementById("node-block-script").hidden = prP;
+            // TODO
+            //document.getElementById("node-paint").hidden = prP;
             if (!document._light.selected_node || !document._light.project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
             const node = document._light.project.json.nodes[document._light.selected_node];
             const props = node.properties;
@@ -589,7 +597,12 @@ ${input}
                         properties.y.value * 1,
                         properties.color.value,
                         properties.opacity.value * 1
-                    );
+                    ).setStartAngle(properties.startAngle.value)
+                        .setEndAngle(properties.endAngle.value)
+                        .setRayPopulation(properties.rayPopulation.value)
+                        .setLightenCamera(properties.lightenCamera.value)
+                        .setInactiveNodes((properties.inactiveNodes.value || "").split(","))
+                        .setLineWidth(properties.power.value);
             }
             return null;
         };
@@ -881,6 +894,7 @@ ${input}
                                 textTile.__nodeId = j;
                                 const size = TextModel.calculateTextSize(textModel.text, textModel.size, textModel.font, textModel.maxWidth);
                                 const coll = new RectangleCollision(0, textModel.size / 3, size.width, size.height);
+                                coll.isInvalid = true;
                                 textTile.addCollision(coll);
                                 if (i1.properties.collisionBorder.value) {
                                     const t = new Tile(textTile.x, textTile.y);
@@ -1032,6 +1046,10 @@ ${input}
             window.location.href = "./block.html?" + window.location.href.split("?")[1] + "&node=" + node;
         }
 
+        function open_paint(node) {
+            window.location.href = "./paint.html?" + window.location.href.split("?")[1] + "&node=" + node;
+        }
+
         window.addEventListener("blur", checkProjectExists);
         document._light = {
             main_menu,
@@ -1052,11 +1070,13 @@ ${input}
             remove_node_property,
             property_delete_mode: false,
             block_code,
+            open_paint,
             loadedScriptList: []
         };
     })();
     const loadProjectScript = async (file, addToList = true, cb = r => r) => {
         if (!file) return null;
+        file = file.replaceAll("\\", "/");
         if (document._light.loadedScriptList[file]) return document._light.loadedScriptList[file];
         file = /\w:\//i.test(file.substring(0, 3)) ? file : (file.startsWith(".") ? (file.startsWith("./") && /\w/i.test(file.charAt(2)) ? document._light.project.path + "/" + file.substring(2) : file) : document._light.project.path + "/" + file);
         const script = await loadScript(file);

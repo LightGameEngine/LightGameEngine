@@ -1,0 +1,95 @@
+* {
+    user-select: none;
+    font-family: Calibri, serif;
+    color: var(--general-color);
+}
+
+.close-hover {
+    position: absolute;
+    top: 3px;
+    cursor: pointer;
+    color: var(--general-color)
+}
+
+.close-hover:hover {
+    color: var(--bar-a-hover);
+}
+
+canvas {
+    position: absolute;
+    background: var(--background);
+    left: 10%;
+}
+
+.buttons {
+    position: absolute;
+    left: 0;
+    top: 4%;
+    width: 10%;
+    height: 96%;
+    max-width: 10%;
+    min-width: 10%;
+    max-height: 96%;
+    min-height: 96%;
+    border: 1px solid white;
+}
+
+.button {
+    cursor: pointer;
+    margin-top: 10%;
+    margin-left: 16%;
+    min-width: 25%;
+    min-height: 5%;
+    max-width: 25%;
+    max-height: 5%;
+    text-align: center;
+    border: none;
+    border-radius: 5px;
+    outline: 1px solid var(--general-color);
+    background: var(--btn-background);
+}
+
+.button:hover {
+    background: var(--btn-hover-background);
+    transform: scale(110%, 110%);
+}
+
+.pen_btn {
+    background: var(--btn-background) url('../../assets/pen.png') no-repeat center;
+    background-size: 32px 32px;
+}
+
+.pen_btn:hover {
+    background: var(--btn-hover-background) url('../../assets/pen.png') no-repeat center;
+    background-size: 32px 32px;
+}
+
+.eraser_btn {
+    background: var(--btn-background) url('../../assets/eraser.png') no-repeat center;
+    background-size: 28px 28px;
+}
+
+.eraser_btn:hover {
+    background: var(--btn-hover-background) url('../../assets/eraser.png') no-repeat center;
+    background-size: 28px 28px;
+}
+
+.line_btn {
+    background: var(--btn-background) url('../../assets/line.png') no-repeat center;
+    background-size: 40px 40px;
+}
+
+.line_btn:hover {
+    background: var(--btn-hover-background) url('../../assets/line.png') no-repeat center;
+    background-size: 40px 40px;
+}
+
+.rect_btn {
+    background: var(--btn-background) url('../../assets/rect.png') no-repeat center;
+    background-size: 32px 32px;
+}
+
+.rect_btn:hover {
+    background: var(--btn-hover-background) url('../../assets/rect.png') no-repeat center;
+    background-size: 32px 32px;
+}

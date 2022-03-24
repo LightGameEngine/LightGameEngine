@@ -153,6 +153,14 @@
     width: 6%;
 }
 
+.right_nav_paint {
+    position: absolute;
+    cursor: pointer;
+    left: 31%;
+    margin-top: 0;
+    width: 8%;
+}
+
 .node_select {
     cursor: pointer;
 }

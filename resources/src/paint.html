@@ -1,0 +1,244 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title id="title"></title>
+    <link href="styles/paint.css" rel="stylesheet">
+    <script src="scripts/connectionManager.js"></script>
+    <script src="scripts/lang.js"></script>
+    <script src="scripts/themeManager.js"></script>
+</head>
+<body style="overflow: hidden; background: var(--body-background)">
+<a id="close-btn-id" onclick="backToProject()" class="close-hover">Back
+    <script>lU(() => document.getElementById("close-btn-id").innerHTML = m("back-button"))</script>
+</a>
+<br>
+<canvas id="canvas"></canvas>
+<div class="buttons">
+    <button class="button pen_btn" onclick="currentItem = 0"></button>
+    <button class="button eraser_btn" onclick="currentItem = 1"></button>
+    <button class="button line_btn" onclick="currentItem = 2"></button>
+    <button class="button rect_btn" onclick="currentItem = 3"></button>
+</div>
+<script>
+    /*** @type {HTMLCanvasElement} */
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
+    const query = {};
+    _query.forEach(i => query[i[0]] = i[1]);
+    let currentItem = 0;
+    let projects;
+    let project;
+    let node;
+    let eid = 0;
+    let fillColor = () => localStorage.getItem("fillColor") || "#ffffff";
+    localStorage.setItem("fillColor", fillColor());
+    let strokeColor = () => localStorage.getItem("strokeColor") || "#ffffff";
+    localStorage.setItem("strokeColor", fillColor());
+    let lineWidth = () => localStorage.getItem("lineWidth") || 4;
+    localStorage.setItem("lineWidth", lineWidth());
+    const mouse = {x: 0, y: 0, down: false, downVector: null};
+
+    ws.sendPacket("get_projects");
+    addWSListener("get_projects", p => {
+        projects = p.projects;
+        project = projects[query.path];
+        node = project.json.nodes[query.node];
+    });
+
+    function backToProject() {
+        window.location.href = "./project.html?" + window.location.href.split("?")[1];
+    }
+
+    function square(x, y, r, fill = "#000000", stroke = fill) {
+        rect(x, y, r, r, fill, stroke);
+    }
+
+    function rect(x, y, width, height, fill = "#000000", stroke = fill) {
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = stroke;
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeRect(x, y, width, height);
+    }
+
+    function clearSquare(x, y, r) {
+        clearRect(x, y, r, r);
+    }
+
+    function clearRect(x, y, width, height) {
+        ctx.clearRect(x, y, width, height);
+    }
+
+    function circle(x, y, radius, fill = "#000000", stroke = fill) {
+        ellipse(x, y, radius, radius, fill, stroke);
+    }
+
+    function line(x1, y1, x2, y2, stroke = "#000000") {
+        linePath([[x1, y1], [x2, y2]], stroke);
+    }
+
+    function linePath(path, stroke = "#000000") {
+        ctx.beginPath();
+        ctx.moveTo(path[0][0], path[0][1]);
+        path.slice(1).forEach(i => ctx.lineTo(i[0], i[1]));
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth();
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    function ellipse(cx, cy, rx, ry, fill = "#000000", stroke = fill) {
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = stroke;
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    }
+
+    const actions = {};
+    let f = Date.now();
+    let fp = 0;
+    let fps = 0;
+
+    function render() {
+        if (f < Date.now()) {
+            f = Date.now() + 1000;
+            fps = fp;
+            fp = 0;
+        }
+        fp++;
+        canvas.width = window.innerWidth * 90 / 100;
+        canvas.height = window.innerHeight * 96 / 100;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        Object.values(actions).forEach(i => i());
+        currentAction();
+        requestAnimationFrame(render);
+    }
+
+    addWSOnceListener("get_theme", render);
+
+    function addAction(action) {
+        const id = eid++;
+        actions[id] = action;
+        return id;
+    }
+
+    let currentPath = null;
+    let currentAction = r => r;
+
+    function onMouseDown() {
+        switch (currentItem) {
+            case 0:
+                currentPath = [mouse.x, mouse.y];
+                currentAction = () => linePath(currentPath, strokeColor());
+                break;
+            case 1:
+                currentPath = [];
+                currentAction = () => currentPath.forEach(i => clearSquare(...i, lineWidth()));
+                break;
+            case 2:
+                currentPath = [mouse.x, mouse.y];
+                currentAction = () => line(currentPath[0], currentPath[1], mouse.x, mouse.y, strokeColor());
+                break;
+            case 3:
+                currentPath = [mouse.x, mouse.y];
+                currentAction = () => doRect(heldKeys["Shift"], [mouse.x, mouse.y], currentPath);
+                break;
+        }
+    }
+
+    function onMouseUp() {
+        if (!currentPath) return;
+        const pathClone = currentPath;
+        const mouseClone = [mouse.x, mouse.y];
+        const cloneColors = {
+            fill: fillColor(),
+            stroke: strokeColor(),
+            width: lineWidth()
+        };
+        switch (currentItem) {
+            case 0:
+                addAction(() => linePath(pathClone, cloneColors.stroke));
+                break;
+            case 1:
+                addAction(() => pathClone.forEach(i => clearSquare(...i, lineWidth())));
+                break;
+            case 2:
+                addAction(() => line(...pathClone, ...mouseClone, cloneColors.stroke));
+                break;
+            case 3:
+                const shiftClone = heldKeys["Shift"];
+                addAction(() => doRect(shiftClone, mouseClone, pathClone));
+                break;
+        }
+        currentPath = null;
+        currentAction = r => r;
+    }
+
+    function onMouseMove() {
+    }
+
+    function onMouseHold() {
+        switch (currentItem) {
+            case 0:
+                currentPath.push([mouse.x, mouse.y]);
+                break;
+            case 1:
+                currentPath.push([mouse.x - (lineWidth() / 2), mouse.y - (lineWidth() / 2)]);
+                break;
+        }
+    }
+
+    function onMouseClick() {
+    }
+
+    function doRect(shiftClone, mouseClone, pathClone) {
+        const xDist = mouseClone[0] - pathClone[0];
+        const yDist = mouseClone[1] - pathClone[1];
+        if (xDist === 0 || yDist === 0) return;
+        if (shiftClone) {
+            /*let n;
+            if (xDist > 0 && yDist > 0) n = Math.min(xDist, yDist);
+            if (xDist < 0 && yDist < 0) n = Math.max(xDist, yDist);
+            if (xDist < 0 && yDist > 0) n = -xDist < yDist ? xDist : -yDist;
+            if (yDist < 0 && xDist > 0) n = -yDist < xDist ? yDist : -xDist;*/
+            const wDist = Math.min(Math.abs(xDist), Math.abs(yDist)) === Math.abs(xDist) ? xDist : yDist;
+            rect(pathClone[0], pathClone[1], Math.abs(wDist) * (xDist / Math.abs(xDist)), Math.abs(wDist) * (yDist / Math.abs(yDist)), fillColor(), strokeColor());
+            //square(pathClone[0], pathClone[1], (), fillColor(), strokeColor());
+        } else {
+            rect(pathClone[0], pathClone[1], xDist, yDist, fillColor(), strokeColor());
+        }
+    }
+
+    let heldKeys = {};
+
+    canvas.addEventListener("mousedown", ev => {
+        mouse.x = ev.offsetX;
+        mouse.y = ev.offsetY;
+        mouse.down = true;
+        mouse.downVector = {x: mouse.x, y: mouse.y};
+        onMouseDown();
+    });
+
+    canvas.addEventListener("mousemove", ev => {
+        const old = {x: mouse.x, y: mouse.y};
+        mouse.x = ev.offsetX;
+        mouse.y = ev.offsetY;
+        onMouseMove(old);
+        if (mouse.down) onMouseHold(old);
+    });
+
+    addEventListener("mouseup", () => {
+        mouse.down = false;
+        if (mouse.downVector && mouse.downVector.x === mouse.x && mouse.downVector.y === mouse.y) onMouseClick();
+        mouse.downVector = null;
+        onMouseUp();
+    });
+
+    addEventListener("keydown", ev => heldKeys[ev.key] = true);
+    addEventListener("keyup", ev => delete heldKeys[ev.key]);
+    addEventListener("blur", ev => heldKeys = {});
+</script>
+</body>
+</html>
