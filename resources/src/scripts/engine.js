@@ -1088,6 +1088,36 @@ class Entity extends Vector2 {
         Scene.getInstance().entities.push(this);
     }
 
+    /*** @returns {{start: Vector2, end: Vector2}[]} */
+    getBoundaries() {
+        return [].concat(...this.collisions.filter(i => !i["isInvalid"]).map(col => {
+            if (col instanceof RectangleCollision) {
+                const width = col.width * Scene.instance.zoom;
+                const height = col.height * Scene.instance.zoom;
+                const offX = col.offsetX;
+                const offY = col.offsetY;
+                return [
+                    {
+                        start: this.add(offX, offY),
+                        end: this.add(offX + width, offY)
+                    },
+                    {
+                        start: this.add(offX, offY),
+                        end: this.add(offX, offY + height)
+                    },
+                    {
+                        start: this.add(offX + width, offY),
+                        end: this.add(offX + width, offY + height)
+                    },
+                    {
+                        start: this.add(offX, offY + height),
+                        end: this.add(offX + width, offY + height)
+                    }
+                ];
+            }
+        }).filter(i => i));
+    }
+
     update() {
         const motion = this.motion.divide(10, 10);
         this.x += motion.x;
@@ -1270,42 +1300,13 @@ class Scene {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    static fetchEntityBoundaries(en) {
-        return en.collisions.map(col => {
-            if (col instanceof RectangleCollision) {
-                const width = col.width * Scene.instance.zoom;
-                const height = col.height * Scene.instance.zoom;
-                const offX = col.offsetX;
-                const offY = col.offsetY;
-                return [
-                    {
-                        start: en.add(offX, offY),
-                        end: en.add(offX + width, offY),
-                        entity: en
-                    },
-                    {
-                        start: en.add(offX, offY),
-                        end: en.add(offX, offY + height),
-                        entity: en
-                    },
-                    {
-                        start: en.add(offX + width, offY),
-                        end: en.add(offX + width, offY + height),
-                        entity: en
-                    },
-                    {
-                        start: en.add(offX, offY + height),
-                        end: en.add(offX + width, offY + height),
-                        entity: en
-                    }
-                ];
-            }
-        }).filter(i => i);
-    }
-
     update() {
         if (this.zoom < 0.1) this.zoom = 0.1;
-        this.boundaries = [].concat(...[].concat(...this.entities.filter(i => i.visible).map(en => Scene.fetchEntityBoundaries(en)))).map(i => [{
+        this.boundaries = [].concat(...this.entities.filter(i => i.visible).map(en => en.getBoundaries().map(i => [{
+            start: i.start,
+            end: i.end,
+            entity: en
+        }][0]))).map(i => [{
             start: i.start.subtract(this.camera),
             end: i.end.subtract(this.camera),
             entity: i.entity
@@ -1360,6 +1361,15 @@ class Sound {
 }
 
 /**
+ * @param {string} src
+ * @returns {Promise<Sound>}
+ */
+async function loadSound(src) {
+    const sound = new Sound(src);
+    return await new Promise(r => sound.sound.onload = () => r(sound));
+}
+
+/**
  * @param {number} x
  * @param {number} y
  * @param {{start: Vector2, end: Vector2}[]} boundaries
@@ -1368,7 +1378,14 @@ class Sound {
  * @param {number} rayPopulation
  * @returns {{start: Vector2, end: Vector2}[]}
  */
-function runRayCast(x, y, boundaries, startAngle, endAngle, rayPopulation) {
+function runRayCast({
+                        x,
+                        y,
+                        boundaries = [],
+                        startAngle = 0,
+                        endAngle = Math.PI * 2,
+                        rayPopulation = 1
+                    }) {
     const lines = [];
     for (let i = startAngle; i < endAngle; i += rayPopulation) {
         const ray = {x1: x, y1: y, x2: Math.sin(i * Math.PI / 180), y2: Math.cos(i * Math.PI / 180)};
@@ -1383,12 +1400,49 @@ function runRayCast(x, y, boundaries, startAngle, endAngle, rayPopulation) {
                 n = t > 0 && t < 1 && u > 0 ? {x: x1 + t * (x2 - x1), y: y1 + t * (y2 - y1)} : null;
             if (n) {
                 const d = Math.sqrt(Math.pow(x - n.x, 2) + Math.pow(y - n.y, 2));
-                if (d < m[0]) m = [d, n];
+                if (d < m[0]) m = [d, n, false, b];
             }
         }
-        if (!m[2]) lines.push({start: new Vector2(x, y), end: new Vector2(m[1].x, m[1].y)});
+        if (!m[2]) {
+            const l = {start: new Vector2(x, y), end: new Vector2(m[1].x, m[1].y)};
+            if (m[3]["entity"]) l.entity = m[3]["entity"];
+            lines.push(l);
+        }
     }
     return lines;
+}
+
+/**
+ * @param {number} x
+ * @param {number} y
+ * @param {{start: Vector2, end: Vector2}[]} boundaries
+ * @param {number} startAngle
+ * @param {number} endAngle
+ * @param {number} rayPopulation
+ * @param {Entity[]} entities
+ * @returns {{start: Vector2, end: Vector2, entity: Entity}[]}
+ */
+function runRayCastWithEntities({
+                                    x,
+                                    y,
+                                    boundaries = [],
+                                    startAngle = 0,
+                                    endAngle = Math.PI * 2,
+                                    rayPopulation = 1
+                                }, entities) {
+    // noinspection JSValidateTypes
+    return runRayCast({
+        x,
+        y,
+        startAngle,
+        endAngle,
+        rayPopulation,
+        boundaries: [...[].concat(...entities.map(en => en.getBoundaries().map(i => [{
+            start: i.start,
+            end: i.end,
+            entity: en
+        }][0]))), ...boundaries],
+    });
 }
 
 class RayCastModel extends Model {
@@ -1508,11 +1562,16 @@ class RayCastModel extends Model {
                     entity: new Entity(0, 0)
                 });
         }
-        runRayCast(position.x + this.offsetX, position.y + this.offsetY, boundaries.map(i => [{
-            start: i.start,
-            end: i.end,
-            entity: i.entity
-        }][0]), startAngle, endAngle, rayPopulation)
+        runRayCast({
+            x: position.x + this.offsetX,
+            y: position.y + this.offsetY,
+            boundaries: boundaries.map(i => [{
+                start: i.start,
+                end: i.end,
+                entity: i.entity
+            }][0]),
+            startAngle, endAngle, rayPopulation
+        })
             .forEach(l => {
                 ctx.beginPath();
                 ctx.moveTo(l.start.x, l.start.y);

@@ -7,20 +7,19 @@ const oldChanges = require("./.changes.json");
 const Logger = require("./Logger");
 const https = require("https");
 const electron = require("electron");
-const {app, BrowserWindow, globalShortcut, NativeImage} = electron;
-const lightRoamingPath = process.env.HOME.replaceAll("\\", "/") + "/AppData/Roaming/lightge";
-if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
-
+const {app, BrowserWindow, globalShortcut} = electron;
+module.exports.os = {win32: "windows", darwin: "macOS"}[process.platform] || "linux";
+module.exports.lightGlobPath = app.getPath("userData");
+module.exports.desktopPath = require("path").join(require("os").homedir(), "Desktop");
+if (!fs.existsSync(module.exports.lightGlobPath)) fs.mkdirSync(module.exports.lightGlobPath);
+const createDesktopShortcut = require("create-desktop-shortcuts");
 const setPromptTitle = title => process.stdout.write(String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7));
-
 module.exports.setPromptTitle = setPromptTitle;
-
 Logger.debugging = true;
-
 const cnv = map => c => {
     let b;
     Object.keys(map).forEach(i => c > map[i] ? b = (c / map[i]).toFixed(1) + i : null);
-    return b;
+    return b || "0" + Object.keys(map)[0];
 };
 
 const convertBytes = cnv({
@@ -60,8 +59,9 @@ let wss;
             wss.on("error", () => {
                 Logger.alert("Light is already being " + (isFirstVersion ? "installed" : "updated") + "!");
                 if (browser) browser.hide();
-                while (true) {
-                }
+                process.exit();
+                /*while (true) {
+                }*/
             });
 
             const create_window = async () => {
@@ -108,8 +108,9 @@ let wss;
                     wss.close();
                     browser.hide();
                     await browser.close();
-                    while (true) {
-                    }
+                    process.exit();
+                    /*while (true) {
+                    }*/
                 });
                 const files = Array.from(new Set([].concat(...JSON.parse(body).slice(currentVersion))));
                 setPromptTitle("Light - " + (isFirstVersion ? "Installing" : "Updating") + "...");
@@ -173,14 +174,35 @@ let wss;
                 Logger.warning("[" + convertBytes(bytes) + "] [" + convertDate(Date.now() - start) + "] Light has been " + (isFirstVersion ? "installed" : "downloaded") + "!")
                 Logger.info(isFirstVersion ? "Light has been successfully installed." : "Update completed, please restart.");
                 fs.writeFileSync("./.changes.json", body);
+                createDesktopShortcut({
+                    verbose: true,
+                    windows: {
+                        filePath: __dirname + "\\Start Light.vbs",
+                        name: "Light",
+                        comment: "Light Game Engine",
+                        icon: __dirname + "\\resources\\assets\\icon.ico"
+                    },
+                    linux: {
+                        filePath: __dirname + "\\Start Light.sh",
+                        name: "Light",
+                        description: "Light Game Engine",
+                        icon: __dirname + "\\resources\\assets\\icon.png",
+                        type: "Application"
+                    },
+                    osx: {
+                        filePath: __dirname + "\\Start Light.sh",
+                        name: "Light"
+                    }
+                });
                 setPromptTitle("Light - " + (isFirstVersion ? "Installed" : "Updated") + ", please restart");
                 if (wss) wss.close();
                 if (browser) {
                     browser.hide();
                     await browser.close();
                 }
-                while (true) {
-                }
+                process.exit();
+                /*while (true) {
+                }*/
             });
             setTimeout(() => !connected ? Logger.alert("Light didn't connect socket server.") : null, 20000);
         } else {
@@ -201,8 +223,9 @@ let wss;
         if (!isFirstVersion) require("./resources/index");
         else {
             setPromptTitle("Light - Installation cancelled, please check your connection");
-            while (true) {
-            }
+            process.exit();
+            /*while (true) {
+            }*/
         }
     }
 })();
