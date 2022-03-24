@@ -15,7 +15,7 @@ if (!fs.existsSync(module.exports.lightGlobPath)) fs.mkdirSync(module.exports.li
 const createDesktopShortcut = require("create-desktop-shortcuts");
 const setPromptTitle = title => process.stdout.write(String.fromCharCode(27) + "]0;" + title + String.fromCharCode(7));
 module.exports.setPromptTitle = setPromptTitle;
-Logger.debugging = true;
+Logger.debugging = false;
 const cnv = map => c => {
     let b;
     Object.keys(map).forEach(i => c > map[i] ? b = (c / map[i]).toFixed(1) + i : null);
@@ -204,7 +204,7 @@ let wss;
                 /*while (true) {
                 }*/
             });
-            setTimeout(() => !connected ? Logger.alert("Light didn't connect socket server.") : null, 20000);
+            setInterval(() => !connected ? Logger.alert("Light didn't connect socket server.") : null, 20000);
         } else {
             console.clear();
             Logger.info("Perfect, engine is up to date!");
