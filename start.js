@@ -175,7 +175,7 @@ let wss;
                 Logger.info(isFirstVersion ? "Light has been successfully installed." : "Update completed, please restart.");
                 fs.writeFileSync("./.changes.json", body);
                 createDesktopShortcut({
-                    verbose: true,
+                    verbose: false,
                     windows: {
                         filePath: __dirname + "\\Start Light.vbs",
                         name: "Light",
