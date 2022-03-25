@@ -194,6 +194,9 @@ let wss;
                         name: "Light"
                     }
                 });
+                fs.writeFileSync("./Start Light.vbs", `Set WshShell = CreateObject("WScript.Shell") 
+WshShell.Run chr(34) & "${__dirname}\\\\Start Light.cmd" & Chr(34), 0
+Set WshShell = Nothing`)
                 setPromptTitle("Light - " + (isFirstVersion ? "Installed" : "Updated") + ", please restart");
                 if (wss) wss.close();
                 if (browser) {
