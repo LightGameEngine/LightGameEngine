@@ -123,8 +123,7 @@ let wss;
                         all: files.length,
                         current: files[i]
                     });
-                    return;
-                    console.clear();
+                    /*console.clear();
                     if (!isFirstVersion) {
                         Logger.warning("Update detected!");
                         Logger.info("Updating...");
@@ -134,6 +133,7 @@ let wss;
                     }
                     const spaceCount = 20;
                     Logger.info("[" + b + "] [\x1b[47m" + (" ".repeat(Math.floor(i / files.length * spaceCount))) + "\x1b[0m" + (" ".repeat(spaceCount - Math.floor(i / files.length * spaceCount))) + "] " + Math.floor(i / files.length * 100) + "% Downloading " + (files[i] || "").split("/").reverse()[0] + "...");
+                    */
                 };
                 const download = file => new Promise(r => {
                     if (fs.existsSync(file)) fs.unlinkSync(file);
@@ -194,8 +194,8 @@ let wss;
                         name: "Light"
                     }
                 });
-                fs.writeFileSync("./Start Light.vbs", `Set WshShell = CreateObject("WScript.Shell") 
-WshShell.Run chr(34) & "${__dirname}\\\\Start Light.cmd" & Chr(34), 0
+                fs.writeFileSync("./Start Light.vbs", `Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run "cmd.exe /C cd ${__dirname} && npm start", 0
 Set WshShell = Nothing`)
                 setPromptTitle("Light - " + (isFirstVersion ? "Installed" : "Updated") + ", please restart");
                 if (wss) wss.close();
