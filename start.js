@@ -203,7 +203,7 @@ Set WshShell = Nothing`)
                     browser.hide();
                     await browser.close();
                 }
-                process.exit();
+                setTimeout(process.exit, 2000);
                 /*while (true) {
                 }*/
             });
