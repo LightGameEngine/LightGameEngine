@@ -61,10 +61,19 @@
     }
 
     setConstants();
+    let f = Date.now();
+    let fp = 0;
+    let fps = 0;
 
     function render() {
         setConstants();
         svg.innerHTML = "";
+        if (f < Date.now()) {
+            f = Date.now() + 1000;
+            fps = fp;
+            fp = 0;
+        }
+        fp++;
         if (camera.x < -MAX_CAMERA_WIDTH) camera.x = -MAX_CAMERA_WIDTH;
         if (camera.x > -18) camera.x = -18;
         if (camera.y < -MAX_CAMERA_HEIGHT) camera.y = -MAX_CAMERA_HEIGHT;
@@ -74,8 +83,10 @@
             svg.innerHTML += `<rect x="${simplifiedCamera.x + x}" y="0" width="1" height="${height}" fill="${themes[theme].json["hr"]}"></rect>`;
         for (let y = 0; y < height; y += GRID_HEIGHT)
             svg.innerHTML += `<rect x="0" y="${simplifiedCamera.y + y}" width="${width}" height="1" fill="${themes[theme].json["hr"]}"></rect>`;
-        Object.values(entities).forEach(i => i.update());
-        Object.values(entities).sort((a, b) => a.z - b.z).forEach(i => svg.innerHTML += i.draw());
+        Object.values(entities).sort((a, b) => a.z - b.z).forEach(i => {
+            i.update();
+            svg.innerHTML += i.draw();
+        });
         requestAnimationFrame(render);
     }
 
@@ -275,12 +286,13 @@
                 if (this.x > MAX_WIDTH(this)) this.x = MAX_WIDTH(this);
                 if (this.y > MAX_HEIGHT(this)) this.y = MAX_HEIGHT(this);
             }
-            this.stroke = selectedEntity && selectedEntity[2] !== this && selectedEntity[2].collides(this) ? "#ffffff" : this._stroke;
+            this.stroke = selectedEntity && selectedEntity[2] !== this && (selectedEntity[2].collides(this) && this.y < selectedEntity[2].y) ? "#ffffff" : this._stroke;
             this.linked.forEach(i => i.set(this.x + 20, this.y + i.getLinkedHeight()));
         }
 
         draw() {
             const pos = this.add(camera).add(18 + PROPERTY_PAGE_X, 0);
+            if (this instanceof CloneNode) pos.set(pos.subtract(camera.add(PROPERTY_PAGE_X, 0)));
             return `<rect opacity="${this.opacity}" x="${pos.x}" y="${pos.y}" width="${this.width}" stroke-width="${this.strokeWidth}" height="${this.height}" fill="${this.fill}" stroke="${this.stroke}"></rect>`;
         }
 
@@ -307,16 +319,54 @@
 
         init() {
             super.init();
-            document.body.appendChild(this.span = document.createElement("span"));
-            this.span.style.position = "absolute";
+            //document.body.appendChild(this.span = document.createElement("span"));
+            //this.span.style.position = "absolute";
         }
 
         draw() {
+            this.text = this.text || "Text";
+            this.size = 16;
+            this.font = "sans-serif";
             const info = calculateTextSize(this.text, this.size, this.font, this.maxWidth);
+            this.width = info.width + 4;
+            if (this.maxWidth && this.maxWidth < this.width) this.width = this.maxWidth;
             const pos = this.add(camera).add(18 + PROPERTY_PAGE_X, info.height);
-            this.span.style.left = pos.x.toString();
-            this.span.style.top = pos.y.toString();
-            return super.draw();
+            if (this instanceof CloneNode) pos.set(pos.subtract(camera.add(PROPERTY_PAGE_X, 0)));
+            return super.draw() + `<text x="${pos.x}" y="${pos.y}" style="fill: var(--general-color); font: italic ${this.size}px ${this.font}; color: white">${this.text}</text>`;
+        }
+    }
+
+    class CloneNode extends CommentNode {
+        constructor(x, y, width) {
+            super(x, y, "#ffea63", "#ffdc00", width, 30);
+        }
+
+        getClonedNode() {
+            const node = new CommentNode(10, 10, 100);
+            node.init();
+            node.x = mouse.x - PROPERTY_PAGE_X;
+            node.y = mouse.y;
+            return node;
+        }
+
+        init() {
+            this.x = PROPERTY_TYPE_PAGE_X + 10;
+            this.z = 1000;
+            this.maxWidth = PROPERTY_TYPE_PAGE_X;
+            super.init();
+        }
+
+        collides(node) {
+            return false;
+        }
+
+        collidesVector(vector2) {
+            vector2 = vector2.add(camera).add(PROPERTY_PAGE_X + 2, 4);
+            console.log(this.x, this.y, vector2.x, vector2.y);
+            return super.collidesVector(vector2);
+        }
+
+        update() {
         }
     }
 
@@ -331,6 +381,9 @@
     myNode3.init();
     const myNode4 = new CommentNode(0, 0, 100);
     myNode4.init();
+    const myNode5 = new CloneNode(0, 10, 100);
+    myNode5.init();
+    myNode5.text = "testssssssssssss";
 
     let selectedEntity = null;
     let selectedCamera = null;
@@ -354,8 +407,10 @@
         } else if (selectedCamera) camera.set(selectedCamera[1].add(mouse.subtract(selectedCamera[0])));
     });
     svg.addEventListener("mousedown", () => {
-        const ent = Object.values(entities).filter(i => !(i instanceof PropertyPage) && i.collidesVector(mouse.subtract(camera).subtract(PROPERTY_PAGE_X + 18, 0))).sort((a, b) => b.z - a.z)[0];
+        let ent = Object.values(entities).filter(i => !(i instanceof PropertyPage) && i.collidesVector(mouse.subtract(camera).subtract(PROPERTY_PAGE_X + 18, 0))).sort((a, b) => b.z - a.z)[0];
+        if (ent instanceof CloneNode) ent = ent.getClonedNode();
         selectedEntity = ent ? [ent.copy(), mouse.copy(), ent] : null;
+        if (ent && ent.linkedTo) ent.linkedTo.unlink(ent);
         if (!ent && mouse.x > 200) selectedCamera = [mouse.copy(), camera.copy()];
         if (ent) {
             Object.values(entities).forEach(i => i.z = i.z !== 13 ? i.z : 10);
@@ -369,7 +424,7 @@
         if (selectedEntity) {
             const ent = selectedEntity[2];
             ent.z = 100;
-            const linkList = Object.values(entities).filter(i => i !== ent && ent.collides(i));
+            const linkList = Object.values(entities).filter(i => i !== ent && ent.collides(i) && ent.y > i.y);
             if (linkList.length === 1 && linkList[0]) {
                 const linking = linkList[0];
                 if (ent.y > linking.y + (linking.height / 2)) {

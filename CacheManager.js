@@ -40,7 +40,15 @@ class CacheManager {
     static async getProjects() {
         const p = {};
         for (let i = 0; i < Object.keys(CacheManager.cache.projects).length; i++) {
-            const project = CacheManager.cache.projects[Object.keys(CacheManager.cache.projects)[i]];
+            let ind = Object.keys(CacheManager.cache.projects)[i];
+            if (ind.replaceAll("\\", "/") !== ind) {
+                const oldInd = CacheManager.cache.projects[ind];
+                delete CacheManager.cache.projects[ind];
+                oldInd.path = oldInd.path.replaceAll("\\", "/");
+                CacheManager.cache.projects[ind.replaceAll("\\", "/")] = oldInd;
+                ind = ind.replaceAll("\\", "/");
+            }
+            const project = CacheManager.cache.projects[ind];
             project.valid = fs.existsSync(project.path) ? (await is_folder(project.path)) : false;
             if (!project.valid) delete CacheManager.cache.projects[project.path];
             p[project.path] = project;
@@ -49,11 +57,13 @@ class CacheManager {
     }
 
     static existsProjectPath(path) {
+        path = path.replaceAll("\\", "/");
         return !!CacheManager.cache.projects[path];
     }
 
     /*** @param {string} path */
     static createProject(path) {
+        path = path.replaceAll("\\", "/");
         if (this.existsProjectPath(path)) return;
         CacheManager.cache.projects[path] = {
             name: path.replaceAll("\\", "/").split("/").reverse()[0],
@@ -71,6 +81,7 @@ class CacheManager {
     }
 
     static openProject(socket, path) {
+        path = path.replaceAll("\\", "/");
         this.createProject(path);
         if (!CacheManager.cache.projects[path].json.nodes.camera)
             CacheManager.cache.projects[path].json.nodes.camera = CAMERA_PROPERTY((Object.values(CacheManager.cache.projects[path].json.nodes).map(i => i.position).sort((a, b) => b - a)[0] || 0) + 1);
@@ -90,15 +101,18 @@ class CacheManager {
     }
 
     static renameProject(path, name) {
+        path = path.replaceAll("\\", "/");
         this.createProject(path);
         CacheManager.cache.projects[path].name = name;
     }
 
     static removeProject(path) {
+        path = path.replaceAll("\\", "/");
         delete CacheManager.cache.projects[path];
     }
 
     static getProjectActions(path) {
+        path = path.replaceAll("\\", "/");
         if (!CacheManager.cache.projects[path].actions) CacheManager.cache.projects[path].actions = [];
         return CacheManager.cache.projects[path].actions;
     }
@@ -110,6 +124,7 @@ class CacheManager {
      * @param {*} to
      */
     static addAction(path, actionId, from, to) {
+        path = path.replaceAll("\\", "/");
         this.getProjectActions(path);
         CacheManager.cache.projects[path].actions.push({
             id: actionId, from, to, createdTimestamp: Date.now()
@@ -117,29 +132,35 @@ class CacheManager {
     }
 
     static removeLastAction(path) {
+        path = path.replaceAll("\\", "/");
         CacheManager.cache.projects[path].actions = CacheManager.cache.projects[path].actions.reverse().slice(1).reverse();
     }
 
     static setProjectCamera(path, x, y) {
+        path = path.replaceAll("\\", "/");
         this.createProject(path);
         CacheManager.cache.projects[path].json.camera = {x, y};
     }
 
     static setProjectZoom(path, zoom) {
+        path = path.replaceAll("\\", "/");
         this.createProject(path);
         CacheManager.cache.projects[path].json.zoom = zoom;
     }
 
     static getNode(path, node) {
+        path = path.replaceAll("\\", "/");
         return CacheManager.cache.projects[path].json.nodes[node];
     }
 
     static renameNode(path, from, to) {
+        path = path.replaceAll("\\", "/");
         CacheManager.cache.projects[path].json.nodes[to] = this.getNode(path, from);
         delete CacheManager.cache.projects[path].json.nodes[from];
     }
 
     static copyNode(path, from, to) {
+        path = path.replaceAll("\\", "/");
         CacheManager.cache.projects[path].json.nodes[to] = JSON.parse(JSON.stringify(this.getNode(path, from)));
         CacheManager.cache.projects[path].json.nodes[to].createdTimestamp = Date.now();
         if (CacheManager.cache.projects[path].json.nodes[from].type === "group") {
@@ -153,21 +174,23 @@ class CacheManager {
     }
 
     static setNodeLocked(path, node, value) {
+        path = path.replaceAll("\\", "/");
         CacheManager.cache.projects[path].json.nodes[node].locked = value;
     }
 
     static setNodePosition(path, node, position) {
+        path = path.replaceAll("\\", "/");
         CacheManager.cache.projects[path].json.nodes[node].position = position;
     }
 
     static setNodeGroup(path, node, group) {
+        path = path.replaceAll("\\", "/");
         CacheManager.cache.projects[path].json.nodes[node].group = group;
     }
 
     static getDefaultProjectFolder() {
-        if (!CacheManager.cache.default_project_folder) CacheManager.cache.default_project_folder = defaultProjectFolder;
-        if (!fs.existsSync(CacheManager.cache.default_project_folder)) CacheManager.cache.default_project_folder = null;
-        return CacheManager.cache.default_project_folder;
+        if (!CacheManager.cache.default_project_folder || !fs.existsSync(CacheManager.cache.default_project_folder)) CacheManager.cache.default_project_folder = defaultProjectFolder.replaceAll("\\", "/");
+        return CacheManager.cache.default_project_folder.replaceAll("\\", "/");
     }
 
     static setDefaultProjectFolder(folder) {

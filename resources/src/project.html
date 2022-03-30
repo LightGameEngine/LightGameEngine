@@ -108,7 +108,10 @@
 
         document._light = {project: null};
 
-        const node_types = ["entity", "model", "collision", "text", "tile", "light"/*, "tile-map"*/, "script", "group"];
+        const node_types = [
+            "entity", "model", "collision", "text", "tile", "light"/*, "tile-map"*/, "script", "group",
+            "entity3d", "model3d", "collision3d", "text3d", "tile3d", "light3d", "group3d"
+        ];
 
         const start_btn = document.getElementById("start_btn");
         const stop_btn = document.getElementById("stop_btn");
@@ -125,7 +128,8 @@
         printHandler = renderConsole;
 
         function open_node_menu() {
-            document.getElementById("node_menu").innerHTML = node_types.map(i => `<span onclick="document._light.open_add_node_menu('${i}')" class="node_select">${languages[lang]["node-" + i]}</span>`).join("<br>");
+            const map = i => `<span onclick="document._light.open_add_node_menu('${i}')" class="node_select">${languages[lang]["node-" + i.replace("3d", "")] + (i === "script" ? "" : (i.endsWith("3d") ? " 3D" : " 2D"))}</span>`;
+            document.getElementById("node_menu").innerHTML = node_types.filter(i => !i.endsWith("3d") && i !== "script").map(map).join("<br>") + "<hr>" + node_types.filter(i => i.endsWith("3d")).map(map).join("<br>") + "<hr>" + map("script");
             document.getElementById("node_menu").hidden = undefined;
         }
 
@@ -148,15 +152,15 @@
                     return document.getElementById("prompt-error").innerHTML = languages[lang]["node-not-selected"];
                 }
                 const extraProps = {
-                    entity: Entity.PROPERTIES,
-                    "model-image": ImageModel.PROPERTIES,
-                    "model-text": TextModel.PROPERTIES,
-                    "model-rectangle": RectangleModel.PROPERTIES,
-                    "model-circle": CircleModel.PROPERTIES,
-                    "model-light": RayCastModel.PROPERTIES,
-                    collision: RectangleCollision.PROPERTIES,
-                    tile: Tile.PROPERTIES,
-                    light: Tile.PROPERTIES
+                    entity: Entity2D.PROPERTIES,
+                    "model-image": ImageModel2D.PROPERTIES,
+                    "model-text": TextModel2D.PROPERTIES,
+                    "model-rectangle": RectangleModel2D.PROPERTIES,
+                    "model-circle": CircleModel2D.PROPERTIES,
+                    "model-light": RayCastModel2D.PROPERTIES,
+                    collision: RectangleCollision2D.PROPERTIES,
+                    tile: Tile2D.PROPERTIES,
+                    light: Tile2D.PROPERTIES
                 }[node.type] || [];
                 if (node.properties[r] || Object.values(extraProps).some(i => i.includes(r)) || r === "__nodeId") {
                     open_property_menu();
@@ -187,7 +191,8 @@
             });
         }
 
-        const modelTypes = ["image", "text", "rectangle", "circle", "light", "custom"];
+        const model2dTypes = ["image", "text", "rectangle", "circle", "light", "custom"];
+        const model3dTypes = ["image", "text", "rectangle", "circle", "light", "custom"];
 
         function open_rename_node_menu(oldName) {
             prompt(
@@ -214,7 +219,7 @@
                 languages[lang]["add-node-title"],
                 languages[lang]["enter-node-name"] + `:<br>
 <div style="text-align: center;"><input spellcheck="false" maxlength="16" id="add-node-name" class="prompt_input"></div><br>
-<span${type !== "model" ? " hidden" : ""}>${languages[lang]["select-model-type"]}:<br><div style="text-align: center;"><select id="add-node-type" class="prompt_input">${modelTypes.map(i => `<option style="background: var(--body-background)" value="${i}">${languages[lang]["model-type-" + i]}</option>`).join("")}</select></div></span>`,
+<span${type !== "model" && type !== "model3d" ? " hidden" : ""}>${languages[lang]["select-model-type"]}:<br><div style="text-align: center;"><select id="add-node-type" class="prompt_input">${(type === "model3d" ? model3dTypes : model2dTypes).map(i => `<option style="background: var(--body-background)" value="${i}">${languages[lang]["model-type-" + i]}</option>`).join("")}</select></div></span>`,
                 languages[lang]["add-node-button"],
                 false
             ).then(r => {
@@ -391,6 +396,7 @@
         const sortNodeKeyPosition = (a, b) => {
             a = document._light.project.json.nodes[a];
             b = document._light.project.json.nodes[b];
+            //if (a.type.endsWith("3d") !== b.type.endsWith("3d")) return a.type.endsWith("3d") ? 1 : -1;
             return a.position - b.position;
         };
 
@@ -400,7 +406,7 @@
 
         const mapNodeKey = key => `<div draggable="true" id="node_key_${key}">
     <div class="node${document._light.selected_node === key ? " node_selected" : ""}" id="node_pos_${key}" onclick="document._light.select_node('${key}')">
-        <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${document._light.project.json.nodes[key].type === "group" ? "group_closed" : document._light.project.json.nodes[key].type.replaceAll("-", "_")}.png">
+        <img id="node_icon_${key}" draggable="false" class="node_image" src="../assets/${document._light.project.json.nodes[key].type.startsWith('group') ? "group_closed" : document._light.project.json.nodes[key].type.replaceAll("-", "_").replace("3d", "")}.png">
         <span class="node_name">${key === "camera" ? m("camera") : key}</span>
     </div>
     ${lockable.includes(document._light.project.json.nodes[key].type) ? `<div title="CTRL + L" onclick="document._light.toggle_node_lock('${key}')" class="${document._light.project.json.nodes[key].locked ? "lock_node" : "unlock_node"} ${document._light.project.json.nodes[key].type !== "camera" ? "ln_1" : "ln_2"}"></div>` : ""}
@@ -429,7 +435,11 @@
                     return set_node_group(nodeId, null);
                 }
             }
-            document.getElementById("nodes").innerHTML = Object.keys(document._light.project.json.nodes).filter(key => !document._light.project.json.nodes[key].group).sort(sortNodeKeyPosition).map(mapNodeKey).join("");
+            const l = Object.keys(document._light.project.json.nodes).filter(key => !document._light.project.json.nodes[key].group).sort(sortNodeKeyPosition);
+            const twoD = l.filter(i => !document._light.project.json.nodes[i].type.endsWith("3d") && document._light.project.json.nodes[i].type !== "script");
+            const threeD = l.filter(i => document._light.project.json.nodes[i].type.endsWith("3d"));
+            const scriptL = l.filter(i => document._light.project.json.nodes[i].type === "script");
+            document.getElementById("nodes").innerHTML = twoD.map(mapNodeKey).join("") + (threeD.length > 0 ? "<hr>" + threeD.map(mapNodeKey).join("") : "") + (scriptL.length > 0 ? "<hr>" : "") + scriptL.map(mapNodeKey).join("");
             let currentDragging;
             Object.keys(document._light.project.json.nodes).filter(key => !document._light.project.json.nodes[key].group).forEach(key => {
                 const el = document.getElementById("node_key_" + key);
@@ -453,9 +463,9 @@
                         const draggedKey = key;
                         const clicked = document._light.project.json.nodes[clickedKey];
                         const dragged = document._light.project.json.nodes[draggedKey];
-                        if (dragged.type === "group" && clicked.type !== "group") {
+                        if (dragged.type.startsWith("group") && !clicked.type.startsWith("group")) {
                             set_node_group(clickedKey, draggedKey);
-                        } else if (clicked.group && dragged.type !== "group") {
+                        } else if (clicked.group && !dragged.type.startsWith("group")) {
                             set_node_group(clickedKey, null);
                             set_node_position(clickedKey, dragged.position + 1);
                             Object.keys(document._light.project.json.nodes)
@@ -467,7 +477,7 @@
                     } else el.style.border = "";
                 });
             });
-            Object.keys(document._light.project.json.nodes).filter(key => document._light.project.json.nodes[key].type === "group").forEach(i => toggle_group_node(i, true));
+            Object.keys(document._light.project.json.nodes).filter(key => document._light.project.json.nodes[key].type.startsWith("group")).forEach(i => toggle_group_node(i, true));
         }
 
         function refresh_properties() {
@@ -499,7 +509,7 @@ ${input}
         }
 
         function select_node(name, v = false) {
-            if (name && document._light.project.json.nodes[name].type === "group") return toggle_group_node(name);
+            if (name && document._light.project.json.nodes[name].type.startsWith("group")) return toggle_group_node(name);
             if (document._light.selected_node === name && !v) {
                 name = null;
                 document._light.property_delete_mode = false;
@@ -513,7 +523,7 @@ ${input}
 
         function toggle_group_node(key, r = false) {
             const node = document._light.project.json.nodes[key];
-            if (!node || node.type !== "group") return;
+            if (!node || !node.type.startsWith("group")) return;
             const gN = document.getElementById("group_node_content_" + key);
             if (!gN) return;
             const is_open = open_groups[key];
@@ -552,17 +562,17 @@ ${input}
         const createModel = async ({type, properties}) => {
             switch (type) {
                 case "model-image":
-                    const model = new ImageModel(
+                    const model = new ImageModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
                         properties.width.value * 1,
                         properties.height.value * 1,
                         properties.opacity.value * 1
                     );
-                    if (properties.image.value) model.setImage(await ImageModel.loadImage(properties.image.value));
+                    if (properties.image.value) model.setImage(await ImageModel2D.loadImage(properties.image.value));
                     return model;
                 case "model-text":
-                    return new TextModel(
+                    return new TextModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
                         properties.text.value,
@@ -573,7 +583,7 @@ ${input}
                         properties.opacity.value * 1
                     );
                 case "model-rectangle":
-                    return new RectangleModel(
+                    return new RectangleModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
                         properties.width.value * 1,
@@ -583,7 +593,7 @@ ${input}
                         properties.opacity.value * 1
                     );
                 case "model-circle":
-                    return new CircleModel(
+                    return new CircleModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
                         properties.radius.value,
@@ -592,7 +602,7 @@ ${input}
                         properties.opacity.value * 1
                     );
                 case "model-light":
-                    return new RayCastModel(
+                    return new RayCastModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
                         properties.color.value,
@@ -608,7 +618,7 @@ ${input}
         };
         const createCollision = async props => {
             const scr = await loadProjectScript(props.customScript.value);
-            let collisionClass = sceneType === "game" ? scr || RectangleCollision : RectangleCollision;
+            let collisionClass = sceneType === "game" ? scr || RectangleCollision2D : RectangleCollision2D;
             let collision;
             try {
                 collision = new collisionClass(
@@ -618,7 +628,7 @@ ${input}
                     props.height.value * 1
                 );
             } catch (e) {
-                collision = new RectangleCollision(
+                collision = new RectangleCollision2D(
                     props.x.value * 1,
                     props.y.value * 1,
                     props.width.value * 1,
@@ -634,12 +644,12 @@ ${input}
         };
         const createEntity = async (props) => {
             const scr = await loadProjectScript(props.customScript.value);
-            let entityClass = sceneType === "game" ? scr || Entity : Entity;
+            let entityClass = sceneType === "game" ? scr || Entity2D : Entity2D;
             let entity;
             try {
                 entity = new entityClass(props.x.value * 1, props.y.value * 1);
             } catch (e) {
-                entity = new Entity(props.x.value * 1, props.y.value * 1);
+                entity = new Entity2D(props.x.value * 1, props.y.value * 1);
             }
             entity.x = props.x.value * 1;
             entity.x = props.x.value * 1;
@@ -662,12 +672,12 @@ ${input}
         };
         const createTile = async (props) => {
             const scr = await loadProjectScript(props.customScript.value);
-            let tileClass = sceneType === "game" ? scr || Tile : Tile;
+            let tileClass = sceneType === "game" ? scr || Tile2D : Tile2D;
             let tile;
             try {
                 tile = new tileClass(props.x.value * 1, props.y.value * 1);
             } catch (e) {
-                tile = new Tile(props.x.value * 1, props.y.value * 1);
+                tile = new Tile2D(props.x.value * 1, props.y.value * 1);
             }
             tile.x = props.x.value * 1;
             tile.y = props.y.value * 1;
@@ -768,7 +778,7 @@ ${input}
 
         const getEntitiesByMouse = (x, y) => {
             const cmr = (new Vector2(x + sceneCamera.x, y + sceneCamera.y));
-            return Scene.getInstance().entities.filter(entity => entity instanceof Entity && (entity.collides(cmr))).filter(i => i["__nodeId"] ? !document._light.project.json.nodes[i["__nodeId"]].locked : true);
+            return Scene.getInstance().entities.filter(entity => entity instanceof Entity2D && (entity.collides(cmr))).filter(i => i["__nodeId"] ? !document._light.project.json.nodes[i["__nodeId"]].locked : true);
         };
 
         canvas.addEventListener("mousedown", ev => {
@@ -801,11 +811,11 @@ ${input}
         });
 
         let setupCamera = false;
-        let cameraTile = new Tile(0, 0);
+        let cameraTile = new Tile2D(0, 0);
         cameraTile.__nodeId = "camera";
 
         addEventListener("resize", () => {
-            if (!cameraTile) return;
+            if (!cameraTile || !cameraTile.model || !cameraTile.collision) return;
             cameraTile.model.setWidth(canvas.width).setHeight(canvas.height);
             cameraTile.collision.setWidth(canvas.width).setHeight(canvas.height);
         });
@@ -814,14 +824,13 @@ ${input}
         let _sid = 0;
 
         async function setSceneType(type) {
-            const sid = _sid++;
-            scene_process = sid;
+            scene_process = _sid++;
             const cameraNode = document._light.project.json.nodes.camera;
             if (!cameraNode) return window.location.href = window.location.href.toString();
             document._light.loadedScriptList = {};
-            cameraTile.model = new RectangleModel(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
+            cameraTile.model = new RectangleModel2D(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
             cameraTile.models = [cameraTile.model];
-            cameraTile.collision = new RectangleCollision(0, 0, canvas.width, canvas.height);
+            cameraTile.collision = new RectangleCollision2D(0, 0, canvas.width, canvas.height);
             cameraTile.collisions = [cameraTile.collision];
             sceneType = type;
             switch (sceneType) {
@@ -861,9 +870,9 @@ ${input}
                                 entity.__nodeId = j;
                                 entity.collisionTiles = [];
                                 if (i1.properties.collisionBorder.value) entity.collisions.forEach(i => {
-                                    if (!(i instanceof RectangleCollision)) return;
-                                    const t = new Tile(entity.x, entity.y);
-                                    t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
+                                    if (!(i instanceof RectangleCollision2D)) return;
+                                    const t = new Tile2D(entity.x, entity.y);
+                                    t.addModel(new RectangleModel2D(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
                                     t.initToScene();
                                     entity.collisionTiles.push(t);
                                 });
@@ -875,15 +884,15 @@ ${input}
                                 tile.__nodeId = j;
                                 tile.collisionTiles = [];
                                 if (i1.properties.collisionBorder.value) tile.collisions.forEach(i => {
-                                    if (!(i instanceof RectangleCollision)) return;
-                                    const t = new Tile(tile.x, tile.y);
-                                    t.addModel(new RectangleModel(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
+                                    if (!(i instanceof RectangleCollision2D)) return;
+                                    const t = new Tile2D(tile.x, tile.y);
+                                    t.addModel(new RectangleModel2D(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
                                     t.initToScene();
                                     tile.collisionTiles.push(t);
                                 });
                                 break;
                             case "text":
-                                const textTile = new Tile(0, 0);
+                                const textTile = new Tile2D(0, 0);
                                 textTile.x = i1.properties.x.value * 1;
                                 textTile.y = i1.properties.y.value * 1;
                                 const textModel = await createModel({type: "model-text", properties: i1.properties});
@@ -892,13 +901,13 @@ ${input}
                                 textTile.addModel(textModel);
                                 textTile.initToScene();
                                 textTile.__nodeId = j;
-                                const size = TextModel.calculateTextSize(textModel.text, textModel.size, textModel.font, textModel.maxWidth);
-                                const coll = new RectangleCollision(0, textModel.size / 3, size.width, size.height);
+                                const size = TextModel2D.calculateTextSize(textModel.text, textModel.size, textModel.font, textModel.maxWidth);
+                                const coll = new RectangleCollision2D(0, textModel.size / 3, size.width, size.height);
                                 coll.isInvalid = true;
                                 textTile.addCollision(coll);
                                 if (i1.properties.collisionBorder.value) {
-                                    const t = new Tile(textTile.x, textTile.y);
-                                    t.addModel(new RectangleModel(0, textModel.size / 3, size.width, size.height, null, themes[theme].json["general-color"]));
+                                    const t = new Tile2D(textTile.x, textTile.y);
+                                    t.addModel(new RectangleModel2D(0, textModel.size / 3, size.width, size.height, null, themes[theme].json["general-color"]));
                                     t.initToScene();
                                     textTile.collisionTiles = [t];
                                 }
@@ -909,15 +918,15 @@ ${input}
                                 cameraTile.initToScene();
                                 break;
                             case "light":
-                                const ray = new Tile(i1.properties.x.value * 1, i1.properties.y.value * 1);
+                                const ray = new Tile2D(i1.properties.x.value * 1, i1.properties.y.value * 1);
                                 if (i1.properties.collisionBorder.value) {
-                                    ray.addModel(ray.model = (new RectangleModel(-25, -25, 50, 50, null, themes[theme].json["general-color"])));
-                                    ray.addModel(new RectangleModel(-5, -5, 10, 10, null, themes[theme].json["general-color"]));
+                                    ray.addModel(ray.model = (new RectangleModel2D(-25, -25, 50, 50, null, themes[theme].json["general-color"])));
+                                    ray.addModel(new RectangleModel2D(-5, -5, 10, 10, null, themes[theme].json["general-color"]));
                                 }
-                                ray.collision = new RectangleCollision(-25, -25, ray.model.width, ray.model.height);
+                                ray.collision = new RectangleCollision2D(-25, -25, ray.model.width, ray.model.height);
                                 ray.addCollision(ray.collision)
                                     .addModel(
-                                        new RayCastModel(0, 0, i1.properties.color.value, i1.properties.opacity.value)
+                                        new RayCastModel2D(0, 0, i1.properties.color.value, i1.properties.opacity.value)
                                             .setStartAngle(i1.properties.startAngle.value)
                                             .setEndAngle(i1.properties.endAngle.value)
                                             .setRayPopulation(i1.properties.rayPopulation.value)
@@ -959,7 +968,7 @@ ${input}
                                 tile.__nodeId = j;
                                 break;
                             case "text":
-                                const textTile = new Tile(0, 0);
+                                const textTile = new Tile2D(0, 0);
                                 const textModel = await createModel({type: "model-text", properties: i1.properties});
                                 textTile.addModel(textModel);
                                 textTile.initToScene();
@@ -983,9 +992,9 @@ ${input}
                                 }
                                 break;
                             case "light":
-                                const ray = new Tile(i1.properties.x.value * 1, i1.properties.y.value * 1);
+                                const ray = new Tile2D(i1.properties.x.value * 1, i1.properties.y.value * 1);
                                 ray.addModel(
-                                    new RayCastModel(0, 0, i1.properties.color.value, i1.properties.opacity.value)
+                                    new RayCastModel2D(0, 0, i1.properties.color.value, i1.properties.opacity.value)
                                         .setStartAngle(i1.properties.startAngle.value)
                                         .setEndAngle(i1.properties.endAngle.value)
                                         .setRayPopulation(i1.properties.rayPopulation.value)
