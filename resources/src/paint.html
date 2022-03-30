@@ -21,6 +21,8 @@
     <button class="button eraser_btn" onclick="currentItem = 1"></button>
     <button class="button line_btn" onclick="currentItem = 2"></button>
     <button class="button rect_btn" onclick="currentItem = 3"></button>
+    <button class="button rect_btn" onclick="currentItem = 4"></button>
+    <button class="button rect_btn" onclick="currentItem = 5"></button>
 </div>
 <script>
     /*** @type {HTMLCanvasElement} */
@@ -76,24 +78,62 @@
         ellipse(x, y, radius, radius, fill, stroke);
     }
 
-    function line(x1, y1, x2, y2, stroke = "#000000") {
-        linePath([[x1, y1], [x2, y2]], stroke);
+    function line(x1, y1, x2, y2, stroke = "#000000", width = lineWidth()) {
+        linePath([[x1, y1], [x2, y2]], stroke, width);
     }
 
-    function linePath(path, stroke = "#000000") {
+    function linePath(path, stroke = "#000000", width = lineWidth()) {
         ctx.beginPath();
         ctx.moveTo(path[0][0], path[0][1]);
         path.slice(1).forEach(i => ctx.lineTo(i[0], i[1]));
         ctx.strokeStyle = stroke;
-        ctx.lineWidth = lineWidth();
+        ctx.lineWidth = width;
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    function borderRect(x, y, w, h, r = 3, fill = "#000000", stroke = fill, width = lineWidth()) {
+        if (w < 0) {
+            x += w;
+            w *= -1;
+        }
+        if (h < 0) {
+            y += h;
+            h *= -1;
+        }
+        rect(x + r, y, w - 2 * r, h, fill, stroke, width);
+        rect(x, y + r, w, h - 2 * r, fill, stroke, width);
+        ellipse(x + r, y + r, r, r, fill, stroke);
+        ellipse(x + w - r, y + r, r, r, fill, stroke);
+        ellipse(x + r, y + h - r, r, r, fill, stroke);
+        ellipse(x + w - r, y + h - r, r, r, fill, stroke);
+    }
+
+    function borderSquare(x, y, w, r = 3, fill = "#000000", stroke = fill, width = lineWidth()) {
+        borderRect(x, y, w, w, r, fill, stroke, width);
+    }
+
+    function triangle(x, y, w, h, fill = "#000000", stroke = fill, width = lineWidth()) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w / 2, y + h);
+        ctx.lineTo(x + w, y);
+        ctx.lineTo(x, y);
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = stroke;
+        ctx.fill();
         ctx.stroke();
         ctx.closePath();
     }
 
     function ellipse(cx, cy, rx, ry, fill = "#000000", stroke = fill) {
+        ctx.beginPath();
         ctx.fillStyle = fill;
         ctx.strokeStyle = stroke;
         ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fill();
+        ctx.closePath();
     }
 
     const actions = {};
@@ -134,8 +174,8 @@
                 currentAction = () => linePath(currentPath, strokeColor());
                 break;
             case 1:
-                currentPath = [];
-                currentAction = () => currentPath.forEach(i => clearSquare(...i, lineWidth()));
+                currentPath = [mouse.x, mouse.y];
+                currentAction = () => doShape(heldKeys["Shift"], [mouse.x, mouse.y], currentPath, fillColor(), strokeColor(), clearRect);
                 break;
             case 2:
                 currentPath = [mouse.x, mouse.y];
@@ -143,7 +183,15 @@
                 break;
             case 3:
                 currentPath = [mouse.x, mouse.y];
-                currentAction = () => doRect(heldKeys["Shift"], [mouse.x, mouse.y], currentPath);
+                currentAction = () => doShape(heldKeys["Shift"], [mouse.x, mouse.y], currentPath, fillColor(), strokeColor(), rect);
+                break;
+            case 4:
+                currentPath = [mouse.x, mouse.y];
+                currentAction = () => doShape(heldKeys["Shift"], [mouse.x, mouse.y], currentPath, fillColor(), strokeColor(), borderRect);
+                break;
+            case 5:
+                currentPath = [mouse.x, mouse.y];
+                currentAction = () => doShape(heldKeys["Shift"], [mouse.x, mouse.y], currentPath, fillColor(), strokeColor(), triangle);
                 break;
         }
     }
@@ -157,19 +205,25 @@
             stroke: strokeColor(),
             width: lineWidth()
         };
+        const shiftClone = heldKeys["Shift"];
         switch (currentItem) {
             case 0:
-                addAction(() => linePath(pathClone, cloneColors.stroke));
+                addAction(() => linePath(pathClone, cloneColors.stroke, cloneColors.width));
                 break;
             case 1:
-                addAction(() => pathClone.forEach(i => clearSquare(...i, lineWidth())));
+                addAction(() => doShape(shiftClone, mouseClone, pathClone, cloneColors.fill, cloneColors.stroke, clearRect));
                 break;
             case 2:
-                addAction(() => line(...pathClone, ...mouseClone, cloneColors.stroke));
+                addAction(() => line(pathClone[0], pathClone[1], mouseClone[0], mouseClone[1], cloneColors.stroke, cloneColors.width));
                 break;
             case 3:
-                const shiftClone = heldKeys["Shift"];
-                addAction(() => doRect(shiftClone, mouseClone, pathClone));
+                addAction(() => doShape(shiftClone, mouseClone, pathClone, cloneColors.fill, cloneColors.stroke, rect));
+                break;
+            case 4:
+                addAction(() => doShape(shiftClone, mouseClone, pathClone, cloneColors.fill, cloneColors.stroke, borderRect));
+                break;
+            case 5:
+                addAction(() => doShape(shiftClone, mouseClone, pathClone, cloneColors.fill, cloneColors.stroke, triangle));
                 break;
         }
         currentPath = null;
@@ -184,16 +238,13 @@
             case 0:
                 currentPath.push([mouse.x, mouse.y]);
                 break;
-            case 1:
-                currentPath.push([mouse.x - (lineWidth() / 2), mouse.y - (lineWidth() / 2)]);
-                break;
         }
     }
 
     function onMouseClick() {
     }
 
-    function doRect(shiftClone, mouseClone, pathClone) {
+    function doShape(shiftClone, mouseClone, pathClone, fill = fillColor(), stroke = strokeColor(), f = rect, r) {
         const xDist = mouseClone[0] - pathClone[0];
         const yDist = mouseClone[1] - pathClone[1];
         if (xDist === 0 || yDist === 0) return;
@@ -204,10 +255,11 @@
             if (xDist < 0 && yDist > 0) n = -xDist < yDist ? xDist : -yDist;
             if (yDist < 0 && xDist > 0) n = -yDist < xDist ? yDist : -xDist;*/
             const wDist = Math.min(Math.abs(xDist), Math.abs(yDist)) === Math.abs(xDist) ? xDist : yDist;
-            rect(pathClone[0], pathClone[1], Math.abs(wDist) * (xDist / Math.abs(xDist)), Math.abs(wDist) * (yDist / Math.abs(yDist)), fillColor(), strokeColor());
+            const a = [];
+            f(...[pathClone[0], pathClone[1], Math.abs(wDist) * (xDist / Math.abs(xDist)), Math.abs(wDist) * (yDist / Math.abs(yDist)), ...(f === borderRect ? [r] : []), fill, stroke]);
             //square(pathClone[0], pathClone[1], (), fillColor(), strokeColor());
         } else {
-            rect(pathClone[0], pathClone[1], xDist, yDist, fillColor(), strokeColor());
+            f(pathClone[0], pathClone[1], xDist, yDist, ...(f === borderRect ? [r] : []), fill, stroke);
         }
     }
 

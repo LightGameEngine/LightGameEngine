@@ -513,7 +513,7 @@ function keysPressing() {
     return Object.keys(_hK);
 }
 
-class Model {
+class Model2D {
     /*** @type {number} */
     opacity;
     /*** @type {number} */
@@ -537,14 +537,14 @@ class Model {
 
     /**
      * @param {Scene} scene
-     * @param {Entity} entity
+     * @param {Entity2D} entity
      * @param {Vector2} position
      */
     draw(scene, entity, position) {
     }
 }
 
-class ImageModel extends Model {
+class ImageModel2D extends Model2D {
     static PROPERTIES = ["offsetX", "offsetY", "width", "height", "image"];
     /*** @type {number} */
     width;
@@ -568,7 +568,7 @@ class ImageModel extends Model {
 
     /**
      * @param {number} width
-     * @returns {ImageModel}
+     * @returns {ImageModel2D}
      */
     setWidth(width) {
         this.width = width;
@@ -577,7 +577,7 @@ class ImageModel extends Model {
 
     /**
      * @param {number} height
-     * @returns {ImageModel}
+     * @returns {ImageModel2D}
      */
     setHeight(height) {
         this.height = height;
@@ -600,12 +600,12 @@ class ImageModel extends Model {
     setImage(urlOrImage) {
         if (urlOrImage instanceof Image) return this.image = urlOrImage;
         document._cc.info("INFO: We don't prefer using Model.setImage function with url");
-        ImageModel.loadImage(urlOrImage).then(img => this.setImage(img));
+        ImageModel2D.loadImage(urlOrImage).then(img => this.setImage(img));
     }
 
     /**
      * @param {Scene} scene
-     * @param {Entity} entity
+     * @param {Entity2D} entity
      * @param {Vector2} position
      */
     draw(scene, entity, position) {
@@ -622,7 +622,7 @@ class ImageModel extends Model {
     }
 }
 
-class TextModel extends Model {
+class TextModel2D extends Model2D {
     static PROPERTIES = ["offsetX", "offsetY", "text", "font", "size", "color", "maxWidth"];
     /*** @type {string} */
     text;
@@ -656,7 +656,7 @@ class TextModel extends Model {
 
     /**
      * @param {string} text
-     * @returns {TextModel}
+     * @returns {TextModel2D}
      */
     setText(text) {
         this.text = text;
@@ -665,7 +665,7 @@ class TextModel extends Model {
 
     /**
      * @param {string} font
-     * @returns {TextModel}
+     * @returns {TextModel2D}
      */
     setFont(font) {
         this.font = font;
@@ -674,7 +674,7 @@ class TextModel extends Model {
 
     /**
      * @param {number} size
-     * @returns {TextModel}
+     * @returns {TextModel2D}
      */
     setSize(size) {
         this.size = size;
@@ -683,7 +683,7 @@ class TextModel extends Model {
 
     /**
      * @param {string} color
-     * @returns {TextModel}
+     * @returns {TextModel2D}
      */
     setColor(color) {
         this.color = color;
@@ -692,7 +692,7 @@ class TextModel extends Model {
 
     /**
      * @param {number?} maxWidth
-     * @returns {TextModel}
+     * @returns {TextModel2D}
      */
     setMaxWidth(maxWidth) {
         this.maxWidth = maxWidth;
@@ -720,13 +720,13 @@ class TextModel extends Model {
 
     /**
      * @param {Scene} scene
-     * @param {Entity} entity
+     * @param {Entity2D} entity
      * @param {Vector2} position
      */
     draw(scene, entity, position) {
         if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
-        let {width, height} = TextModel.calculateTextSize(this.text, this.size, this.font, this.maxWidth);
+        let {width, height} = TextModel2D.calculateTextSize(this.text, this.size, this.font, this.maxWidth);
         position = position.add(0, height);
         const {ctx} = scene;
         width *= scene.zoom;
@@ -741,7 +741,7 @@ class TextModel extends Model {
     }
 }
 
-class PathModel extends Model {
+class PathModel2D extends Model2D {
     static PROPERTIES = ["offsetX", "offsetY", "path", "fillColor", "strokeColor", "middle"];
     /*** @type {{offsetX: number, offsetY: number}[]} */
     path;
@@ -770,7 +770,7 @@ class PathModel extends Model {
 
     /**
      * @param {{offsetX: number, offsetY: number}[]} path
-     * @returns {PathModel}
+     * @returns {PathModel2D}
      */
     setPath(path) {
         this.path = path;
@@ -779,7 +779,7 @@ class PathModel extends Model {
 
     /**
      * @param {string?} fillColor
-     * @returns {PathModel}
+     * @returns {PathModel2D}
      */
     setFillColor(fillColor) {
         this.fillColor = fillColor;
@@ -788,7 +788,7 @@ class PathModel extends Model {
 
     /**
      * @param {string?} strokeColor
-     * @returns {PathModel}
+     * @returns {PathModel2D}
      */
     setStrokeColor(strokeColor) {
         this.strokeColor = strokeColor;
@@ -797,7 +797,7 @@ class PathModel extends Model {
 
     /**
      * @param {Scene} scene
-     * @param {Entity} entity
+     * @param {Entity2D} entity
      * @param {Vector2} position
      */
     draw(scene, entity, position) {
@@ -823,7 +823,7 @@ class PathModel extends Model {
     }
 }
 
-class RectangleModel extends PathModel {
+class RectangleModel2D extends PathModel2D {
     static PROPERTIES = ["offsetX", "offsetY", "path", "fillColor", "strokeColor", "width", "height", "middle"];
     /*** @type {number} */
     width;
@@ -853,7 +853,7 @@ class RectangleModel extends PathModel {
 
     /**
      * @param {number} width
-     * @returns {RectangleModel}
+     * @returns {RectangleModel2D}
      */
     setWidth(width) {
         this.width = width;
@@ -864,7 +864,7 @@ class RectangleModel extends PathModel {
 
     /**
      * @param {number} height
-     * @returns {RectangleModel}
+     * @returns {RectangleModel2D}
      */
     setHeight(height) {
         this.height = height;
@@ -874,7 +874,7 @@ class RectangleModel extends PathModel {
     }
 }
 
-class CircleModel extends Model {
+class CircleModel2D extends Model2D {
     static PROPERTIES = ["offsetX", "offsetY", "radius", "fillColor", "strokeColor"];
     /*** @type {number} */
     radius;
@@ -900,7 +900,7 @@ class CircleModel extends Model {
 
     /**
      * @param {number} radius
-     * @returns {CircleModel}
+     * @returns {CircleModel2D}
      */
     setRadius(radius) {
         this.radius = radius;
@@ -909,7 +909,7 @@ class CircleModel extends Model {
 
     /**
      * @param {string?} fillColor
-     * @returns {CircleModel}
+     * @returns {CircleModel2D}
      */
     setFillColor(fillColor) {
         this.fillColor = fillColor;
@@ -918,7 +918,7 @@ class CircleModel extends Model {
 
     /**
      * @param {string?} strokeColor
-     * @returns {CircleModel}
+     * @returns {CircleModel2D}
      */
     setStrokeColor(strokeColor) {
         this.strokeColor = strokeColor;
@@ -927,7 +927,7 @@ class CircleModel extends Model {
 
     /**
      * @param {Scene} scene
-     * @param {Entity} entity
+     * @param {Entity2D} entity
      * @param {Vector2} position
      */
     draw(scene, entity, position) {
@@ -949,7 +949,7 @@ class CircleModel extends Model {
     }
 }
 
-class Collision {
+class Collision2D {
     /*** @type {number} */
     offsetX;
     /*** @type {number} */
@@ -969,7 +969,7 @@ class Collision {
 
     /**
      * @param {number} offsetX
-     * @returns {Collision}
+     * @returns {Collision2D}
      */
     setOffsetX(offsetX) {
         this.offsetX = offsetX;
@@ -978,7 +978,7 @@ class Collision {
 
     /**
      * @param {number} offsetY
-     * @returns {Collision}
+     * @returns {Collision2D}
      */
     setOffsetY(offsetY) {
         this.offsetY = offsetY;
@@ -988,7 +988,7 @@ class Collision {
     /**
      * @param {Vector2} currentPosition
      * @param {Vector2} vector2
-     * @param {Collision?} collision
+     * @param {Collision2D?} collision
      * @returns {boolean}
      */
     collides(currentPosition, vector2, collision = null) {
@@ -996,7 +996,7 @@ class Collision {
     }
 }
 
-class RectangleCollision extends Collision {
+class RectangleCollision2D extends Collision2D {
     static PROPERTIES = ["offsetX", "offsetY", "width", "height"];
     /*** @type {number} */
     width;
@@ -1017,7 +1017,7 @@ class RectangleCollision extends Collision {
 
     /**
      * @param {number} width
-     * @returns {RectangleCollision}
+     * @returns {RectangleCollision2D}
      */
     setWidth(width) {
         this.width = width;
@@ -1026,7 +1026,7 @@ class RectangleCollision extends Collision {
 
     /**
      * @param {number} height
-     * @returns {RectangleCollision}
+     * @returns {RectangleCollision2D}
      */
     setHeight(height) {
         this.height = height;
@@ -1034,8 +1034,8 @@ class RectangleCollision extends Collision {
     }
 
     collides(currentPosition, vector2, collision) {
-        if (collision && !(collision instanceof RectangleCollision)) return false;
-        if (!(collision instanceof RectangleCollision)) collision = new RectangleCollision(0, 0, 1, 1);
+        if (collision && !(collision instanceof RectangleCollision2D)) return false;
+        if (!(collision instanceof RectangleCollision2D)) collision = new RectangleCollision2D(0, 0, 1, 1);
         currentPosition = currentPosition.add(this.offsetX, this.offsetY);
         vector2 = vector2.add(collision.offsetX, collision.offsetY);
         const zoom = Scene.instance.zoom;
@@ -1046,14 +1046,14 @@ class RectangleCollision extends Collision {
     }
 }
 
-class Entity extends Vector2 {
+class Entity2D extends Vector2 {
     static PROPERTIES = [
         "x", "y", "rotation", "models", "gravityEnabled", "visible", "gravity", "gravityVelocity",
         "terminalGravityVelocity", "fallDistance", "onGround", "motion", "motionDivision", "collisions"
     ];
     /*** @type {number} */
     rotation = 0;
-    /*** @type {Model[]} */
+    /*** @type {Model2D[]} */
     models = [];
     /*** @type {boolean} */
     gravityEnabled = true;
@@ -1073,7 +1073,7 @@ class Entity extends Vector2 {
     motion = new Vector2(0, 0);
     /*** @type {Vector2} */
     motionDivision = new Vector2(10, 10);
-    /*** @type {Collision[]} */
+    /*** @type {Collision2D[]} */
     collisions = [];
 
     /**
@@ -1091,7 +1091,7 @@ class Entity extends Vector2 {
     /*** @returns {{start: Vector2, end: Vector2}[]} */
     getBoundaries() {
         return [].concat(...this.collisions.filter(i => !i["isInvalid"]).map(col => {
-            if (col instanceof RectangleCollision) {
+            if (col instanceof RectangleCollision2D) {
                 const width = col.width * Scene.instance.zoom;
                 const height = col.height * Scene.instance.zoom;
                 const offX = col.offsetX;
@@ -1137,16 +1137,17 @@ class Entity extends Vector2 {
             this.gravityVelocity = 0;
             this.onGround = true;
             if (this.fallDistance > 0) this.onFall(this.fallDistance);
+            this.fallDistance = 0;
         } else this.fallDistance += this.gravityVelocity;
     }
 
-    /*** @returns {Entity} */
+    /*** @returns {Entity2D} */
     enableGravity() {
         this.gravityEnabled = true;
         return this;
     }
 
-    /*** @returns {Entity} */
+    /*** @returns {Entity2D} */
     disableGravity() {
         this.gravityEnabled = false;
         return this;
@@ -1157,24 +1158,24 @@ class Entity extends Vector2 {
     }
 
     /**
-     * @param {Entity | Vector2} entityOrVector
+     * @param {Entity2D | Vector2} entityOrVector
      * @returns {boolean}
      */
     collides(entityOrVector) {
-        if (!(entityOrVector instanceof Entity)) return this.collisions.some(col => col.collides(this.clone(), entityOrVector));
+        if (!(entityOrVector instanceof Entity2D)) return this.collisions.some(col => col.collides(this.clone(), entityOrVector));
         return entityOrVector.collisions.some(col1 => this.collisions.some(col2 => col1.collides(entityOrVector.clone(), this.clone(), col2)))
     }
 
     /**
      * @param {boolean} visible
-     * @returns {Entity | null}
+     * @returns {Entity2D | null}
      */
     collidesAnyEntity(visible = true) {
         return Scene.getInstance().entities.find(i => i !== this && i.visible === visible && this.collides(i));
     }
 
     /**
-     * @param {Model} model
+     * @param {Model2D} model
      * @returns {this}
      */
     addModel(model) {
@@ -1183,8 +1184,8 @@ class Entity extends Vector2 {
     }
 
     /**
-     * @param {Model} model
-     * @returns {Entity}
+     * @param {Model2D} model
+     * @returns {Entity2D}
      */
     removeModel(model) {
         this.models = this.models.filter(i => i !== model);
@@ -1192,8 +1193,8 @@ class Entity extends Vector2 {
     }
 
     /**
-     * @param {Collision[]} collisions
-     * @returns {Entity}
+     * @param {Collision2D[]} collisions
+     * @returns {Entity2D}
      */
     setCollisions(collisions) {
         this.collisions = collisions;
@@ -1201,8 +1202,8 @@ class Entity extends Vector2 {
     }
 
     /**
-     * @param {Collision} collision
-     * @returns {Entity}
+     * @param {Collision2D} collision
+     * @returns {Entity2D}
      */
     addCollision(collision) {
         this.collisions.push(collision);
@@ -1210,8 +1211,8 @@ class Entity extends Vector2 {
     }
 
     /**
-     * @param {Collision} collision
-     * @returns {Entity}
+     * @param {Collision2D} collision
+     * @returns {Entity2D}
      */
     removeCollision(collision) {
         this.collisions = this.collisions.filter(col => col !== collision);
@@ -1219,12 +1220,12 @@ class Entity extends Vector2 {
     }
 }
 
-class Tile extends Entity {
+class Tile2D extends Entity2D {
     gravityEnabled = false;
 }
 
-class TileMapModel extends Model {
-    /*** @type {{x: number, y: number, model: Model}[]} */
+class TileMapModel2D extends Model2D {
+    /*** @type {{x: number, y: number, model: Model2D}[]} */
     subModels = [];
 
     /**
@@ -1239,7 +1240,7 @@ class TileMapModel extends Model {
     /**
      * @param {number} x
      * @param {number} y
-     * @param {Model} model
+     * @param {Model2D} model
      */
     addModel(x, y, model) {
         this.subModels.push({x, y, model});
@@ -1250,7 +1251,7 @@ class TileMapModel extends Model {
     }
 }
 
-class TileMap extends Entity {
+class TileMap extends Entity2D {
     /**
      * @param {number} offsetX
      * @param {number} offsetY
@@ -1260,7 +1261,7 @@ class TileMap extends Entity {
     }
 }
 
-class Particle extends Entity {
+class Particle extends Entity2D {
 }
 
 function spawnParticle(x, y, models = []) {
@@ -1272,13 +1273,13 @@ class Scene {
     canvas = null;
     /*** @type {CanvasRenderingContext2D | null} */
     ctx = null;
-    /*** @type {Entity[]} */
+    /*** @type {Entity2D[]} */
     entities = [];
     camera = new Vector2(0, 0);
     zoom = 1.0;
     onUpdateStart = r => r;
     onUpdateEnd = r => r;
-    /*** @type {{start: Vector2, end: Vector2, entity: Entity}[]} */
+    /*** @type {{start: Vector2, end: Vector2, entity: Entity2D}[]} */
     boundaries = [];
     /*** @type {number[]} */
     static intervals = [];
@@ -1378,7 +1379,7 @@ async function loadSound(src) {
  * @param {number} rayPopulation
  * @returns {{start: Vector2, end: Vector2}[]}
  */
-function runRayCast({
+function runRayCast2D({
                         x,
                         y,
                         boundaries = [],
@@ -1419,10 +1420,10 @@ function runRayCast({
  * @param {number} startAngle
  * @param {number} endAngle
  * @param {number} rayPopulation
- * @param {Entity[]} entities
- * @returns {{start: Vector2, end: Vector2, entity: Entity}[]}
+ * @param {Entity2D[]} entities
+ * @returns {{start: Vector2, end: Vector2, entity: Entity2D}[]}
  */
-function runRayCastWithEntities({
+function runRayCastWithEntities2D({
                                     x,
                                     y,
                                     boundaries = [],
@@ -1431,7 +1432,7 @@ function runRayCastWithEntities({
                                     rayPopulation = 1
                                 }, entities) {
     // noinspection JSValidateTypes
-    return runRayCast({
+    return runRayCast2D({
         x,
         y,
         startAngle,
@@ -1445,7 +1446,7 @@ function runRayCastWithEntities({
     });
 }
 
-class RayCastModel extends Model {
+class RayCastModel2D extends Model2D {
     static PROPERTIES = ["startAngle", "endAngle", "rayPopulation", "lightenCamera", "inactiveNodes", "lineWidth"];
     startAngle = 0;
     endAngle = 360;
@@ -1463,11 +1464,12 @@ class RayCastModel extends Model {
     constructor(offsetX, offsetY, color, opacity) {
         super(offsetX, offsetY, opacity)
             .setColor(color);
+        this.color = color;
     }
 
     /**
      * @param {string} color
-     * @returns {RayCastModel}
+     * @returns {RayCastModel2D}
      */
     setColor(color) {
         this.color = color;
@@ -1476,7 +1478,7 @@ class RayCastModel extends Model {
 
     /**
      * @param {string[]} inactiveNodes
-     * @returns {RayCastModel}
+     * @returns {RayCastModel2D}
      */
     setInactiveNodes(inactiveNodes) {
         this.inactiveNodes = inactiveNodes;
@@ -1485,7 +1487,7 @@ class RayCastModel extends Model {
 
     /**
      * @param {number} startAngle
-     * @returns {RayCastModel}
+     * @returns {RayCastModel2D}
      */
     setStartAngle(startAngle) {
         this.startAngle = startAngle;
@@ -1494,7 +1496,7 @@ class RayCastModel extends Model {
 
     /**
      * @param {number} endAngle
-     * @returns {RayCastModel}
+     * @returns {RayCastModel2D}
      */
     setEndAngle(endAngle) {
         this.endAngle = endAngle;
@@ -1503,7 +1505,7 @@ class RayCastModel extends Model {
 
     /**
      * @param {number} rayPopulation
-     * @returns {RayCastModel}
+     * @returns {RayCastModel2D}
      */
     setRayPopulation(rayPopulation) {
         this.rayPopulation = rayPopulation;
@@ -1512,7 +1514,7 @@ class RayCastModel extends Model {
 
     /**
      * @param {number} lightenCamera
-     * @returns {RayCastModel}
+     * @returns {RayCastModel2D}
      */
     setLightenCamera(lightenCamera) {
         this.lightenCamera = lightenCamera;
@@ -1521,7 +1523,7 @@ class RayCastModel extends Model {
 
     /**
      * @param {number} lineWidth
-     * @returns {RayCastModel}
+     * @returns {RayCastModel2D}
      */
     setLineWidth(lineWidth) {
         this.lineWidth = lineWidth;
@@ -1544,25 +1546,25 @@ class RayCastModel extends Model {
                 {
                     start: new Vector2(sx, sy),
                     end: new Vector2(w, sy),
-                    entity: new Entity(0, 0)
+                    entity: new Entity2D(0, 0)
                 },
                 {
                     start: new Vector2(sx, sy),
                     end: new Vector2(sx, h),
-                    entity: new Entity(0, 0)
+                    entity: new Entity2D(0, 0)
                 },
                 {
                     start: new Vector2(w, sy),
                     end: new Vector2(w, h),
-                    entity: new Entity(0, 0)
+                    entity: new Entity2D(0, 0)
                 },
                 {
                     start: new Vector2(sx, h),
                     end: new Vector2(w, h),
-                    entity: new Entity(0, 0)
+                    entity: new Entity2D(0, 0)
                 });
         }
-        runRayCast({
+        runRayCast2D({
             x: position.x + this.offsetX,
             y: position.y + this.offsetY,
             boundaries: boundaries.map(i => [{
@@ -1588,19 +1590,24 @@ setInterval(() => Scene.getInstance().update(), 10);
 document._load_script = {};
 let _script_id = 0;
 
-/**
- * @param {string} file
- * @returns {Promise<{id: number, error: boolean, code: string | null}>}
- */
-const loadScript = file => {
-    let id = _script_id++;
-    return new Promise(r => {
-        document._load_script[id] = res => {
-            delete document._load_script[id];
-            r(res);
+(async () => {
+    try {
+        /**
+         * @param {string} file
+         * @returns {Promise<{id: number, error: boolean, code: string | null}>}
+         */
+        window.loadScript = file => {
+            let id = _script_id++;
+            return new Promise(r => {
+                document._load_script[id] = res => {
+                    delete document._load_script[id];
+                    r(res);
+                }
+                ws.sendPacket("load_script", {file, id});
+            });
         }
-        ws.sendPacket("load_script", {file, id});
-    });
-}
 
-addWSListener("load_script", res => document._load_script[res.id](res));
+        addWSListener("load_script", res => document._load_script[res.id](res));
+    } catch (e) {
+    }
+})();
