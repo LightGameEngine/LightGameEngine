@@ -66,6 +66,7 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\en_US.json", JSON.stringify({
     "property--maxWidth": "Max Width",
     "property--x": "X",
     "property--y": "Y",
+    "property--z": "Z",
     "property--fillColor": "Fill Color",
     "property--strokeColor": "Stroke Color",
     "property--rotation": "Rotation",
@@ -177,6 +178,7 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\tr_TR.json", JSON.stringify({
     "property--maxWidth": "Max Uzunluk",
     "property--x": "X",
     "property--y": "Y",
+    "property--z": "Z",
     "property--fillColor": "Doldurma Rengi",
     "property--strokeColor": "Çevre Rengi",
     "property--rotation": "Yön",
@@ -950,7 +952,7 @@ wss.on("connection", async socket => {
                     socket.sendPacket("get_home_path", {path: process.env.HOME});
                     break;
                 case "get_projects":
-                    socket.sendPacket("get_projects", {projects: await CacheManager.getProjects()});
+                    socket.sendPacket("get_projects", {projects: await CacheManager.getProjects(), property_list});
                     break;
                 case "get_folder":
                     if (fs.existsSync(json.data.path)) {

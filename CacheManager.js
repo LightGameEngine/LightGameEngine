@@ -20,11 +20,32 @@ const CAMERA_PROPERTY = (position = 0) => ({
             value: 0,
             default: 0,
             isDefaultProperty: true
+        }
+    },
+    position,
+    createdTimestamp: Date.now(),
+    group: null
+});
+const CAMERA_PROPERTY_3D = (position = 1) => ({
+    type: "camera3d",
+    locked: false,
+    properties: {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
         },
-        color: {
-            type: "color",
-            value: "#ffffff",
-            default: "#ffffff",
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        z: {
+            type: "number",
+            value: 0,
+            default: 0,
             isDefaultProperty: true
         }
     },
@@ -71,7 +92,7 @@ class CacheManager {
             json: {
                 camera: {x: 0, y: 0},
                 zoom: 1.0,
-                nodes: {camera: CAMERA_PROPERTY()}
+                nodes: {camera: CAMERA_PROPERTY(), camera3d: CAMERA_PROPERTY_3D()}
             },
             actions: [],
             createdTimestamp: Date.now(),
@@ -85,13 +106,8 @@ class CacheManager {
         this.createProject(path);
         if (!CacheManager.cache.projects[path].json.nodes.camera)
             CacheManager.cache.projects[path].json.nodes.camera = CAMERA_PROPERTY((Object.values(CacheManager.cache.projects[path].json.nodes).map(i => i.position).sort((a, b) => b - a)[0] || 0) + 1);
-        if (!CacheManager.cache.projects[path].json.nodes.camera.properties.color)
-            CacheManager.cache.projects[path].json.nodes.camera.properties.color = {
-                type: "color",
-                value: "#ffffff",
-                default: "#ffffff",
-                isDefaultProperty: true
-            };
+        if (!CacheManager.cache.projects[path].json.nodes.camera3d)
+            CacheManager.cache.projects[path].json.nodes.camera3d = CAMERA_PROPERTY_3D((Object.values(CacheManager.cache.projects[path].json.nodes).map(i => i.position).sort((a, b) => b - a)[0] || 0) + 1);
         CacheManager.cache.projects[path].lastOpenTimestamp = Date.now();
         browser.hide();
         socket.sendPacket("open_project", {name: CacheManager.cache.projects[path].name, path});
