@@ -27,7 +27,13 @@ const addWSOnceListener = (action, cb) => {
     ws._once[action].push(cb);
 };
 
-ws.sendPacket = (action, data) => ws.connected ? ws.send(JSON.stringify({action, data})) : waitingPackets.push({
-    action,
-    data
-});
+ws.sendPacket = (action, data) => {
+    if (ws.connected) {
+        console.log("[WS] Sending packet:", action, data);
+        ws.sendPacketForce(action, data);
+        return;
+    }
+    waitingPackets.push({action, data});
+}
+
+ws.sendPacketForce = (action, data) => ws.connected ? ws.send(JSON.stringify({action, data})) : waitingPackets.push({action, data});

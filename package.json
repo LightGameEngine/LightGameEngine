@@ -25,6 +25,7 @@
     "chalk": "^4.1.2",
     "create-desktop-shortcuts": "^1.6.0",
     "node-fetch": "^2.6.7",
+    "three": "^0.139.1",
     "ws": "^8.4.2"
   }
 }

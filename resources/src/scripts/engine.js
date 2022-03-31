@@ -1299,6 +1299,33 @@ class Scene {
         this.canvas = this.ctx?.canvas;
         if (!this.ctx) throw new Error("No context found!");
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.scene3d = new THREE.Scene();
+        this.camera3d = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        //this.renderer3d = new THREE.WebGLRenderer({canvas:this.canvas});
+        //console.log(this.renderer3d.domElement);
+        return;
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        const geometry = new THREE.BoxGeometry(10, 10, 10);
+        const material = new THREE.MeshBasicMaterial({color: "#ffffff"});
+        const cube = new THREE.Mesh(geometry, material);
+        scene3d.add(cube);
+        cube.position.y = 5;
+        const gridHelper = new THREE.GridHelper(100, 10, 0xffffff, 99999);
+        scene3d.add(gridHelper);
+        scene3d.camera.position.z = 100;
+        scene3d.camera.position.y = 100;
+        const controls = new THREE.OrbitControls(camera, renderer3d.domElement);
+        const controls2 = new THREE.FirstPersonControls(camera, renderer3d.domElement);
+        controls2.movementSpeed = 100;
+        controls2.activeLook = false;
+        const clock = new THREE.Clock();
+        /**
+         *
+         controls.update();
+         controls2.update(clock.getDelta());
+         renderer3d.render(scene, camera);
+         */
     }
 
     update() {
@@ -1380,13 +1407,13 @@ async function loadSound(src) {
  * @returns {{start: Vector2, end: Vector2}[]}
  */
 function runRayCast2D({
-                        x,
-                        y,
-                        boundaries = [],
-                        startAngle = 0,
-                        endAngle = Math.PI * 2,
-                        rayPopulation = 1
-                    }) {
+                          x,
+                          y,
+                          boundaries = [],
+                          startAngle = 0,
+                          endAngle = Math.PI * 2,
+                          rayPopulation = 1
+                      }) {
     const lines = [];
     for (let i = startAngle; i < endAngle; i += rayPopulation) {
         const ray = {x1: x, y1: y, x2: Math.sin(i * Math.PI / 180), y2: Math.cos(i * Math.PI / 180)};
@@ -1424,13 +1451,13 @@ function runRayCast2D({
  * @returns {{start: Vector2, end: Vector2, entity: Entity2D}[]}
  */
 function runRayCastWithEntities2D({
-                                    x,
-                                    y,
-                                    boundaries = [],
-                                    startAngle = 0,
-                                    endAngle = Math.PI * 2,
-                                    rayPopulation = 1
-                                }, entities) {
+                                      x,
+                                      y,
+                                      boundaries = [],
+                                      startAngle = 0,
+                                      endAngle = Math.PI * 2,
+                                      rayPopulation = 1
+                                  }, entities) {
     // noinspection JSValidateTypes
     return runRayCast2D({
         x,
