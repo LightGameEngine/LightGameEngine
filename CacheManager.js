@@ -111,7 +111,6 @@ class CacheManager {
         CacheManager.cache.projects[path].lastOpenTimestamp = Date.now();
         browser.hide();
         socket.sendPacket("open_project", {name: CacheManager.cache.projects[path].name, path});
-        browser.resetPositionLimits();
         browser.maximize();
         browser.show();
     }

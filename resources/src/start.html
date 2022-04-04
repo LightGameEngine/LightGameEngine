@@ -10,7 +10,7 @@
 <body>
 <img draggable="false" style="user-select: none; position: absolute; left: 0; top: 0; width: 100%; height: 100%" src="../assets/start.gif">
 <script>
-    ws.sendPacket("screen_info", {width: screen.width, height: screen.height});
+    ws.sendPacketForce("screen_info", {width: screen.width, height: screen.height});
 </script>
 </body>
 </html>

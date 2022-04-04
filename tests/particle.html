@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Particle</title>
+</head>
+<body>
+<canvas style="position: absolute; left: 0; top: 0" id="canvas"></canvas>
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    // create random function
+    const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    // make fireworks and particles
+    const fireworks = [];
+    const particles = [];
+    // mouse
+    let mouse = {
+        x: undefined,
+        y: undefined
+    };
+    // colors
+    const colors = [
+        '#FF1461',
+        '#18FF92',
+        '#5A87FF',
+        '#FBF38C',
+        '#FFA2D0'
+    ];
+    // mouse move
+    window.addEventListener('mousemove', function (event) {
+        mouse.x = event.x;
+        mouse.y = event.y;
+    });
+    // mouse click
+    window.addEventListener('click', function (event) {
+        // add fireworks
+        fireworks.push(new Firework(mouse.x, mouse.y, randomColor()));
+    });
+
+    // draw
+    function draw() {
+        // background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // fireworks
+        for (let i = 0; i < fireworks.length; i++) {
+            fireworks[i].draw();
+        }
+        // particles
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].draw();
+        }
+        // loop
+        requestAnimationFrame(draw);
+    }
+
+    // random color
+    function randomColor() {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        return color;
+    }
+
+    // firework
+    function Firework(sx, sy, color) {
+        this.x = sx;
+        this.y = sy;
+        this.color = color;
+        this.radius = 0;
+        this.particles = [];
+        // create particles
+        for (let i = 0; i < 100; i++) {
+            this.particles.push(new Particle(this.x, this.y, this.color));
+        }
+        // animate
+        this.draw = function () {
+            // increase radius
+            this.radius += 0.1;
+            // create particles
+            for (let i = 0; i < this.particles.length; i++) {
+                this.particles[i].draw();
+            }
+            // remove if radius is greater than 10
+            if (this.radius > 10) {
+                fireworks.splice(fireworks.indexOf(this), 1);
+            }
+        };
+    }
+
+    // particle
+    function Particle(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        // random angle in radians
+        this.angle = random(0, Math.PI * 2);
+        // random speed between 1 and 2
+        this.speed = random(1, 2);
+        // random radius between 2 and 4
+        this.radius = random(2, 4);
+        // draw
+        this.draw = function () {
+            // change the angle
+            this.angle += random(-0.5, 0.5);
+            // change the speed
+            this.speed += random(-0.5, 0.5);
+            // change the position
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+            // draw the particle
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            // remove if the particle is outside the canvas
+            if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                particles.splice(particles.indexOf(this), 1);
+            }
+        };
+    }
+
+    // start animation
+    draw();
+
+</script>
+</body>
+</html>

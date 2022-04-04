@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3d</title>
+    <script src="../resources/src/scripts/lib/three.js"></script>
+</head>
+<body>
+<script>
+    const scene3d = new THREE.Scene();
+    const camera3d = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer3d = new THREE.WebGLRenderer();
+    renderer3d.setSize(window.innerWidth, window.innerHeight);
+    renderer3d.domElement.style.position = 'absolute';
+    renderer3d.domElement.style.top = '0';
+    renderer3d.domElement.style.left = '0';
+    document.body.appendChild(renderer3d.domElement);
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
+    const cube = new THREE.Mesh(geometry, material);
+    scene3d.add(cube);
+    camera3d.position.z = 5;
+    renderer3d.render(scene3d, camera3d);
+    /*const gridHelper = new THREE.GridHelper(100, 10, 0xffffff, 99999);
+    scene3d.add(gridHelper);
+    camera3d.position.z = 100;
+    camera3d.position.y = 100;
+    const controls = new THREE.OrbitControls(camera3d, renderer3d.domElement);
+    const controls2 = new THREE.FirstPersonControls(camera3d, renderer3d.domElement);
+    controls2.movementSpeed = 100;
+    controls2.activeLook = false;
+    const clock = new THREE.Clock();*/
+</script>
+</body>
+</html>

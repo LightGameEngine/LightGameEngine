@@ -45,9 +45,17 @@
 
 .canvas {
     position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.canvas_back {
+    position: absolute;
     left: 20%;
     top: 3%;
     background: var(--canvas-background);
+    width: 60.1%;
+    height: 75%;
 }
 
 .right_container {

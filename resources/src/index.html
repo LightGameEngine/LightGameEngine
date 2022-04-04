@@ -86,10 +86,10 @@
     ch_t.addEventListener("mouseout", () => theme_display.hidden = true);
     addWSListener("invalid_project_folder", () => set_default_project_folder(null, false));
     addWSListener("project_folder", ({folder}) => set_default_project_folder(folder, false));
-    addWSOnceListener("connected", () => ws.sendPacket("project_folder"));
+    addWSOnceListener("connected", () => ws.sendPacketForce("project_folder"));
     const set_default_project_folder = (folder, save = true) => {
         default_project_folder = folder;
-        if (save) ws.sendPacket("set_project_folder", {folder});
+        if (save) ws.sendPacketForce("set_project_folder", {folder});
         if (is_settings_open) open_settings();
     }
     let default_project_folder;
@@ -99,7 +99,7 @@
         if (!input) return err ? err.innerHTML = m("project-name-empty") + "<br>" : null;
         if (input.split("").some(i => !/\w|\d/.test(i))) return err ? err.innerHTML = m("project-name-invalid") + "<br>" : null;
         if (!default_project_folder) return err ? err.innerHTML = m("should-define-project-folder") + "<br>" : null;
-        ws.sendPacket("create_project", {
+        ws.sendPacketForce("create_project", {
             name: input
         });
         close_popup();
@@ -114,7 +114,7 @@
     const select_default_project_folder = () => {
         file_explorer.open("folder").then(folder => {
             set_default_project_folder(folder.path);
-            ws.sendPacket("project_folder", {folder: default_project_folder});
+            ws.sendPacketForce("project_folder", {folder: default_project_folder});
         });
     }
 
@@ -136,7 +136,7 @@
 
     const open_project = () => {
         file_explorer.open("folder").then(folder => {
-            ws.sendPacket("open_project", {path: folder.path});
+            ws.sendPacketForce("open_project", {path: folder.path});
         });
     }
 
@@ -159,11 +159,11 @@
     });
 
     const open_project_by_path = path => {
-        ws.sendPacket("open_project", {path: path});
+        ws.sendPacketForce("open_project", {path: path});
     }
 
     function update_projects() {
-        ws.sendPacket("get_projects");
+        ws.sendPacketForce("get_projects");
     }
 
     function update_projects_manually() {
@@ -207,13 +207,13 @@
     }
 
     function remove_project(path) {
-        ws.sendPacket("remove_project", {path});
-        ws.sendPacket("get_projects");
+        ws.sendPacketForce("remove_project", {path});
+        ws.sendPacketForce("get_projects");
     }
 
     function rename_project(from, to) {
-        ws.sendPacket("rename_project", {path: from, name: to});
-        ws.sendPacket("get_projects");
+        ws.sendPacketForce("rename_project", {path: from, name: to});
+        ws.sendPacketForce("get_projects");
         close_popup();
     }
 
