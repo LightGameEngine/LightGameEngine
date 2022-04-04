@@ -10,6 +10,7 @@
     <script src="scripts/themeManager.js"></script>
     <script src="scripts/lib/three.js"></script>
     <script src="scripts/lib/OrbitControls.js"></script>
+    <script src="scripts/lib/FirstPersonControls.js"></script>
 </head>
 <body style="overflow-x: hidden">
 <div class="body">
@@ -30,7 +31,7 @@
     </div>
     <div id="dmn_div"
          onclick="document._light.setSceneType('editor'+(document._light.getSceneType() === 'editor3d' ? '2d' : '3d'))"
-         style="position: absolute; cursor: pointer; left: 50%; width: 5%; height: 10%; background: var(--console-background)">
+         style="position: absolute; cursor: pointer; left: 50%; width: 5%; height: 3%; background: var(--console-background)">
         <img draggable="false" id="2d_btn" src="../assets/2d.png"
              style="width: 25px" hidden>
         <img draggable="false" id="3d_btn" src="../assets/3d.png"
@@ -74,7 +75,9 @@
         <table id="properties" style="position: absolute; left: -2px; top: -2px"></table>
     </div>
     <div class="console" id="console"></div>
-    <canvas data-engine="three.js r139" class="canvas" id="canvas"></canvas>
+    <div id="canvas_list" class="canvas_back">
+        <canvas class="canvas" id="canvas"></canvas>
+    </div>
 </div>
 <div id="prompt" hidden
      style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.2)">
@@ -113,6 +116,8 @@
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
+        Scene.init3D(document.getElementById("canvas_list"));
+
         const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
         const query = {};
         _query.forEach(i => query[i[0]] = i[1]);
@@ -141,8 +146,8 @@
         printHandler = renderConsole;
 
         function open_node_menu() {
-            const map = i => `<span onclick="document._light.open_add_node_menu('${i}')" class="node_select">${languages[lang]["node-" + i.replace("3d", "")] + (i === "script" ? "" : (i.endsWith("3d") ? " 3D" : " 2D"))}</span>`;
-            document.getElementById("node_menu").innerHTML = node_types.filter(i => !i.endsWith("3d") && i !== "script").map(map).join("<br>") + "<hr>" + node_types.filter(i => i.endsWith("3d")).map(map).join("<br>") + "<hr>" + map("script");
+            const map = i => `<span onclick="document._light.open_add_node_menu('${i}')" class="node_select">${languages[lang]["node-" + i.replace("3d", "")] + (i === "script" ? "" : (i.includes("3d") ? " 3D" : " 2D"))}</span>`;
+            document.getElementById("node_menu").innerHTML = node_types.filter(i => !i.includes("3d") && i !== "script").map(map).join("<br>") + "<hr>" + node_types.filter(i => i.includes("3d")).map(map).join("<br>") + "<hr>" + map("script");
             document.getElementById("node_menu").hidden = undefined;
         }
 
@@ -169,7 +174,7 @@
                     "model-image": ImageModel2D.PROPERTIES,
                     "model-text": TextModel2D.PROPERTIES,
                     "model-rectangle": RectangleModel2D.PROPERTIES,
-                    "model-circle": CircleModel2D.PROPERTIES,
+                    "model-ellipse": EllipseModel2D.PROPERTIES,
                     "model-light": RayCastModel2D.PROPERTIES,
                     collision: RectangleCollision2D.PROPERTIES,
                     tile: Tile2D.PROPERTIES,
@@ -205,8 +210,8 @@
             });
         }
 
-        const model2dTypes = ["image", "text", "rectangle", "circle", "light", "custom"];
-        const model3dTypes = ["image", "text", "rectangle", "circle", "light", "custom"];
+        const model2dTypes = ["image", "text", "rectangle", "ellipse", "light", "custom"];
+        const model3dTypes = ["cube", "sphere", "cylinder", "cone", "light", "custom"];
 
         function open_rename_node_menu(oldName) {
             prompt(
@@ -245,7 +250,7 @@
                         open_add_node_menu(type);
                         return document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
                     }
-                    add_node(type + (type === "model" ? "-" + modelType : ""), name);
+                    add_node(type + (type === "model" || type === "model3d" ? "-" + modelType : ""), name);
                 } else if (name !== null) {
                     open_add_node_menu(type);
                     document.getElementById("prompt-error").innerHTML = languages[lang]["invalid-node"];
@@ -465,8 +470,8 @@
                 }
             }
             const l = Object.keys(document._light.project.json.nodes).filter(key => !document._light.project.json.nodes[key].group).sort(sortNodeKeyPosition);
-            const twoD = l.filter(i => !document._light.project.json.nodes[i].type.endsWith("3d") && !document._light.project.json.nodes[i].type.startsWith("camera") && document._light.project.json.nodes[i].type !== "script");
-            const threeD = l.filter(i => document._light.project.json.nodes[i].type.endsWith("3d") && !document._light.project.json.nodes[i].type.startsWith("camera"));
+            const twoD = l.filter(i => !document._light.project.json.nodes[i].type.includes("3d") && !document._light.project.json.nodes[i].type.startsWith("camera") && document._light.project.json.nodes[i].type !== "script");
+            const threeD = l.filter(i => document._light.project.json.nodes[i].type.includes("3d") && !document._light.project.json.nodes[i].type.startsWith("camera"));
             const scriptL = l.filter(i => document._light.project.json.nodes[i].type === "script");
             const cameraL = l.filter(i => document._light.project.json.nodes[i].type.startsWith("camera"));
             document.getElementById("nodes").innerHTML = cameraL.map(mapNodeKey).join("") + (twoD.length > 0 ? "<hr>" : "") + twoD.map(mapNodeKey).join("") + (threeD.length > 0 ? "<hr>" + threeD.map(mapNodeKey).join("") : "") + (scriptL.length > 0 ? "<hr>" : "") + scriptL.map(mapNodeKey).join("");
@@ -520,6 +525,7 @@
             if (!document._light.selected_node || !document._light.project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
             const node = document._light.project.json.nodes[document._light.selected_node];
             const props = node.properties;
+            console.log(node, props, document._light.selected_node);
             document.getElementById("properties").innerHTML = Object.keys(props).filter(i => props[i].visible !== false).map(key => {
                 let input = `<input onchange="document._light.set_node_property('${document._light.selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" spellcheck="false" class="property_value" style="position: absolute; margin-left: -3px; margin-top: -10px; height: 19px" value="${props[key].value === null ? "" : props[key].value}" placeholder="<${languages[lang]["none"]}>">`;
                 switch (props[key].type) {
@@ -597,6 +603,7 @@ ${input}
                     const model = new ImageModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
+                        properties.rotation.value * 1,
                         properties.width.value * 1,
                         properties.height.value * 1,
                         properties.opacity.value * 1
@@ -607,6 +614,7 @@ ${input}
                     return new TextModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
+                        properties.rotation.value * 1,
                         properties.text.value,
                         properties.font.value,
                         properties.size.value * 1,
@@ -618,17 +626,20 @@ ${input}
                     return new RectangleModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
+                        properties.rotation.value * 1,
                         properties.width.value * 1,
                         properties.height.value * 1,
                         properties.fillColor.value,
                         properties.strokeColor.value,
                         properties.opacity.value * 1
                     );
-                case "model-circle":
-                    return new CircleModel2D(
+                case "model-ellipse":
+                    return new EllipseModel2D(
                         properties.x.value * 1,
                         properties.y.value * 1,
-                        properties.radius.value,
+                        properties.rotation.value * 1,
+                        properties.radiusX.value,
+                        properties.radiusY.value,
                         properties.fillColor.value,
                         properties.strokeColor.value,
                         properties.opacity.value * 1
@@ -846,14 +857,18 @@ ${input}
         let cameraTile = new Tile2D(0, 0);
         cameraTile.__nodeId = "camera";
 
-        addEventListener("resize", () => {
+        function refreshCameraTileSize() {
             if (!cameraTile || !cameraTile.model || !cameraTile.collision) return;
             cameraTile.model.setWidth(canvas.width).setHeight(canvas.height);
             cameraTile.collision.setWidth(canvas.width).setHeight(canvas.height);
-        });
+        }
+
+        addEventListener("resize", refreshCameraTileSize);
 
         let scene_process = false;
         let _sid = 0;
+
+        setTimeout(refreshCameraTileSize, 1000);
 
         async function setSceneType(type) {
             if (type.startsWith("editor")) {
@@ -869,7 +884,7 @@ ${input}
             const cameraNode = document._light.project.json.nodes.camera;
             if (!cameraNode || !document._light.project.json.nodes.camera3d) return main_menu();
             document._light.loadedScriptList = {};
-            cameraTile.model = new RectangleModel2D(0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
+            cameraTile.model = new RectangleModel2D(0, 0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
             cameraTile.models = [cameraTile.model];
             cameraTile.collision = new RectangleCollision2D(0, 0, canvas.width, canvas.height);
             cameraTile.collisions = [cameraTile.collision];
@@ -898,6 +913,7 @@ ${input}
                         sceneCamera.x = -canvas.width / 2;
                         sceneCamera.y = -canvas.height / 2;
                     }
+                    refreshCameraTileSize();
                     await refreshModelList();
                     await refreshCollisionList();
                     const nList = Object.keys(document._light.project.json.nodes).sort((a, b) => document._light.project.json.nodes[b].position - document._light.project.json.nodes[a].position).filter(i => ["entity", "tile", "text", "camera", "light"].includes(document._light.project.json.nodes[i].type)).sort((a, b) => document._light.project.json.nodes[a].position - document._light.project.json.nodes[b].position);
@@ -913,7 +929,7 @@ ${input}
                                 if (i1.properties.collisionBorder.value) entity.collisions.forEach(i => {
                                     if (!(i instanceof RectangleCollision2D)) return;
                                     const t = new Tile2D(entity.x, entity.y);
-                                    t.addModel(new RectangleModel2D(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
+                                    t.addModel(new RectangleModel2D(i.offsetX, i.offsetY, 0, i.width, i.height, null, themes[theme].json["general-color"]));
                                     t.initToScene();
                                     entity.collisionTiles.push(t);
                                 });
@@ -927,7 +943,7 @@ ${input}
                                 if (i1.properties.collisionBorder.value) tile.collisions.forEach(i => {
                                     if (!(i instanceof RectangleCollision2D)) return;
                                     const t = new Tile2D(tile.x, tile.y);
-                                    t.addModel(new RectangleModel2D(i.offsetX, i.offsetY, i.width, i.height, null, themes[theme].json["general-color"]));
+                                    t.addModel(new RectangleModel2D(i.offsetX, i.offsetY, 0, i.width, i.height, null, themes[theme].json["general-color"]));
                                     t.initToScene();
                                     tile.collisionTiles.push(t);
                                 });
@@ -948,7 +964,7 @@ ${input}
                                 textTile.addCollision(coll);
                                 if (i1.properties.collisionBorder.value) {
                                     const t = new Tile2D(textTile.x, textTile.y);
-                                    t.addModel(new RectangleModel2D(0, textModel.size / 3, size.width, size.height, null, themes[theme].json["general-color"]));
+                                    t.addModel(new RectangleModel2D(0, textModel.size / 3, 0, size.width, size.height, null, themes[theme].json["general-color"]));
                                     t.initToScene();
                                     textTile.collisionTiles = [t];
                                 }
@@ -961,8 +977,8 @@ ${input}
                             case "light":
                                 const ray = new Tile2D(i1.properties.x.value * 1, i1.properties.y.value * 1);
                                 if (i1.properties.collisionBorder.value) {
-                                    ray.addModel(ray.model = (new RectangleModel2D(-25, -25, 50, 50, null, themes[theme].json["general-color"])));
-                                    ray.addModel(new RectangleModel2D(-5, -5, 10, 10, null, themes[theme].json["general-color"]));
+                                    ray.addModel(ray.model = (new RectangleModel2D(-25, -25, 0, 50, 50, null, themes[theme].json["general-color"])));
+                                    ray.addModel(new RectangleModel2D(-5, -5, 0, 10, 10, null, themes[theme].json["general-color"]));
                                 }
                                 ray.collision = new RectangleCollision2D(-25, -25, ray.model.width, ray.model.height);
                                 ray.addCollision(ray.collision)
@@ -985,6 +1001,9 @@ ${input}
                     stop_btn.hidden = true;
                     break;
                 case "editor3d":
+                    Scene.getInstance().destroy();
+                    const scene = Scene.getInstance();
+                    Scene.renderer3d.domElement.style.display = "block";
 
                     break;
                 case "game":
@@ -992,10 +1011,6 @@ ${input}
                     renderConsole();
                     Scene.getInstance().destroy();
                     Scene.getInstance().camera.set(cameraNode.properties.x.value, cameraNode.properties.y.value);
-                    Scene.getInstance().onUpdateStart = () => {
-                        //ctx.fillStyle = "#ffffff";
-                        //ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    };
                     await refreshModelList();
                     await refreshCollisionList();
                     for (const j of Object.keys(document._light.project.json.nodes).sort((a, b) => document._light.project.json.nodes[b].position - document._light.project.json.nodes[a].position).filter(i => ["entity", "tile", "text", "script", "light"].includes(document._light.project.json.nodes[i].type))) {
@@ -1083,8 +1098,14 @@ ${input}
 
         setInterval(() => {
             const canvas = document.getElementById("canvas");
-            if (canvas.width !== Math.floor(window.innerWidth * 0.601)) canvas.width = Math.floor(window.innerWidth * 0.601);
-            if (canvas.height !== Math.floor(window.innerHeight * 0.751)) canvas.height = Math.floor(window.innerHeight * 0.751);
+            if (canvas.width !== Math.floor(window.innerWidth * 0.601)) {
+                canvas.width = Math.floor(window.innerWidth * 0.601);
+                refreshCameraTileSize();
+            }
+            if (canvas.height !== Math.floor(window.innerHeight * 0.751)) {
+                canvas.height = Math.floor(window.innerHeight * 0.751);
+                refreshCameraTileSize();
+            }
         });
 
         addWSListener("get_file", ({path, exists, type}) => {

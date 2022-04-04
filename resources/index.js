@@ -59,6 +59,7 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\en_US.json", JSON.stringify({
     "property--name": "Name",
     "property--width": "Width",
     "property--height": "Height",
+    "property--length": "Length",
     "property--text": "Text",
     "property--font": "Text Font",
     "property--size": "Font Size",
@@ -70,6 +71,9 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\en_US.json", JSON.stringify({
     "property--fillColor": "Fill Color",
     "property--strokeColor": "Stroke Color",
     "property--rotation": "Rotation",
+    "property--rotationX": "Rotation Z",
+    "property--rotationY": "Rotation Y",
+    "property--rotationZ": "Rotation Z",
     "property--models": "Models",
     "property--motionDivision": "Motion Multiplier",
     "property--collisions": "Collisions",
@@ -80,6 +84,9 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\en_US.json", JSON.stringify({
     "property--terminalGravityVelocity": "Max Gravity",
     "property--invisible": "Invisible",
     "property--radius": "Radius",
+    "property--radiusX": "Radius X",
+    "property--radiusY": "Radius Y",
+    "property--radiusZ": "Radius Z",
     "property--file": "File",
     "property--customScript": "Script",
     "property--collisionBorder": "Collision Border",
@@ -93,9 +100,13 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\en_US.json", JSON.stringify({
     "model-type-image": "Image",
     "model-type-text": "Text",
     "model-type-rectangle": "Rectangle",
-    "model-type-circle": "Circle",
+    "model-type-ellipse": "Ellipse",
     "model-type-light": "Light",
     "model-type-custom": "Custom",
+    "model-type-cube": "Cube",
+    "model-type-sphere": "Sphere",
+    "model-type-cylinder": "Cylinder",
+    "model-type-cone": "Cone",
     "select-model-type": "Select model type",
     "rename-node-title": "Rename Node",
     "enter-node-new-name": "Enter node's new name",
@@ -169,8 +180,9 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\tr_TR.json", JSON.stringify({
     "invalid-property-name": "Geçersiz özellik adı!",
     "property-exists": "Bu özellik zaten var!",
     "node-not-selected": "Bir nesne seçmeliydin!",
-    "property--width": "Uzunluk",
+    "property--width": "Genişlik",
     "property--height": "Yükseklik",
+    "property--length": "Uzunluk",
     "property--text": "Yazı",
     "property--font": "Yazı Tipi",
     "property--size": "Büyüklük",
@@ -182,6 +194,9 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\tr_TR.json", JSON.stringify({
     "property--fillColor": "Doldurma Rengi",
     "property--strokeColor": "Çevre Rengi",
     "property--rotation": "Yön",
+    "property--rotationX": "Yön X",
+    "property--rotationY": "Yön Y",
+    "property--rotationZ": "Yön Z",
     "property--models": "Modeller",
     "property--motionDivision": "Hareket Oranı",
     "property--collisions": "Çarpışma Kutuları",
@@ -192,6 +207,9 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\tr_TR.json", JSON.stringify({
     "property--terminalGravityVelocity": "Max Yer Çekimi",
     "property--invisible": "Görünmez",
     "property--radius": "Yarıçap",
+    "property--radiusX": "Yarıçap X",
+    "property--radiusY": "Yarıçap Y",
+    "property--radiusZ": "Yarıçap Z",
     "property--file": "Dosya",
     "property--customScript": "Skript",
     "property--collisionBorder": "Sınır Çizgisi",
@@ -204,10 +222,14 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\tr_TR.json", JSON.stringify({
     "none": "yok",
     "model-type-image": "Resim",
     "model-type-text": "Yazı",
-    "model-type-rectangle": "Kare",
-    "model-type-circle": "Yuvarlak",
+    "model-type-rectangle": "Dikdörtgen",
+    "model-type-ellipse": "Elips",
     "model-type-light": "Işık",
     "model-type-custom": "Özel",
+    "model-type-cube": "Küp",
+    "model-type-sphere": "Küre",
+    "model-type-cylinder": "Silindir",
+    "model-type-cone": "Koni",
     "select-model-type": "Model türü seç",
     "rename-node-title": "Nesneyi Yeniden Adlandır",
     "enter-node-new-name": "Nesnenin yeni adını gir",
@@ -371,6 +393,12 @@ const property_list = {
             default: 0,
             isDefaultProperty: true
         },
+        rotation: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
         width: {
             type: "number",
             value: 50,
@@ -404,6 +432,12 @@ const property_list = {
             isDefaultProperty: true
         },
         y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        rotation: {
             type: "number",
             value: 0,
             default: 0,
@@ -460,6 +494,12 @@ const property_list = {
             default: 0,
             isDefaultProperty: true
         },
+        rotation: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
         fillColor: {
             type: "color",
             nullAllowed: true,
@@ -493,7 +533,7 @@ const property_list = {
             isDefaultProperty: true
         }
     },
-    "model-circle": {
+    "model-ellipse": {
         x: {
             type: "number",
             value: 0,
@@ -518,7 +558,13 @@ const property_list = {
             default: "#000000",
             isDefaultProperty: true
         },
-        radius: {
+        radiusX: {
+            type: "number",
+            value: 25,
+            default: 25,
+            isDefaultProperty: true
+        },
+        radiusY: {
             type: "number",
             value: 25,
             default: 25,
@@ -625,6 +671,12 @@ const property_list = {
             default: 0,
             isDefaultProperty: true
         },
+        rotation: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
         opacity: {
             type: "percent",
             value: 1,
@@ -686,6 +738,12 @@ const property_list = {
             isDefaultProperty: true
         },
         y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        rotation: {
             type: "number",
             value: 0,
             default: 0,
@@ -767,12 +825,6 @@ const property_list = {
             isDefaultProperty: true
         },
         y: {
-            type: "number",
-            value: 0,
-            default: 0,
-            isDefaultProperty: true
-        },
-        rotation: {
             type: "number",
             value: 0,
             default: 0,
@@ -897,6 +949,151 @@ const property_list = {
             default: 1,
             isDefaultProperty: true
         }
+    },
+    entity3d: {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        z: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        models: {
+            type: "model",
+            array: true,
+            value: "",
+            default: "",
+            isDefaultProperty: true
+        },
+        invisible: {
+            type: "boolean",
+            value: false,
+            default: false,
+            isDefaultProperty: true
+        },
+        gravityEnabled: {
+            type: "boolean",
+            value: true,
+            default: true,
+            isDefaultProperty: true
+        },
+        gravity: {
+            type: "number",
+            value: 0.3,
+            default: 0.3,
+            isDefaultProperty: true
+        },
+        terminalGravityVelocity: {
+            type: "number",
+            value: 128,
+            default: 128,
+            isDefaultProperty: true
+        },
+        motionDivision: {
+            type: "number",
+            value: 10,
+            default: 10,
+            isDefaultProperty: true
+        },
+        collisions: {
+            type: "collision",
+            array: true,
+            value: "",
+            default: "",
+            isDefaultProperty: true
+        },
+        collisionBorder: {
+            type: "boolean",
+            value: true,
+            default: true,
+            isDefaultProperty: true
+        },
+        customScript: {
+            type: "file",
+            value: "",
+            default: "",
+            isDefaultProperty: true
+        }
+    },
+    "model3d-cube": {
+        x: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        y: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        z: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        rotationX: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        rotationY: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        rotationZ: {
+            type: "number",
+            value: 0,
+            default: 0,
+            isDefaultProperty: true
+        },
+        fillColor: {
+            type: "color",
+            nullAllowed: true,
+            value: "#000000",
+            default: "#000000",
+            isDefaultProperty: true
+        },
+        width: {
+            type: "number",
+            value: 50,
+            default: 50,
+            isDefaultProperty: true
+        },
+        height: {
+            type: "number",
+            value: 50,
+            default: 50,
+            isDefaultProperty: true
+        },
+        length: {
+            type: "number",
+            value: 50,
+            default: 50,
+            isDefaultProperty: true
+        },
+        opacity: {
+            type: "percent",
+            value: 1,
+            default: 1,
+            isDefaultProperty: true
+        }
     }
 };
 
@@ -924,239 +1121,247 @@ wss.on("connection", async socket => {
         const browser = global.browser;
         try {
             const json = JSON.parse(message.toString());
-            switch (json.action) {
-                case "screen_info":
-                    screen_info = json.data;
-                    setTimeout(async () => {
-                        let browser = global.browser;
-                        browser.hide();
-                        browser.setResizable(true);
-                        browser.setSize(700, 600);
-                        browser.setPosition(screen_info.width / 2 - 350, screen_info.height / 2 - 300)
-                        browser.setResizable(false);
-                        await browser.loadFile(__dirname + "/src/index.html");
-                        url = __dirname + "/src/index.html";
-                        browser.show();
-                    }, 8000);
-                    break;
-                case "set_theme":
-                    CacheManager.setTheme(json.data.theme);
-                    break;
-                case "set_language":
-                    CacheManager.setLanguage(json.data.language);
-                    break;
-                case "set_project_folder":
-                    if (fs.existsSync(json.data.folder)) CacheManager.setDefaultProjectFolder(json.data.folder);
-                    break;
-                case "get_home_path":
-                    socket.sendPacket("get_home_path", {path: process.env.HOME});
-                    break;
-                case "get_projects":
-                    socket.sendPacket("get_projects", {projects: await CacheManager.getProjects(), property_list});
-                    break;
-                case "get_folder":
-                    if (fs.existsSync(json.data.path)) {
-                        if (await is_folder(json.data.path)) {
-                            const files = [];
-                            const f = fs.readdirSync(json.data.path);
-                            for (let i = 0; i < f.length; i++) {
-                                if (fs.existsSync(json.data.path + (json.data.path.length === 4 ? "" : "\\") + f[i])) files.push({
-                                    name: f[i],
-                                    type: (await is_folder(json.data.path + "\\" + f[i])) ? "folder" : "file"
+
+            async function runData(json) {
+                switch (json.action) {
+                    case "screen_info":
+                        screen_info = json.data;
+                        setTimeout(async () => {
+                            let browser = global.browser;
+                            browser.hide();
+                            browser.setResizable(true);
+                            browser.setMaximizable(true);
+                            browser.setMinimumSize(700, 600);
+                            browser.setSize(700, 600);
+                            browser.setPosition(screen_info.width / 2 - 350, screen_info.height / 2 - 300)
+                            await browser.loadFile(__dirname + "/src/index.html");
+                            url = __dirname + "/src/index.html";
+                            browser.show();
+                        }, 8000);
+                        break;
+                    case "set_theme":
+                        CacheManager.setTheme(json.data.theme);
+                        break;
+                    case "set_language":
+                        CacheManager.setLanguage(json.data.language);
+                        break;
+                    case "set_project_folder":
+                        if (fs.existsSync(json.data.folder)) CacheManager.setDefaultProjectFolder(json.data.folder);
+                        break;
+                    case "get_home_path":
+                        socket.sendPacket("get_home_path", {path: process.env.HOME});
+                        break;
+                    case "get_projects":
+                        socket.sendPacket("get_projects", {projects: await CacheManager.getProjects(), property_list});
+                        break;
+                    case "get_folder":
+                        if (fs.existsSync(json.data.path)) {
+                            if (await is_folder(json.data.path)) {
+                                const files = [];
+                                const f = fs.readdirSync(json.data.path);
+                                for (let i = 0; i < f.length; i++) {
+                                    if (fs.existsSync(json.data.path + (json.data.path.length === 4 ? "" : "\\") + f[i])) files.push({
+                                        name: f[i],
+                                        type: (await is_folder(json.data.path + "\\" + f[i])) ? "folder" : "file"
+                                    });
+                                }
+                                socket.sendPacket("get_folder", {
+                                    path: json.data.path,
+                                    files,
+                                    error: 0,
+                                    id: json.data.id
+                                });
+                            } else {
+                                socket.sendPacket("get_folder", {
+                                    path: json.data.path,
+                                    files: [],
+                                    error: 1,
+                                    id: json.data.id
                                 });
                             }
-                            socket.sendPacket("get_folder", {
-                                path: json.data.path,
-                                files,
-                                error: 0,
-                                id: json.data.id
+                        } else socket.sendPacket("get_folder", {
+                            path: json.data.path,
+                            files: [],
+                            error: 2,
+                            id: json.data.id
+                        });
+                        break;
+                    case "project_folder":
+                        if (!fs.existsSync(json.data.folder)) socket.sendPacket("invalid_project_folder");
+                        break;
+                    case "create_project":
+                        if (!fs.existsSync(CacheManager.getDefaultProjectFolder())) return socket.sendPacket("folder_invalid");
+                        const path = CacheManager.getDefaultProjectFolder() + "\\" + json.data.name;
+                        if (fs.existsSync(path)) return socket.sendPacket("project_exists", {name: json.data.name});
+                        CacheManager.openProject(socket, path);
+                        break;
+                    case "open_project":
+                        if (!fs.existsSync(json.data.path) || !(await is_folder(json.data.path))) return;
+                        CacheManager.openProject(socket, json.data.path);
+                        break;
+                    case "remove_project":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.removeProject(json.data.path);
+                        break;
+                    case "rename_project":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.renameProject(json.data.path, json.data.name);
+                        break;
+                    case "get_file":
+                        const exists = fs.existsSync(json.data.path);
+                        const is_folderA = await is_folder(json.data.path);
+                        socket.sendPacket("get_file", {
+                            path: json.data.path,
+                            content: exists && !is_folderA ? fs.readFileSync(json.data.path).toString() : null,
+                            exists,
+                            type: exists ? is_folderA ? "folder" : "file" : null
+                        });
+                        break;
+                    case "load_script":
+                        if (!fs.existsSync(json.data.file) || await is_folder(json.data.file))
+                            return socket.sendPacket("load_script", {
+                                id: json.data.id,
+                                error: true
                             });
-                        } else {
-                            socket.sendPacket("get_folder", {
-                                path: json.data.path,
-                                files: [],
-                                error: 1,
-                                id: json.data.id
-                            });
-                        }
-                    } else socket.sendPacket("get_folder", {
-                        path: json.data.path,
-                        files: [],
-                        error: 2,
-                        id: json.data.id
-                    });
-                    break;
-                case "project_folder":
-                    if (!fs.existsSync(json.data.folder)) socket.sendPacket("invalid_project_folder");
-                    break;
-                case "create_project":
-                    if (!fs.existsSync(CacheManager.getDefaultProjectFolder())) return socket.sendPacket("folder_invalid");
-                    const path = CacheManager.getDefaultProjectFolder() + "\\" + json.data.name;
-                    if (fs.existsSync(path)) return socket.sendPacket("project_exists", {name: json.data.name});
-                    CacheManager.openProject(socket, path);
-                    break;
-                case "open_project":
-                    if (!fs.existsSync(json.data.path) || !(await is_folder(json.data.path))) return;
-                    CacheManager.openProject(socket, json.data.path);
-                    break;
-                case "remove_project":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.removeProject(json.data.path);
-                    break;
-                case "rename_project":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.renameProject(json.data.path, json.data.name);
-                    break;
-                case "get_file":
-                    const exists = fs.existsSync(json.data.path);
-                    const is_folderA = await is_folder(json.data.path);
-                    socket.sendPacket("get_file", {
-                        path: json.data.path,
-                        content: exists && !is_folderA ? fs.readFileSync(json.data.path).toString() : null,
-                        exists,
-                        type: exists ? is_folderA ? "folder" : "file" : null
-                    });
-                    break;
-                case "load_script":
-                    if (!fs.existsSync(json.data.file) || await is_folder(json.data.file))
-                        return socket.sendPacket("load_script", {
+                        socket.sendPacket("load_script", {
                             id: json.data.id,
-                            error: true
+                            code: fs.readFileSync(json.data.file).toString()
                         });
-                    socket.sendPacket("load_script", {
-                        id: json.data.id,
-                        code: fs.readFileSync(json.data.file).toString()
-                    });
-                    break;
-                case "add_node":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    const node = {
-                        type: json.data.node.type,
-                        locked: false,
-                        properties: property_list[json.data.node.type],
-                        position: (Object.values(cache.projects[json.data.path].json.nodes).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
-                        createdTimestamp: Date.now()
-                    };
-                    cache.projects[json.data.path].json.nodes[json.data.node.name] = node;
-                    CacheManager.addAction(json.data.path, "add_node", null, {
-                        id: json.data.node.name,
-                        node
-                    });
-                    break;
-                case "remove_node":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.addAction(json.data.path, "remove_node", {
-                        id: json.data.name,
-                        node: cache.projects[json.data.path].json.nodes[json.data.name]
-                    }, null);
-                    delete cache.projects[json.data.path].json.nodes[json.data.name];
-                    break;
-                case "set_node_properties":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.addAction(json.data.path, "set_bulk_property", {
-                        id: json.data.name,
-                        properties: cache.projects[json.data.path].json.nodes[json.data.name].properties
-                    }, {
-                        id: json.data.name,
-                        properties: json.data.properties
-                    });
-                    cache.projects[json.data.path].json.nodes[json.data.name].properties = json.data.properties;
-                    break;
-                case "switch_node_positions":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    const a = CacheManager.getNode(json.data.path, json.data.from).position;
-                    CacheManager.setNodePosition(json.data.path, json.data.from, CacheManager.getNode(json.data.path, json.data.to).position);
-                    CacheManager.addAction(json.data.path, "set_node_position", {
-                            id: json.data.from,
-                            position: a
-                        },
-                        {
-                            id: json.data.from,
-                            position: CacheManager.getNode(json.data.path, json.data.to).position
+                        break;
+                    case "add_node":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        const node = {
+                            type: json.data.node.type,
+                            locked: false,
+                            properties: property_list[json.data.node.type],
+                            position: (Object.values(cache.projects[json.data.path].json.nodes).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
+                            createdTimestamp: Date.now()
+                        };
+                        cache.projects[json.data.path].json.nodes[json.data.node.name] = node;
+                        CacheManager.addAction(json.data.path, "add_node", null, {
+                            id: json.data.node.name,
+                            node
                         });
-                    const b = CacheManager.getNode(json.data.path, json.data.to).position;
-                    CacheManager.setNodePosition(json.data.path, json.data.to, a);
-                    CacheManager.addAction(json.data.path, "set_node_position", {
-                            id: json.data.to,
-                            position: b
-                        },
-                        {
-                            id: json.data.to,
-                            position: a
+                        break;
+                    case "remove_node":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.addAction(json.data.path, "remove_node", {
+                            id: json.data.name,
+                            node: cache.projects[json.data.path].json.nodes[json.data.name]
+                        }, null);
+                        delete cache.projects[json.data.path].json.nodes[json.data.name];
+                        break;
+                    case "set_node_properties":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.addAction(json.data.path, "set_bulk_property", {
+                            id: json.data.name,
+                            properties: cache.projects[json.data.path].json.nodes[json.data.name].properties
+                        }, {
+                            id: json.data.name,
+                            properties: json.data.properties
                         });
-                    break;
-                case "set_node_position":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.addAction(json.data.path, "set_node_position", {
-                            id: json.data.node,
-                            position: CacheManager.getNode(json.data.path, json.data.node).position
-                        },
-                        {
-                            id: json.data.node,
-                            position: json.data.position
-                        });
-                    CacheManager.setNodePosition(json.data.path, json.data.node, json.data.position);
-                    break;
-                case "set_node_group":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.setNodeGroup(json.data.path, json.data.node, json.data.group);
-                    CacheManager.addAction(json.data.path, "set_node_group", {
-                            id: json.data.node,
-                            group: CacheManager.getNode(json.data.path, json.data.node).group
-                        },
-                        {
-                            id: json.data.node,
-                            group: json.data.group
-                        });
-                    break;
-                case "rename_node":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.renameNode(json.data.path, json.data.from, json.data.to);
-                    CacheManager.addAction(json.data.path, "rename_node", {
-                            id: json.data.from,
-                            name: json.data.from
-                        },
-                        {
-                            id: json.data.to,
-                            name: json.data.to
-                        })
-                    break;
-                case "copy_node":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.copyNode(json.data.path, json.data.from, json.data.to);
-                    CacheManager.addAction(json.data.path, "copy_node", {
-                            id: json.data.from,
-                            node: CacheManager.getNode(json.data.path, json.data.from)
-                        },
-                        {
-                            id: json.data.to,
-                            node: CacheManager.getNode(json.data.path, json.data.to)
-                        });
-                    break;
-                case "set_node_locked":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.addAction(json.data.path, "set_node_locked", {
-                            id: json.data.node,
-                            locked: CacheManager.getNode(json.data.path, json.data.node).locked
-                        },
-                        {
-                            id: json.data.node,
-                            locked: json.data.value
-                        });
-                    CacheManager.setNodeLocked(json.data.path, json.data.node, json.data.value);
-                    break;
-                case "set_project_camera":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.setProjectCamera(json.data.path, json.data.x, json.data.y);
-                    break;
-                case "set_project_zoom":
-                    if (!CacheManager.existsProjectPath(json.data.path)) return;
-                    CacheManager.setProjectZoom(json.data.path, json.data.zoom);
-                    break;
-                case "main_menu":
-                    browser.setPositionLimits();
-                    break;
+                        cache.projects[json.data.path].json.nodes[json.data.name].properties = json.data.properties;
+                        break;
+                    case "switch_node_positions":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        const a = CacheManager.getNode(json.data.path, json.data.from).position;
+                        CacheManager.setNodePosition(json.data.path, json.data.from, CacheManager.getNode(json.data.path, json.data.to).position);
+                        CacheManager.addAction(json.data.path, "set_node_position", {
+                                id: json.data.from,
+                                position: a
+                            },
+                            {
+                                id: json.data.from,
+                                position: CacheManager.getNode(json.data.path, json.data.to).position
+                            });
+                        const b = CacheManager.getNode(json.data.path, json.data.to).position;
+                        CacheManager.setNodePosition(json.data.path, json.data.to, a);
+                        CacheManager.addAction(json.data.path, "set_node_position", {
+                                id: json.data.to,
+                                position: b
+                            },
+                            {
+                                id: json.data.to,
+                                position: a
+                            });
+                        break;
+                    case "set_node_position":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.addAction(json.data.path, "set_node_position", {
+                                id: json.data.node,
+                                position: CacheManager.getNode(json.data.path, json.data.node).position
+                            },
+                            {
+                                id: json.data.node,
+                                position: json.data.position
+                            });
+                        CacheManager.setNodePosition(json.data.path, json.data.node, json.data.position);
+                        break;
+                    case "set_node_group":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.setNodeGroup(json.data.path, json.data.node, json.data.group);
+                        CacheManager.addAction(json.data.path, "set_node_group", {
+                                id: json.data.node,
+                                group: CacheManager.getNode(json.data.path, json.data.node).group
+                            },
+                            {
+                                id: json.data.node,
+                                group: json.data.group
+                            });
+                        break;
+                    case "rename_node":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.renameNode(json.data.path, json.data.from, json.data.to);
+                        CacheManager.addAction(json.data.path, "rename_node", {
+                                id: json.data.from,
+                                name: json.data.from
+                            },
+                            {
+                                id: json.data.to,
+                                name: json.data.to
+                            })
+                        break;
+                    case "copy_node":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.copyNode(json.data.path, json.data.from, json.data.to);
+                        CacheManager.addAction(json.data.path, "copy_node", {
+                                id: json.data.from,
+                                node: CacheManager.getNode(json.data.path, json.data.from)
+                            },
+                            {
+                                id: json.data.to,
+                                node: CacheManager.getNode(json.data.path, json.data.to)
+                            });
+                        break;
+                    case "set_node_locked":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.addAction(json.data.path, "set_node_locked", {
+                                id: json.data.node,
+                                locked: CacheManager.getNode(json.data.path, json.data.node).locked
+                            },
+                            {
+                                id: json.data.node,
+                                locked: json.data.value
+                            });
+                        CacheManager.setNodeLocked(json.data.path, json.data.node, json.data.value);
+                        break;
+                    case "set_project_camera":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.setProjectCamera(json.data.path, json.data.x, json.data.y);
+                        break;
+                    case "set_project_zoom":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        CacheManager.setProjectZoom(json.data.path, json.data.zoom);
+                        break;
+                    case "main_menu":
+                        browser.unmaximize();
+                        browser.setSize(700, 600);
+                        break;
+                }
             }
+
+            if (json.action === "bulk") json.data.forEach(i => runData(i));
+            else await runData(json);
         } catch (e) {
         }
     })
@@ -1167,19 +1372,10 @@ let url;
 const create_window = async () => {
     const browser = new BrowserWindow({
         width: 606,
-        height: 269
+        height: 269,
+        maximizable: false,
+        resizable: false
     }); // 700 600
-    browser.setPositionLimits = (w = 700, h = 600) => {
-        browser.unmaximize();
-        browser.setSize(w, h);
-        browser.setResizable(false);
-        browser.setMaximizable(false);
-    }
-    browser.resetPositionLimits = () => {
-        browser.setResizable(true);
-        browser.setMaximizable(true);
-    }
-    browser.setPositionLimits(606, 269);
     browser.hide();
     browser.setIcon(__dirname + "/assets/icon.png");
     browser.setMenu(null);

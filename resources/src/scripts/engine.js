@@ -254,12 +254,14 @@ CanvasRenderingContext2D.prototype.rotateComplete = function (angle, middle) {
     this.translate(-middle.x, -middle.y);
     return this;
 }
-Object.prototype.cloneObject = function (...args) {
+/**Object.prototype.cloneObject = function (...args) {
     const object = new this.constructor.prototype.constructor(...args);
     const {...obj} = this;
     Array.from(Object.entries(obj)).forEach(i => object[i[0]] = i[1]);
     return object;
-};
+};*/
+
+
 /**
  * @param {number} deg
  * @returns {number}
@@ -545,7 +547,9 @@ class Model2D {
 }
 
 class ImageModel2D extends Model2D {
-    static PROPERTIES = ["offsetX", "offsetY", "width", "height", "image"];
+    static PROPERTIES = ["offsetX", "offsetY", "rotation", "width", "height", "image"];
+    /*** @type {number} */
+    rotation;
     /*** @type {number} */
     width;
     /*** @type {number} */
@@ -556,14 +560,25 @@ class ImageModel2D extends Model2D {
     /**
      * @param {number} offsetX
      * @param {number} offsetY
+     * @param {number} rotation
      * @param {number} width
      * @param {number} height
      * @param {number} opacity
      */
-    constructor(offsetX, offsetY, width, height, opacity = 1.0) {
+    constructor(offsetX, offsetY, rotation, width, height, opacity = 1.0) {
         super(offsetX, offsetY, opacity)
             .setWidth(width)
-            .setHeight(height);
+            .setHeight(height)
+            .setRotation(rotation);
+    }
+
+    /**
+     * @param {number} rotation
+     * @returns {ImageModel2D}
+     */
+    setRotation(rotation) {
+        this.rotation = rotation;
+        return this;
     }
 
     /**
@@ -614,7 +629,7 @@ class ImageModel2D extends Model2D {
         const {ctx} = scene;
         const width = scene.zoom * this.width;
         const height = scene.zoom * this.height;
-        ctx.rotateComplete(entity.rotation || 0, position.add(width / 2, height / 2));
+        ctx.rotateComplete(this.rotation, position.add(width / 2, height / 2));
         ctx.globalAlpha = this.opacity;
         if (this.image) ctx.drawImage(this.image, position.x, position.y, width, height);
         ctx.globalAlpha = 1;
@@ -623,7 +638,9 @@ class ImageModel2D extends Model2D {
 }
 
 class TextModel2D extends Model2D {
-    static PROPERTIES = ["offsetX", "offsetY", "text", "font", "size", "color", "maxWidth"];
+    static PROPERTIES = ["offsetX", "offsetY", "rotation", "text", "font", "size", "color", "maxWidth"];
+    /*** @type {number} */
+    rotation;
     /*** @type {string} */
     text;
     /*** @type {string} */
@@ -638,6 +655,7 @@ class TextModel2D extends Model2D {
     /**
      * @param {number} offsetX
      * @param {number} offsetY
+     * @param {number} rotation
      * @param {string} text
      * @param {string} font
      * @param {number} size
@@ -645,13 +663,14 @@ class TextModel2D extends Model2D {
      * @param {number | null} maxWidth
      * @param {number} opacity
      */
-    constructor(offsetX, offsetY, text, font = "Calibri", size = 16, color = "#000000", maxWidth = null, opacity = 1.0) {
+    constructor(offsetX, offsetY, rotation, text, font = "Calibri", size = 16, color = "#000000", maxWidth = null, opacity = 1.0) {
         super(offsetX, offsetY, opacity)
             .setText(text)
             .setFont(font || "Calibri")
             .setSize(size || 16)
             .setColor(color || "#000000")
-            .setMaxWidth(maxWidth);
+            .setMaxWidth(maxWidth)
+            .setRotation(rotation);
     }
 
     /**
@@ -660,6 +679,15 @@ class TextModel2D extends Model2D {
      */
     setText(text) {
         this.text = text;
+        return this;
+    }
+
+    /**
+     * @param {number} rotation
+     * @returns {TextModel2D}
+     */
+    setRotation(rotation) {
+        this.rotation = rotation;
         return this;
     }
 
@@ -731,7 +759,7 @@ class TextModel2D extends Model2D {
         const {ctx} = scene;
         width *= scene.zoom;
         height *= scene.zoom;
-        ctx.rotateComplete(entity.rotation || 0, position.add(width / 2, height / 2));
+        ctx.rotateComplete(this.rotation, position.add(width / 2, height / 2));
         ctx.globalAlpha = this.opacity;
         ctx.fillStyle = this.color;
         ctx.font = this.size + "px " + this.font;
@@ -742,7 +770,9 @@ class TextModel2D extends Model2D {
 }
 
 class PathModel2D extends Model2D {
-    static PROPERTIES = ["offsetX", "offsetY", "path", "fillColor", "strokeColor", "middle"];
+    static PROPERTIES = ["offsetX", "offsetY", "rotation", "path", "fillColor", "strokeColor", "middle"];
+    /*** @type {number} */
+    rotation;
     /*** @type {{offsetX: number, offsetY: number}[]} */
     path;
     /*** @type {string | null} */
@@ -755,17 +785,28 @@ class PathModel2D extends Model2D {
     /**
      * @param {number} offsetX
      * @param {number} offsetY
+     * @param {number} rotation
      * @param {{offsetX: number, offsetY: number}[]} path
      * @param {string | null} fillColor
      * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(offsetX, offsetY, path, fillColor = null, strokeColor = null, opacity = 1.0) {
+    constructor(offsetX, offsetY, rotation, path, fillColor = null, strokeColor = null, opacity = 1.0) {
         super(offsetX, offsetY, opacity)
             .setPath(path)
             .setFillColor(fillColor)
-            .setStrokeColor(strokeColor);
+            .setStrokeColor(strokeColor)
+            .setRotation(rotation);
         this.middle = [0, 0];
+    }
+
+    /**
+     * @param {number} rotation
+     * @returns {PathModel2D}
+     */
+    setRotation(rotation) {
+        this.rotation = rotation;
+        return this;
     }
 
     /**
@@ -804,7 +845,7 @@ class PathModel2D extends Model2D {
         if (this.opacity <= 0) return;
         position = position.add(this.offsetX, this.offsetY);
         const {ctx} = scene;
-        ctx.rotateComplete(entity.rotation || 0, position.add(this.middle[0], this.middle[1]));
+        ctx.rotateComplete(this.rotation, position.add(this.middle[0], this.middle[1]));
         ctx.beginPath();
         ctx.globalAlpha = this.opacity;
         ctx.moveTo(this.path[0].offsetX * scene.zoom + position.x, this.path[0].offsetY * scene.zoom + position.y);
@@ -824,7 +865,7 @@ class PathModel2D extends Model2D {
 }
 
 class RectangleModel2D extends PathModel2D {
-    static PROPERTIES = ["offsetX", "offsetY", "path", "fillColor", "strokeColor", "width", "height", "middle"];
+    static PROPERTIES = ["offsetX", "offsetY", "rotation", "path", "fillColor", "strokeColor", "width", "height", "middle"];
     /*** @type {number} */
     width;
     /*** @type {number} */
@@ -833,14 +874,15 @@ class RectangleModel2D extends PathModel2D {
     /**
      * @param {number} offsetX
      * @param {number} offsetY
+     * @param {number} rotation
      * @param {number} width
      * @param {number} height
      * @param {string | null} fillColor
      * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(offsetX, offsetY, width, height, fillColor = null, strokeColor = null, opacity = 1.0) {
-        super(offsetX, offsetY, [
+    constructor(offsetX, offsetY, rotation, width, height, fillColor = null, strokeColor = null, opacity = 1.0) {
+        super(offsetX, offsetY, rotation, [
             {offsetX: 0, offsetY: 0},
             {offsetX: width, offsetY: 0},
             {offsetX: width, offsetY: height},
@@ -874,10 +916,14 @@ class RectangleModel2D extends PathModel2D {
     }
 }
 
-class CircleModel2D extends Model2D {
-    static PROPERTIES = ["offsetX", "offsetY", "radius", "fillColor", "strokeColor"];
+class EllipseModel2D extends Model2D {
+    static PROPERTIES = ["offsetX", "offsetY", "radiusX", "radiusY", "rotation", "fillColor", "strokeColor"];
     /*** @type {number} */
-    radius;
+    radiusX;
+    /*** @type {number} */
+    radiusY;
+    /*** @type {number} */
+    rotation;
     /*** @type {string} */
     fillColor;
     /*** @type {string} */
@@ -886,30 +932,52 @@ class CircleModel2D extends Model2D {
     /**
      * @param {number} offsetX
      * @param {number} offsetY
-     * @param {number} radius
+     * @param {number} radiusX
+     * @param {number} radiusY
+     * @param {number} rotation
      * @param {string | null} fillColor
      * @param {string | null} strokeColor
      * @param {number} opacity
      */
-    constructor(offsetX, offsetY, radius, fillColor = null, strokeColor = null, opacity = 1.0) {
+    constructor(offsetX, offsetY, radiusX, radiusY, rotation, fillColor = null, strokeColor = null, opacity = 1.0) {
         super(offsetX, offsetY, opacity)
-            .setRadius(radius)
+            .setRadiusX(radiusX)
+            .setRadiusY(radiusY)
+            .setRotation(rotation)
             .setFillColor(fillColor)
             .setStrokeColor(strokeColor);
     }
 
     /**
      * @param {number} radius
-     * @returns {CircleModel2D}
+     * @returns {EllipseModel2D}
      */
-    setRadius(radius) {
-        this.radius = radius;
+    setRadiusX(radius) {
+        this.radiusX = radius;
+        return this;
+    }
+
+    /**
+     * @param {number} radius
+     * @returns {EllipseModel2D}
+     */
+    setRadiusY(radius) {
+        this.radiusY = radius;
+        return this;
+    }
+
+    /**
+     * @param {number} rotation
+     * @returns {EllipseModel2D}
+     */
+    setRotation(rotation) {
+        this.rotation = rotation;
         return this;
     }
 
     /**
      * @param {string?} fillColor
-     * @returns {CircleModel2D}
+     * @returns {EllipseModel2D}
      */
     setFillColor(fillColor) {
         this.fillColor = fillColor;
@@ -918,7 +986,7 @@ class CircleModel2D extends Model2D {
 
     /**
      * @param {string?} strokeColor
-     * @returns {CircleModel2D}
+     * @returns {EllipseModel2D}
      */
     setStrokeColor(strokeColor) {
         this.strokeColor = strokeColor;
@@ -935,7 +1003,7 @@ class CircleModel2D extends Model2D {
         position = position.add(this.offsetX, this.offsetY);
         const {ctx} = scene;
         const radius = scene.zoom * this.radius;
-        ctx.rotateComplete(entity.rotation || 0, position.add(radius, radius));
+        ctx.rotateComplete(this.rotation || 0, position.add(radius, radius));
         ctx.beginPath();
         ctx.globalAlpha = this.opacity;
         ctx.fillStyle = this.fillColor;
@@ -1119,7 +1187,7 @@ class Entity2D extends Vector2 {
     }
 
     update() {
-        const motion = this.motion.divide(10, 10);
+        const motion = this.motion.divide(this.motionDivision.x, this.motionDivision.y);
         this.x += motion.x;
         this.y += motion.y;
         this.motion.x -= motion.x;
@@ -1251,22 +1319,485 @@ class TileMapModel2D extends Model2D {
     }
 }
 
-class TileMap extends Entity2D {
+class Vector3 {
+    /*** @type {number} */
+    x;
+    /*** @type {number} */
+    y;
+    /*** @type {number} */
+    z;
+
     /**
-     * @param {number} offsetX
-     * @param {number} offsetY
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
      */
-    constructor(offsetX, offsetY) {
-        super(offsetX, offsetY);
+    constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    /**
+     * @param {Vector3} vector3
+     * @returns {Vector3}
+     */
+    getDirectionTo(vector3) {
+        return this.getDirectionFrom(this.getAngleTo(vector3));
+    }
+
+    /**
+     * @param {number} angle
+     * @returns {Vector3}
+     */
+    getDirectionFrom(angle) {
+        return new Vector3(Math.sin(Math.deg2rad(angle)), Math.cos(Math.deg2rad(angle)));
+    }
+
+    /**
+     * @param {Vector3} vector3
+     * @returns {number}
+     */
+    getAngleTo(vector3) {
+        return Math.rad2deg(Math.atan2(this.x - vector3.x, this.y - vector3.y));
+    }
+
+    /**
+     * @param {number | Vector3} xOrVector3
+     * @param {number?} y
+     * @param {number?} z
+     * @returns {Vector3}
+     */
+    add(xOrVector3, y, z) {
+        if (xOrVector3 instanceof Vector3) return this.add(xOrVector3.x, xOrVector3.y, xOrVector3.z);
+        return new Vector3(this.x + xOrVector3, this.y + y, this.z + z);
+    }
+
+    /**
+     * @param {number | Vector3} xOrVector3
+     * @param {number?} y
+     * @param {number?} z
+     * @returns {Vector3}
+     */
+    subtract(xOrVector3, y, z) {
+        if (xOrVector3 instanceof Vector3) return this.subtract(xOrVector3.x, xOrVector3.y, xOrVector3.z);
+        return new Vector3(this.x - xOrVector3, this.y - y, this.z - z);
+    }
+
+    /**
+     * @param {number | Vector3} xOrVector3
+     * @param {number?} y
+     * @param {number?} z
+     * @returns {Vector3}
+     */
+    multiply(xOrVector3, y, z) {
+        if (xOrVector3 instanceof Vector3) return this.multiply(xOrVector3.x, xOrVector3.y, xOrVector3.z);
+        return new Vector3(this.x * xOrVector3, this.y * y, this.z * z);
+    }
+
+    /**
+     * @param {number | Vector3} xOrVector3
+     * @param {number?} y
+     * @param {number?} z
+     * @returns {Vector3}
+     */
+    divide(xOrVector3, y, z) {
+        if (xOrVector3 instanceof Vector3) return this.divide(xOrVector3.x, xOrVector3.y, xOrVector3.z);
+        return new Vector3(this.x / xOrVector3, this.y / y, this.z / z);
+    }
+
+    /*** @returns {Vector3} */
+    floor() {
+        return new Vector3(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
+    }
+
+    /*** @returns {Vector3} */
+    round() {
+        return new Vector3(Math.round(this.x), Math.round(this.y), Math.round(this.z));
+    }
+
+    /*** @returns {Vector3} */
+    ceil() {
+        return new Vector3(Math.ceil(this.x), Math.ceil(this.y), Math.ceil(this.z));
+    }
+
+    /*** @returns {Vector3} */
+    abs() {
+        return new Vector3(Math.abs(this.x), Math.abs(this.y), Math.abs(this.z));
+    }
+
+    /**
+     * @param {Vector3} vector3
+     * @returns {boolean}
+     */
+    equals(vector3) {
+        return vector3.x === this.x && vector3.y === this.y && vector3.z === this.z;
+    }
+
+    /**
+     * @param {number | Vector3} xOrVector3
+     * @param {number?} y
+     * @param {number?} z
+     * @returns {Vector3}
+     */
+    set(xOrVector3, y, z) {
+        if (xOrVector3 instanceof Vector3) return this.set(xOrVector3.x, xOrVector3.y, xOrVector3.z);
+        this.x = xOrVector3;
+        this.y = y;
+        this.z = z;
+        return this;
+    }
+
+    /*** @returns {Vector3} */
+    clone() {
+        return new Vector3(this.x, this.y, this.z);
     }
 }
 
-class Particle extends Entity2D {
+class Model3D {
+    /*** @type {number} */
+    opacity;
+    /*** @type {number} */
+    offsetX;
+    /*** @type {number} */
+    offsetY;
+    /*** @type {number} */
+    offsetZ;
+
+    /**
+     * @param {number} offsetX
+     * @param {number} offsetY
+     * @param {number} offsetZ
+     * @param {number} opacity
+     */
+    constructor(offsetX, offsetY, offsetZ, opacity) {
+        this.opacity = !opacity && opacity !== 0 ? 1.0 : opacity;
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
+        this.offsetZ = offsetZ;
+    }
+
+    init() {
+    }
+
+    /**
+     * @param {Scene} scene
+     * @param {Entity3D} entity
+     * @param {Vector3} position
+     */
+    draw(scene, entity, position) {
+    }
 }
 
-function spawnParticle(x, y, models = []) {
-    // TODO
+class Collision3D {
+    /*** @type {number} */
+    offsetX;
+    /*** @type {number} */
+    offsetY;
+    /*** @type {number} */
+    offsetZ;
+
+    /**
+     * @param {number} offsetX
+     * @param {number} offsetY
+     * @param {number} offsetZ
+     */
+    constructor(offsetX, offsetY, offsetZ) {
+        this.setOffsetX(offsetX)
+            .setOffsetY(offsetY)
+            .setOffsetZ(offsetZ);
+    }
+
+    init() {
+    }
+
+    /**
+     * @param {number} offsetX
+     * @returns {Collision3D}
+     */
+    setOffsetX(offsetX) {
+        this.offsetX = offsetX;
+        return this;
+    }
+
+    /**
+     * @param {number} offsetY
+     * @returns {Collision3D}
+     */
+    setOffsetY(offsetY) {
+        this.offsetY = offsetY;
+        return this;
+    }
+
+    /**
+     * @param {number} offsetZ
+     * @returns {Collision3D}
+     */
+    setOffsetZ(offsetZ) {
+        this.offsetZ = offsetZ;
+        return this;
+    }
+
+    /**
+     * @param {Vector3} currentPosition
+     * @param {Vector3} vector3
+     * @param {Collision3D?} collision
+     * @returns {boolean}
+     */
+    collides(currentPosition, vector3, collision = null) {
+        return false;
+    }
 }
+
+class CubicCollision3D extends Collision3D {
+    static PROPERTIES = ["offsetX", "offsetY", "offsetZ", "width", "height", "length"];
+    /*** @type {number} */
+    width;
+    /*** @type {number} */
+    height;
+    /*** @type {number} */
+    length;
+
+    /**
+     * @param {number} offsetX
+     * @param {number} offsetY
+     * @param {number} offsetZ
+     * @param {number} width
+     * @param {number} height
+     * @param {number} length
+     */
+    constructor(offsetX, offsetY, offsetZ, width, height, length) {
+        super(offsetX, offsetY, offsetZ);
+        this.width = width;
+        this.height = height;
+        this.length = length;
+    }
+
+    /**
+     * @param {number} width
+     * @returns {CubicCollision3D}
+     */
+    setWidth(width) {
+        this.width = width;
+        return this;
+    }
+
+    /**
+     * @param {number} height
+     * @returns {CubicCollision3D}
+     */
+    setHeight(height) {
+        this.height = height;
+        return this;
+    }
+
+    /**
+     * @param {number} length
+     * @returns {CubicCollision3D}
+     */
+    setLength(length) {
+        this.length = length;
+        return this;
+    }
+
+    collides(currentPosition, vector3, collision) {
+        if (collision && !(collision instanceof CubicCollision3D)) return false;
+        if (!(collision instanceof CubicCollision3D)) collision = new CubicCollision3D(0, 0, 0, 1, 1, 1);
+        currentPosition = currentPosition.add(this.offsetX, this.offsetY);
+        vector3 = vector3.add(collision.offsetX, collision.offsetY);
+        const zoom = Scene.instance.zoom;
+        return currentPosition.x + this.width * zoom >= vector3.x &&
+            currentPosition.x <= vector3.x + collision.width * zoom &&
+            currentPosition.y + this.height * zoom >= vector3.y &&
+            currentPosition.y <= vector3.y + collision.height * zoom &&
+            currentPosition.z + this.length * zoom >= vector3.z &&
+            currentPosition.z <= vector3.z + collision.length * zoom;
+    }
+}
+
+class Entity3D extends Vector3 {
+    static PROPERTIES = [
+        "x", "y", "z", "rotation", "models", "gravityEnabled", "visible",
+        "gravity", "gravityVelocity", "terminalGravityVelocity", "fallDistance", "onGround", "motion",
+        "motionDivision", "collisions", "base"
+    ];
+    /*** @type {number} */
+    rotation = new Vector3(0, 0, 0);
+    /*** @type {Model3D[]} */
+    models = [];
+    /*** @type {boolean} */
+    gravityEnabled = true;
+    /*** @type {boolean} */
+    visible = true;
+    /*** @type {number} */
+    gravity = 1;
+    /*** @type {number} */
+    gravityVelocity = 1;
+    /*** @type {number} */
+    terminalGravityVelocity = 128;
+    /*** @type {number} */
+    fallDistance = 0;
+    /*** @type {boolean} */
+    onGround = false;
+    /*** @type {Vector3} */
+    motion = new Vector3(0, 0, 0);
+    /*** @type {Vector3} */
+    motionDivision = new Vector3(10, 10, 10);
+    /*** @type {Collision3D[]} */
+    collisions = [];
+    base;
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     */
+    constructor(x, y, z) {
+        super(x, y, z);
+    }
+
+    initToScene() {
+        Scene.entities3d.push(this);
+    }
+
+    /*** @returns {{start: Vector3, end: Vector3}[]} */
+    getBoundaries() {
+        return [].concat(...this.collisions.filter(i => !i["isInvalid"]).map(col => {
+            if (col instanceof CubicCollision3D) {
+                const width = col.width * Scene.instance.zoom;
+                const height = col.height * Scene.instance.zoom;
+                const offX = col.offsetX;
+                const offY = col.offsetY;
+                const offZ = col.offsetZ;
+                return [
+                    {
+                        start: this.add(offX, offY),
+                        end: this.add(offX + width, offY)
+                    },
+                    {
+                        start: this.add(offX, offY),
+                        end: this.add(offX, offY + height)
+                    },
+                    {
+                        start: this.add(offX + width, offY),
+                        end: this.add(offX + width, offY + height)
+                    },
+                    {
+                        start: this.add(offX, offY + height),
+                        end: this.add(offX + width, offY + height)
+                    }
+                ];
+            }
+        }).filter(i => i));
+    }
+
+    update() {
+        const motion = this.motion.divide(this.motionDivision.x, this.motionDivision.y);
+        this.set(this.add(motion));
+        this.motion.set(this.motion.subtract(motion));
+        if (this.gravityEnabled && this.gravity > 0) this.onGravity();
+    }
+
+    onGravity() {
+        this.gravityVelocity += this.gravity;
+        if (this.gravityVelocity > this.terminalGravityVelocity) this.gravityVelocity = this.terminalGravityVelocity;
+        this.y += this.gravityVelocity;
+        this.onGround = false;
+        if (this.collidesAnyEntity()) {
+            this.y -= this.gravityVelocity;
+            this.gravityVelocity = 0;
+            this.onGround = true;
+            if (this.fallDistance > 0) this.onFall(this.fallDistance);
+            this.fallDistance = 0;
+        } else this.fallDistance += this.gravityVelocity;
+    }
+
+    /*** @returns {Entity3D} */
+    enableGravity() {
+        this.gravityEnabled = true;
+        return this;
+    }
+
+    /*** @returns {Entity3D} */
+    disableGravity() {
+        this.gravityEnabled = false;
+        return this;
+    }
+
+    /*** @param {number} fallDistance */
+    onFall(fallDistance) {
+    }
+
+    /**
+     * @param {Entity3D | Vector3} entityOrVector
+     * @returns {boolean}
+     */
+    collides(entityOrVector) {
+        if (!(entityOrVector instanceof Entity3D)) return this.collisions.some(col => col.collides(this.clone(), entityOrVector));
+        return entityOrVector.collisions.some(col1 => this.collisions.some(col2 => col1.collides(entityOrVector.clone(), this.clone(), col2)))
+    }
+
+    /**
+     * @param {boolean} visible
+     * @returns {Entity3D | null}
+     */
+    collidesAnyEntity(visible = true) {
+        return Scene.getInstance().entities.find(i => i !== this && i.visible === visible && this.collides(i));
+    }
+
+    /**
+     * @param {Model3D} model
+     * @returns {this}
+     */
+    addModel(model) {
+        this.models.push(model);
+        return this;
+    }
+
+    /**
+     * @param {Model3D} model
+     * @returns {Entity3D}
+     */
+    removeModel(model) {
+        this.models = this.models.filter(i => i !== model);
+        return this;
+    }
+
+    /**
+     * @param {Collision3D[]} collisions
+     * @returns {Entity3D}
+     */
+    setCollisions(collisions) {
+        this.collisions = collisions;
+        return this;
+    }
+
+    /**
+     * @param {Collision3D} collision
+     * @returns {Entity3D}
+     */
+    addCollision(collision) {
+        this.collisions.push(collision);
+        return this;
+    }
+
+    /**
+     * @param {Collision3D} collision
+     * @returns {Entity3D}
+     */
+    removeCollision(collision) {
+        this.collisions = this.collisions.filter(col => col !== collision);
+        return this;
+    }
+}
+
+
+// TODO: Particles
+
+function spawnParticle(x, y, models = []) {
+}
+
+// TODO: Particles
 
 class Scene {
     /*** @type {HTMLCanvasElement | null} */
@@ -1275,6 +1806,8 @@ class Scene {
     ctx = null;
     /*** @type {Entity2D[]} */
     entities = [];
+    /*** @type {Entity3D[]} */
+    static entities3d = [];
     camera = new Vector2(0, 0);
     zoom = 1.0;
     onUpdateStart = r => r;
@@ -1294,38 +1827,40 @@ class Scene {
         return Scene.instance = Scene.instance || new Scene();
     }
 
+    static init3D(div = document.body, width = 0.601, height = 0.751) {
+        const scene3d = new THREE.Scene();
+        const camera3d = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer3d = new THREE.WebGLRenderer({alpha: true});
+        const {domElement} = renderer3d;
+        div.appendChild(domElement);
+        domElement.style.position = "absolute";
+        domElement.style.top = "0";
+        domElement.style.left = "0";
+        camera3d.position.z = 5;
+        renderer3d.domElement.style.display = "none";
+        Scene.scene3d = scene3d;
+        Scene.camera3d = camera3d;
+        Scene.renderer3d = renderer3d;
+        Scene.scene3dSize = [width, height];
+        const gridHelper = new THREE.GridHelper(100, 10, 0xffffff, 99999);
+        scene3d.add(gridHelper);
+        camera3d.position.z = 100;
+        camera3d.position.y = 100;
+        const controls = new THREE.OrbitControls(camera3d, renderer3d.domElement);
+        const controls2 = new THREE.FirstPersonControls(camera3d, renderer3d.domElement);
+        controls2.movementSpeed = 100;
+        controls2.activeLook = false;
+        const clock = new THREE.Clock();
+        Scene.clock = clock;
+        Scene.controls = controls;
+        Scene.controls2 = controls2;
+    }
+
     constructor() {
         this.ctx = Scene.ctx;
         this.canvas = this.ctx?.canvas;
         if (!this.ctx) throw new Error("No context found!");
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.scene3d = new THREE.Scene();
-        this.camera3d = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        //this.renderer3d = new THREE.WebGLRenderer({canvas:this.canvas});
-        //console.log(this.renderer3d.domElement);
-        return;
-
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        const geometry = new THREE.BoxGeometry(10, 10, 10);
-        const material = new THREE.MeshBasicMaterial({color: "#ffffff"});
-        const cube = new THREE.Mesh(geometry, material);
-        scene3d.add(cube);
-        cube.position.y = 5;
-        const gridHelper = new THREE.GridHelper(100, 10, 0xffffff, 99999);
-        scene3d.add(gridHelper);
-        scene3d.camera.position.z = 100;
-        scene3d.camera.position.y = 100;
-        const controls = new THREE.OrbitControls(camera, renderer3d.domElement);
-        const controls2 = new THREE.FirstPersonControls(camera, renderer3d.domElement);
-        controls2.movementSpeed = 100;
-        controls2.activeLook = false;
-        const clock = new THREE.Clock();
-        /**
-         *
-         controls.update();
-         controls2.update(clock.getDelta());
-         renderer3d.render(scene, camera);
-         */
     }
 
     update() {
@@ -1348,6 +1883,19 @@ class Scene {
             this.ctx.lineWidth = 1;
             this.ctx.font = "12px Calibri";
         };
+        const {renderer3d, scene3d, camera3d, scene3dSize, controls, controls2, clock} = Scene;
+        const w = Math.floor(window.innerWidth * scene3dSize[0]);
+        const h = Math.floor(window.innerHeight * scene3dSize[1]);
+        if (renderer3d.domElement.width * 1 !== w || renderer3d.domElement.height * 1 !== h) {
+            renderer3d.setSize(w, h);
+            camera3d.aspect = renderer3d.domElement.width / renderer3d.domElement.height;
+            camera3d.updateProjectionMatrix();
+        }
+        if (renderer3d.domElement.style.display !== "none") {
+            controls.update();
+            controls2.update(clock.getDelta());
+            renderer3d.render(scene3d, camera3d);
+        }
         this.entities.forEach(i => {
             resetEffects();
             i.update();
@@ -1362,6 +1910,8 @@ class Scene {
         Scene.intervals.forEach(i => clearInterval(i));
         Scene.instance = null;
         Scene.scripts = [];
+        Scene.renderer3d.domElement.style.display = "none";
+        Scene.entities3d.forEach(i => Scene.scene3d.remove(i.base));
     }
 }
 
