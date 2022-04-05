@@ -10,7 +10,6 @@
     <script src="scripts/themeManager.js"></script>
     <script src="scripts/lib/three.js"></script>
     <script src="scripts/lib/OrbitControls.js"></script>
-    <script src="scripts/lib/FirstPersonControls.js"></script>
 </head>
 <body style="overflow-x: hidden">
 <div class="body">
@@ -116,7 +115,7 @@
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
 
-        Scene.init3D(document.getElementById("canvas_list"));
+        Scene.init3D(document.getElementById("canvas_list"), true);
 
         const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
         const query = {};
@@ -704,7 +703,6 @@ ${input}
                 const cls = document._light.project.json.nodes[m];
                 if (cls) entity.addCollision(collisionList[m]);
             });
-            entity.rotation = props.rotation.value;
             entity.gravityEnabled = props.gravityEnabled.value;
             entity.gravity = props.gravity.value;
             entity.terminalGravityVelocity = props.terminalGravityVelocity.value;
@@ -1004,13 +1002,19 @@ ${input}
                     Scene.getInstance().destroy();
                     const scene = Scene.getInstance();
                     Scene.renderer3d.domElement.style.display = "block";
-
+                    Scene.controlsEnabled = true;
+                    Scene.scene3d.add(Scene.gridHelper);
+                    const cube = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+                    cube.position.set(0, 0, 0);
+                    Scene.scene3d.add(cube);
                     break;
                 case "game":
                     consoleList = [];
                     renderConsole();
                     Scene.getInstance().destroy();
                     Scene.getInstance().camera.set(cameraNode.properties.x.value, cameraNode.properties.y.value);
+                    Scene.renderer3d.domElement.style.display = "block";
+                    Scene.controlsEnabled = false;
                     await refreshModelList();
                     await refreshCollisionList();
                     for (const j of Object.keys(document._light.project.json.nodes).sort((a, b) => document._light.project.json.nodes[b].position - document._light.project.json.nodes[a].position).filter(i => ["entity", "tile", "text", "script", "light"].includes(document._light.project.json.nodes[i].type))) {
