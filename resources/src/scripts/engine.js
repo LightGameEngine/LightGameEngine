@@ -1343,23 +1343,11 @@ class Vector3 {
      * @returns {Vector3}
      */
     getDirectionTo(vector3) {
-        return this.getDirectionFrom(this.getAngleTo(vector3));
-    }
-
-    /**
-     * @param {number} angle
-     * @returns {Vector3}
-     */
-    getDirectionFrom(angle) {
-        return new Vector3(Math.sin(Math.deg2rad(angle)), Math.cos(Math.deg2rad(angle)));
-    }
-
-    /**
-     * @param {Vector3} vector3
-     * @returns {number}
-     */
-    getAngleTo(vector3) {
-        return Math.rad2deg(Math.atan2(this.x - vector3.x, this.y - vector3.y));
+        return new Vector3(
+            Math.atan2(vector3.y - this.y, vector3.x - this.x),
+            Math.atan2(vector3.z - this.z, vector3.x - this.x),
+            Math.atan2(vector3.z - this.z, vector3.y - this.y)
+        );
     }
 
     /**
@@ -1621,7 +1609,7 @@ class Entity3D extends Vector3 {
         "gravity", "gravityVelocity", "terminalGravityVelocity", "fallDistance", "onGround", "motion",
         "motionDivision", "collisions", "base"
     ];
-    /*** @type {number} */
+    /*** @type {Vector3} */
     rotation = new Vector3(0, 0, 0);
     /*** @type {Model3D[]} */
     models = [];
@@ -1657,7 +1645,7 @@ class Entity3D extends Vector3 {
     }
 
     initToScene() {
-        Scene.entities3d.push(this);
+        Scene.getInstance().addEntity3D(this);
     }
 
     /*** @returns {{start: Vector3, end: Vector3}[]} */
@@ -1742,7 +1730,7 @@ class Entity3D extends Vector3 {
      * @returns {Entity3D | null}
      */
     collidesAnyEntity(visible = true) {
-        return Scene.getInstance().entities.find(i => i !== this && i.visible === visible && this.collides(i));
+        return Scene.getInstance().entities3d.find(i => i !== this && i.visible === visible && this.collides(i));
     }
 
     /**
@@ -1807,7 +1795,7 @@ class Scene {
     /*** @type {Entity2D[]} */
     entities = [];
     /*** @type {Entity3D[]} */
-    static entities3d = [];
+    entities3d = [];
     camera = new Vector2(0, 0);
     zoom = 1.0;
     onUpdateStart = r => r;
@@ -1827,7 +1815,7 @@ class Scene {
         return Scene.instance = Scene.instance || new Scene();
     }
 
-    static init3D(div = document.body, width = 0.601, height = 0.751) {
+    static init3D(div = document.body, controls = false, width = 0.601, height = 0.751) {
         const scene3d = new THREE.Scene();
         const camera3d = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer3d = new THREE.WebGLRenderer({alpha: true});
@@ -1842,18 +1830,87 @@ class Scene {
         Scene.camera3d = camera3d;
         Scene.renderer3d = renderer3d;
         Scene.scene3dSize = [width, height];
-        const gridHelper = new THREE.GridHelper(100, 10, 0xffffff, 99999);
-        scene3d.add(gridHelper);
+        Scene.gridHelper = new THREE.GridHelper(1000, 100, 0xffffff);
         camera3d.position.z = 100;
         camera3d.position.y = 100;
-        const controls = new THREE.OrbitControls(camera3d, renderer3d.domElement);
-        const controls2 = new THREE.FirstPersonControls(camera3d, renderer3d.domElement);
-        controls2.movementSpeed = 100;
-        controls2.activeLook = false;
-        const clock = new THREE.Clock();
-        Scene.clock = clock;
-        Scene.controls = controls;
-        Scene.controls2 = controls2;
+        camera3d.lookAt(0, 0, 0);
+        Scene.cameraSpeed = 1;
+        if (controls) {
+            const controls = new THREE.OrbitControls(camera3d, renderer3d.domElement);
+            controls.listenToKeyEvents(window);
+            controls.enablePan = true;
+            Scene.controls = controls;
+            let hK = {};
+            let mouseDown = false;
+            let scrollMove = 0;
+            addEventListener("keydown", ev => hK[ev.key.toLowerCase()] = 1);
+            addEventListener("keyup", ev => hK[ev.key.toLowerCase()] = 0);
+            addEventListener("blur", () => hK = {});
+            addEventListener("mousewheel", ev => {
+                hK["control"] ? Scene.cameraSpeed -= ev.deltaY / 1000 : scrollMove += ev.deltaY > 0 ? 1 : -1;
+            });
+            addEventListener("mousedown", ev => {
+                const v = new THREE.Vector3(0, 0, -1);
+                v.applyQuaternion(camera3d.quaternion);
+                mouseDown = {
+                    x: ev.offsetX,
+                    y: ev.offsetY,
+                    startX: ev.offsetX,
+                    startY: ev.offsetY,
+                    xMove: 0,
+                    yMove: 0,
+                    v,
+                    type: ev.button
+                };
+            });
+            addEventListener("mouseup", () => mouseDown = false);
+            addEventListener("mousemove", ev => {
+                if (!mouseDown) return;
+                mouseDown.xMove += ev.offsetX - mouseDown.x;
+                mouseDown.yMove += ev.offsetY - mouseDown.y;
+                mouseDown.x = ev.offsetX;
+                mouseDown.y = ev.offsetY;
+            });
+            Scene.control = () => {
+                if (Scene.cameraSpeed < 0.1) Scene.cameraSpeed = 0.1;
+                if (Scene.cameraSpeed > 20) Scene.cameraSpeed = 20;
+                /*if (hK["w"]) controls.pn(-Scene.cameraSpeed);
+                if (hK["s"]) camera3d.translateZ(Scene.cameraSpeed);
+                if (scrollMove) camera3d.translateZ(scrollMove * 20);
+                if (hK["a"]) camera3d.translateX(-Scene.cameraSpeed);
+                if (hK["d"]) camera3d.translateX(Scene.cameraSpeed);*/
+                if (hK[" "]) camera3d.position.y += Scene.cameraSpeed;
+                if (hK["shift"]) camera3d.position.y -= Scene.cameraSpeed;
+                if (mouseDown) {
+                    switch (mouseDown.type) {
+                        case 0:
+                            /*if (mouseDown.yMove) {
+                                camera3d.lookAt(mouseDown.v);
+                                camera3d.translateX(-mouseDown.yMove * Scene.cameraSpeed);
+                            }*/
+                            //camera3d.rotation.x -= mouseDown.yMove / 100;
+                            //camera3d.rotation.y -= mouseDown.xMove / 100;
+
+                            //camera3d.position.x += v.x * Scene.cameraSpeed;
+                            break;
+                    }
+                    mouseDown.xMove = 0;
+                    mouseDown.yMove = 0;
+                }
+                scrollMove = 0;
+            };
+        } else {
+            Scene.control = r => r;
+            Scene.controls = {
+                update: () => {
+                }
+            };
+        }
+        Scene.controlsEnabled = controls;
+    }
+
+    removeAll3dEntities() {
+        Scene.scene3d.children.forEach(child => child.removeFromParent());
     }
 
     constructor() {
@@ -1861,6 +1918,18 @@ class Scene {
         this.canvas = this.ctx?.canvas;
         if (!this.ctx) throw new Error("No context found!");
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    addEntity(entity) {
+        this.entities.push(entity);
+    }
+
+    addEntity3D(entity3d) {
+        this.entities3d.push(entity3d);
+    }
+
+    addThreeEntity(entity) {
+        Scene.scene3d.add(entity);
     }
 
     update() {
@@ -1883,7 +1952,7 @@ class Scene {
             this.ctx.lineWidth = 1;
             this.ctx.font = "12px Calibri";
         };
-        const {renderer3d, scene3d, camera3d, scene3dSize, controls, controls2, clock} = Scene;
+        const {renderer3d, scene3d, camera3d, scene3dSize, control, controlsEnabled} = Scene;
         const w = Math.floor(window.innerWidth * scene3dSize[0]);
         const h = Math.floor(window.innerHeight * scene3dSize[1]);
         if (renderer3d.domElement.width * 1 !== w || renderer3d.domElement.height * 1 !== h) {
@@ -1892,8 +1961,10 @@ class Scene {
             camera3d.updateProjectionMatrix();
         }
         if (renderer3d.domElement.style.display !== "none") {
-            controls.update();
-            controls2.update(clock.getDelta());
+            if (controlsEnabled) {
+                control();
+                Scene.controls.update();
+            }
             renderer3d.render(scene3d, camera3d);
         }
         this.entities.forEach(i => {
@@ -1911,7 +1982,7 @@ class Scene {
         Scene.instance = null;
         Scene.scripts = [];
         Scene.renderer3d.domElement.style.display = "none";
-        Scene.entities3d.forEach(i => Scene.scene3d.remove(i.base));
+        this.removeAll3dEntities();
     }
 }
 
