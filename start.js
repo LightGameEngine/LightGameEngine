@@ -216,7 +216,7 @@ async function kill() {
                 });
                 fs.writeFileSync("./Start Light.vbs", `Set WshShell = CreateObject("WScript.Shell")
 WshShell.Run "cmd.exe /C cd ${__dirname} && npm start", 0
-Set WshShell = Nothing`)
+Set WshShell = Nothing`);
                 setPromptTitle("Light - " + (isFirstVersion ? "Installed" : "Updated") + ", please restart");
                 socket.sendPacket("done", {
                     type: isFirstVersion ? "installed" : "updated"

@@ -205,7 +205,7 @@
 
                     spherical.phi = Math.max(scope.minPolarAngle, Math.min(scope.maxPolarAngle, spherical.phi));
                     spherical.makeSafe();
-                    spherical.radius *= scale; // restrict radius to be between desired limits
+                    spherical.radius = spherical.radius + scale === 0 ? 0.1 : spherical.radius + scale; // restrict radius to be between desired limits
 
                     spherical.radius = Math.max(scope.minDistance, Math.min(scope.maxDistance, spherical.radius)); // move target to panned location
 
@@ -238,7 +238,7 @@
 
                     }
 
-                    scale = 1; // update condition is:
+                    scale = 0; // update condition is:
                     // min(camera displacement, camera rotation in radians)^2 > EPS
                     // using small-angle approximation cos(x/2) = 1 - x^2 / 8
 
@@ -294,7 +294,7 @@
 
             const spherical = new THREE.Spherical();
             const sphericalDelta = new THREE.Spherical();
-            let scale = 1;
+            let scale = 0;
             const panOffset = new THREE.Vector3();
             let zoomChanged = false;
             const rotateStart = new THREE.Vector2();
@@ -383,7 +383,7 @@
                         // perspective
                         const position = scope.object.position;
                         offset.copy(position).sub(scope.target);
-                        let targetDistance = offset.length(); // half of the fov is center to top of screen
+                        let targetDistance = Math.max(offset.length(), 100); // half of the fov is center to top of screen
 
                         targetDistance *= Math.tan(scope.object.fov / 2 * Math.PI / 180.0); // we use only clientHeight here so aspect ratio does not distort speed
 
@@ -412,7 +412,7 @@
 
                 if (scope.object.isPerspectiveCamera) {
 
-                    scale /= dollyScale;
+                    scale += 5;
 
                 } else if (scope.object.isOrthographicCamera) {
 
@@ -433,7 +433,7 @@
 
                 if (scope.object.isPerspectiveCamera) {
 
-                    scale *= dollyScale;
+                    scale -= 5;
 
                 } else if (scope.object.isOrthographicCamera) {
 
@@ -772,7 +772,7 @@
                 switch (event.button) {
 
                     case 0:
-                        mouseAction = scope.mouseButtons.LEFT;
+                        mouseAction = scope.mouseButtons.RIGHT;
                         break;
 
                     case 1:
@@ -780,7 +780,7 @@
                         break;
 
                     case 2:
-                        mouseAction = scope.mouseButtons.RIGHT;
+                        mouseAction = scope.mouseButtons.LEFT;
                         break;
 
                     default:
