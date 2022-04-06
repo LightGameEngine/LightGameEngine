@@ -1,7 +1,6 @@
 // noinspection InfiniteLoopJS
 
 const fs = require("fs");
-const fetch = require("node-fetch");
 if (!fs.existsSync("./.changes.json")) fs.writeFileSync("./.changes.json", "[]");
 const oldChanges = require("./.changes.json");
 const Logger = require("./Logger");
@@ -42,6 +41,45 @@ const convertDate = cnv({
 let browser;
 let wss;
 
+/**
+ * @param {string} url
+ * @param {function(): void} onChunk
+ * @param {function(): void} onError
+ * @returns {Promise<{raw: string, chunks: Buffer[], bytes: number}>}
+ */
+const fetch = (url, {
+    onChunk = () => {
+    },
+    onError = () => {
+    }
+} = {
+    onChunk: r => r,
+    onError: e => e
+}) => new Promise(r => {
+    https.get(url, res => {
+        const chunks = [];
+        res.on("data", chunk => {
+            chunks.push(chunk);
+            onChunk(chunk);
+        });
+        res.on("error", e => onError(e));
+        res.on("end", () => {
+            const raw = chunks.map(i => i.toString()).join("").toString();
+            r({raw, chunks, bytes: raw.length});
+        });
+    });
+});
+
+async function kill() {
+    if (wss) wss.close();
+    if (browser) {
+        browser.hide();
+        await browser.close();
+    }
+    app.quit();
+    setTimeout(process.exit, 2000);
+}
+
 (async () => {
     let n = 0;
     const start = Date.now();
@@ -52,16 +90,14 @@ let wss;
     try {
         const currentVersion = oldChanges.length * 1;
         const response = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/.changes.json");
-        const body = await response.text();
+        const updateInfo = JSON.parse((await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/update_info.json")).raw);
+        const body = response.raw;
         let bytes = 0;
         if (currentVersion < JSON.parse(body).length) {
             wss = new (require("ws"))["Server"]({port: 9009});
-            wss.on("error", () => {
+            wss.on("error", async () => {
                 Logger.alert("Light is already being " + (isFirstVersion ? "installed" : "updated") + "!");
-                if (browser) browser.hide();
-                process.exit();
-                /*while (true) {
-                }*/
+                await kill();
             });
 
             const create_window = async () => {
@@ -101,42 +137,35 @@ let wss;
             let connected = false;
             wss.on("connection", async socket => {
                 if (socket._socket.address().address !== "::1") return socket.close();
+                if (connected) return kill();
                 connected = true;
                 socket.sendPacket = (action, data) => socket.send(JSON.stringify({action, data}));
                 socket.on("close", async () => {
                     Logger.alert("Connection is gone.");
-                    wss.close();
-                    browser.hide();
-                    await browser.close();
-                    process.exit();
-                    /*while (true) {
-                    }*/
+                    await kill();
                 });
                 const files = Array.from(new Set([].concat(...JSON.parse(body).slice(currentVersion))));
+                let totalBytes = 0;
+                for (const file of files) totalBytes += (updateInfo[file] || {size: 0}).size;
                 setPromptTitle("Light - " + (isFirstVersion ? "Installing" : "Updating") + "...");
                 const sendFileMessage = () => {
                     const b = convertBytes(bytes);
                     socket.sendPacket("update", {
                         bytes,
                         byte_converted: b,
+                        total_bytes: totalBytes,
                         loaded: i,
                         all: files.length,
                         current: files[i]
                     });
-                    /*console.clear();
-                    if (!isFirstVersion) {
-                        Logger.warning("Update detected!");
-                        Logger.info("Updating...");
-                    } else {
-                        Logger.warning("Installing is available!");
-                        Logger.info("Installing...");
-                    }
-                    const spaceCount = 20;
-                    Logger.info("[" + b + "] [\x1b[47m" + (" ".repeat(Math.floor(i / files.length * spaceCount))) + "\x1b[0m" + (" ".repeat(spaceCount - Math.floor(i / files.length * spaceCount))) + "] " + Math.floor(i / files.length * 100) + "% Downloading " + (files[i] || "").split("/").reverse()[0] + "...");
-                    */
                 };
                 const download = file => new Promise(r => {
-                    if (fs.existsSync(file)) fs.unlinkSync(file);
+                    if (fs.existsSync("./" + file)) fs.unlinkSync("./" + file);
+                    const dirs = file.split("/").reverse().slice(1).reverse();
+                    dirs.forEach((j, d) => {
+                        const dir = dirs.slice(0, d + 1).join("/");
+                        if (!fs.existsSync("./" + dir)) fs.mkdirSync("./" + dir);
+                    });
                     const f = fs.createWriteStream("./" + file);
                     https.get("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + file, res => {
                         res.pipe(f);
@@ -150,7 +179,8 @@ let wss;
                             throw e;
                         });
                         res.on("end", () => {
-                            const raw = chunks.join("");
+                            const raw = chunks.map(i => i.toString()).join("").toString();
+                            if (raw === "404: Not Found" && fs.existsSync("./" + file)) fs.unlinkSync("./" + file);
                             r({data: raw, bytes: raw.length});
                         });
                     });
@@ -158,17 +188,7 @@ let wss;
                 let i = 0;
                 for (i = 0; i < files.length; i++) {
                     sendFileMessage();
-                    const f = files[i];
-                    const file = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + f);
-                    const con = await file.text();
-                    if (con !== "404: Not Found") {
-                        const dirs = f.split("/").reverse().slice(1).reverse();
-                        dirs.forEach((j, d) => {
-                            const dir = dirs.slice(0, d + 1).join("/");
-                            if (!fs.existsSync("./" + dir)) fs.mkdirSync("./" + dir);
-                        });
-                        await download(f);
-                    } else if (fs.existsSync("./" + f)) fs.unlinkSync("./" + f);
+                    await download(files[i]);
                 }
                 console.clear();
                 Logger.warning("[" + convertBytes(bytes) + "] [" + convertDate(Date.now() - start) + "] Light has been " + (isFirstVersion ? "installed" : "downloaded") + "!")
@@ -198,24 +218,14 @@ let wss;
 WshShell.Run "cmd.exe /C cd ${__dirname} && npm start", 0
 Set WshShell = Nothing`)
                 setPromptTitle("Light - " + (isFirstVersion ? "Installed" : "Updated") + ", please restart");
-                if (wss) wss.close();
-                if (browser) {
-                    browser.hide();
-                    await browser.close();
-                }
-                setTimeout(process.exit, 2000);
-                /*while (true) {
-                }*/
+                socket.sendPacket("done", {
+                    type: isFirstVersion ? "installed" : "updated"
+                });
             });
             setTimeout(async () => {
                 if (!connected) {
                     Logger.alert("Light didn't connect socket server.");
-                    if (wss) wss.close();
-                    if (browser) {
-                        browser.hide();
-                        await browser.close();
-                    }
-                    process.exit();
+                    await kill();
                 }
             }, 20000);
         } else {
@@ -236,9 +246,7 @@ Set WshShell = Nothing`)
         if (!isFirstVersion) require("./resources/index");
         else {
             setPromptTitle("Light - Installation cancelled, please check your connection");
-            process.exit();
-            /*while (true) {
-            }*/
+            await kill();
         }
     }
 })();

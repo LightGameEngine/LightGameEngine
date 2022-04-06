@@ -6,28 +6,58 @@
     <link rel="icon"
           href="https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/resources/assets/icon.png">
 </head>
-<body style="background: #ceac32">
+<body style="background: #ceac32; overflow: hidden">
 <img draggable="false" style="position: absolute;left: 0;top: 0; width: 100%; height: 100%"
      src="https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/resources/assets/start.gif">
 <span id="file_name"
-      style="position: absolute; top: 64%; left: 0; width: 100%; text-align: center; font-family: Calibri, serif"></span>
+      style="position: absolute; top: 64%; left: 1%; font-family: Calibri, serif"></span>
+<span id="time"
+      style="position: absolute; top: 64%; left: auto; right: 1%; font-family: Calibri, serif"></span>
 <span id="percent" style="position: absolute; top: 81.5%; left: 3%; font-family: Calibri, serif"></span>
 <canvas width="450" height="25"
         style="background: white; position: absolute; top: 80%; left: 50%; transform: translateX(-50%); border: 1px solid black; border-radius: 5px"
-        id="canvas"></canvas>
+        id="canvas" hidden></canvas>
+<span style="position: absolute; top: 80%; left: 0; text-align: center; font-family: Calibri, serif; width: 100%"
+      id="done" hidden></span>
 <script>
     /*** @type {HTMLCanvasElement} */
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
     const ws = new WebSocket("ws://localhost:9009/");
     ws.onopen = () => {
+        const startTime = Date.now();
         ws.onmessage = msg => {
             const {action, data} = JSON.parse(msg.data.toString());
+            if (action === "done") {
+                let time = (Date.now() - startTime) / 1000;
+                let strTime = "seconds";
+                if (time > 60 * 60) {
+                    strTime = "hours";
+                    time /= 60 * 60;
+                } else if (time > 60) {
+                    strTime = "minutes";
+                    time /= 60;
+                }
+                document.getElementById("file_name").innerHTML = "";
+                document.getElementById("percent").innerHTML = "";
+                document.getElementById("time").innerHTML = "";
+                document.getElementById("done").innerHTML = `Light has been successfully ${data.type} in ${time.toFixed(1)} ${strTime}!`;
+                document.getElementById("done").hidden = false;
+                return canvas.hidden = true;
+            }
+            canvas.hidden = false;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "#c2af35";
-            ctx.fillRect(0, 0, data.loaded / data.all * canvas.width, canvas.height);
-            document.getElementById("file_name").innerHTML = data.current;
-            document.getElementById("percent").innerHTML = Math.floor(data.loaded / data.all * 100) + "%";
+            ctx.fillRect(0, 0, data.bytes / data.total_bytes * canvas.width, canvas.height);
+            const speed = ((Date.now() - startTime) / 1000) / data.bytes;
+            document.getElementById("file_name").innerHTML = "Loading " + data.current + "...";
+            let estimation = (data.total_bytes - data.bytes) * speed;
+            if (estimation === Infinity) estimation = 0;
+            if (estimation > 3600) estimation = (estimation / 3600).toFixed(1) + "h";
+            else if (estimation > 60) estimation = (estimation / 60).toFixed(1) + "m";
+            else estimation = estimation.toFixed(1) + "s";
+            document.getElementById("time").innerHTML = "Estimated time: " + estimation;
+            document.getElementById("percent").innerHTML = (data.bytes / data.total_bytes * 100).toFixed(1) + "%";
         };
     };
 </script>
