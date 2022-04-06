@@ -29,13 +29,18 @@
              style="position: absolute; cursor: pointer" hidden>
     </div>
     <div id="dmn_div"
-         onclick="document._light.setSceneType('editor'+(document._light.getSceneType() === 'editor3d' ? '2d' : '3d'))"
-         style="position: absolute; cursor: pointer; left: 50%; width: 5%; height: 3%; background: var(--console-background)">
-        <img draggable="false" id="2d_btn" src="../assets/2d.png"
-             style="width: 25px" hidden>
-        <img draggable="false" id="3d_btn" src="../assets/3d.png"
-             style="width: 25px" hidden>
-        <span id="dmn_text" style="position: absolute; left: 55%; top: 2px; color: var(--general-color)">3D</span>
+         style="position: absolute; cursor: pointer; left: 44%; width: 11%; height: 3%; background: var(--console-background)">
+        <div onclick="document._light.setSceneType('editor2d')" style="position: absolute; width: 50%; height: 100%">
+            <img draggable="false" src="../assets/2d.png"
+                 style="width: 25px">
+            <span style="position: absolute; top: 2px; left: 55%; color: var(--general-color)">2D</span>
+        </div>
+        <div onclick="document._light.setSceneType('editor3d')"
+             style="position: absolute; left: 50%; width: 50%; height: 100%">
+            <img draggable="false" src="../assets/3d.png"
+                 style="width: 25px; border-left: 3px solid var(--canvas-background)">
+            <span style="position: absolute; top: 2px; left: 55%; color: var(--general-color)">3D</span>
+        </div>
     </div>
     <div class="left_container_nav">
         <img draggable="false" onclick="document._light.open_node_menu()" id="left_nav_add" class="left_nav_add"
@@ -130,8 +135,6 @@
 
         const start_btn = document.getElementById("start_btn");
         const stop_btn = document.getElementById("stop_btn");
-        const twd_btn = document.getElementById("2d_btn");
-        const thd_btn = document.getElementById("3d_btn");
         let consoleList = [];
         const renderConsole = (str) => {
             const cns = document.getElementById("console");
@@ -869,15 +872,7 @@ ${input}
         setTimeout(refreshCameraTileSize, 1000);
 
         async function setSceneType(type) {
-            if (type.startsWith("editor")) {
-                twd_btn.hidden = type === "editor2d" ? true : undefined;
-                thd_btn.hidden = type === "editor2d" ? undefined : true;
-            } else {
-                twd_btn.hidden = true;
-                thd_btn.hidden = true;
-            }
             document.getElementById("dmn_div").hidden = type.startsWith("editor") ? undefined : true;
-            document.getElementById("dmn_text").innerHTML = type === "editor2d" ? "3D" : "2D";
             scene_process = _sid++;
             const cameraNode = document._light.project.json.nodes.camera;
             if (!cameraNode || !document._light.project.json.nodes.camera3d) return main_menu();
@@ -1004,9 +999,23 @@ ${input}
                     Scene.renderer3d.domElement.style.display = "block";
                     Scene.controlsEnabled = true;
                     Scene.scene3d.add(Scene.gridHelper);
-                    const cube = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+                    const cube = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20), new THREE.MeshStandardMaterial({
+                        color: 0xffffff
+                    }));
                     cube.position.set(0, 0, 0);
                     Scene.scene3d.add(cube);
+                    const axesHelper = new THREE.AxesHelper(1000);
+                    axesHelper.position.set(0, 0.1, 0);
+                    Scene.scene3d.add(axesHelper);
+                    const box = new THREE.Box3();
+                    box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(20, 20, 20));
+                    const helper = new THREE.Box3Helper(box, 0xffff00);
+                    helper.position.set(0, 0, 0);
+                    Scene.scene3d.add(helper);
+                    const light = new THREE.DirectionalLight(0xffffff, 1.0);
+                    light.position.set(0, 1000, 0);
+                    light.target.position.set(0, 0, 0);
+                    Scene.scene3d.add(light, light.target);
                     break;
                 case "game":
                     consoleList = [];

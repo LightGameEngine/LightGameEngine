@@ -1817,7 +1817,7 @@ class Scene {
 
     static init3D(div = document.body, controls = false, width = 0.601, height = 0.751) {
         const scene3d = new THREE.Scene();
-        const camera3d = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera3d = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
         const renderer3d = new THREE.WebGLRenderer({alpha: true});
         const {domElement} = renderer3d;
         div.appendChild(domElement);
