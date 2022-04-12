@@ -203,14 +203,14 @@ async function kill() {
                         icon: __dirname + "\\resources\\assets\\icon.ico"
                     },
                     linux: {
-                        filePath: __dirname + "\\Start Light.sh",
+                        filePath: __dirname + "\\StartLight.sh",
                         name: "Light",
                         description: "Light Game Engine",
                         icon: __dirname + "\\resources\\assets\\icon.png",
                         type: "Application"
                     },
                     osx: {
-                        filePath: __dirname + "\\Start Light.sh",
+                        filePath: __dirname + "\\StartLight.sh",
                         name: "Light"
                     }
                 });
