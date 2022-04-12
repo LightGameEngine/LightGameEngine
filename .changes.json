@@ -20,5 +20,6 @@
   ["CacheManager.js"],
   ["CacheManager.js", "resources/src/scripts/connectionManager.js", "resources/src/scripts/engine.js", "resources/src/scripts/lib/FirstPersonControls.js", "resources/src/index.html", "resources/index.js", "resources/assets/model_cube.png", "resources/assets/model_circle.png", "resources/assets/model_ellipse.png", "resources/assets/model_sphere.png", "resources/src/styles/project.css", "resources/src/project.html", "resources/src/start.html", "resources/src/scripts/lib/three.js"],
   ["resources/src/scripts/engine.js", "resources/src/scripts/lib/FirstPersonControls.js", "resources/src/project.html"],
-  ["resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/scripts/lib/OrbitControls.js", "resources/src/scripts/lib/OrbitControls.min.js", "resources/src/scripts/lib/three.min.js"]
+  ["resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/scripts/lib/OrbitControls.js", "resources/src/scripts/lib/OrbitControls.min.js", "resources/src/scripts/lib/three.min.js"],
+  ["resources/index.js", "CacheManager.js"]
 ]
