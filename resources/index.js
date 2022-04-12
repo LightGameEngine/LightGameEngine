@@ -8,8 +8,8 @@ const Logger = require("../Logger");
 let screen_info;
 const is_folder = path => new Promise(r => fs.readFile(path, err => err ? r(true) : r(false)));
 
-if (!fs.existsSync(lightRoamingPath + "\\languages")) fs.mkdirSync(lightRoamingPath + "\\languages");
-fs.writeFileSync(lightRoamingPath + "\\languages\\en_US.json", JSON.stringify({
+if (!fs.existsSync(lightRoamingPath + "/languages")) fs.mkdirSync(lightRoamingPath + "/languages");
+fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "search-placeholder": "Search project",
     "new-project-button": "New Project",
     "create-project-title": "Create Project",
@@ -133,7 +133,7 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\en_US.json", JSON.stringify({
     "code-button": "Code Script",
     "back-button": "Back"
 }));
-fs.writeFileSync(lightRoamingPath + "\\languages\\tr_TR.json", JSON.stringify({
+fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "search-placeholder": "Proje ara",
     "new-project-button": "Yeni Proje",
     "create-project-title": "Proje Oluştur",
@@ -256,8 +256,8 @@ fs.writeFileSync(lightRoamingPath + "\\languages\\tr_TR.json", JSON.stringify({
     "code-button": "Kod Skript",
     "back-button": "Geri"
 }));
-if (!fs.existsSync(lightRoamingPath + "\\themes")) fs.mkdirSync(lightRoamingPath + "\\themes");
-fs.writeFileSync(lightRoamingPath + "\\themes/dark.json", JSON.stringify({
+if (!fs.existsSync(lightRoamingPath + "/themes")) fs.mkdirSync(lightRoamingPath + "/themes");
+fs.writeFileSync(lightRoamingPath + "/themes/dark.json", JSON.stringify({
     id: "dark",
     name: {
         "tr_TR": "Karanlık",
@@ -298,7 +298,7 @@ fs.writeFileSync(lightRoamingPath + "\\themes/dark.json", JSON.stringify({
         "drop-selected": "rgba(219, 226, 232, 0.5)"
     }
 }));
-fs.writeFileSync(lightRoamingPath + "\\themes\\light.json", JSON.stringify({
+fs.writeFileSync(lightRoamingPath + "/themes/light.json", JSON.stringify({
     id: "light",
     name: {
         "tr_TR": "Açık",
@@ -341,17 +341,17 @@ fs.writeFileSync(lightRoamingPath + "\\themes\\light.json", JSON.stringify({
 }));
 
 const themes = {};
-Logger.debug("Reading themes from " + lightRoamingPath + "\\themes");
-fs.readdirSync(lightRoamingPath + "\\themes").forEach(i => {
+Logger.debug("Reading themes from " + lightRoamingPath + "/themes");
+fs.readdirSync(lightRoamingPath + "/themes").forEach(i => {
     Logger.debug("Loading theme " + i.split(".")[0] + "...");
-    themes[i.split(".")[0]] = JSON.parse(fs.readFileSync(lightRoamingPath + "\\themes\\" + i).toString());
+    themes[i.split(".")[0]] = JSON.parse(fs.readFileSync(lightRoamingPath + "/themes/" + i).toString());
     Logger.debug("Loaded theme " + i.split(".")[0] + ".");
 });
 const languages = {};
-Logger.debug("Reading languages from " + lightRoamingPath + "\\languages");
-fs.readdirSync(lightRoamingPath + "\\languages").forEach(i => {
+Logger.debug("Reading languages from " + lightRoamingPath + "/languages");
+fs.readdirSync(lightRoamingPath + "/languages").forEach(i => {
     Logger.debug("Loading language " + i.split(".")[0] + "...");
-    languages[i.split(".")[0]] = JSON.parse(fs.readFileSync(lightRoamingPath + "\\languages\\" + i).toString());
+    languages[i.split(".")[0]] = JSON.parse(fs.readFileSync(lightRoamingPath + "/languages/" + i).toString());
     Logger.debug("Loaded language " + i.split(".")[0] + ".");
 });
 
@@ -1160,9 +1160,9 @@ wss.on("connection", async socket => {
                                 const files = [];
                                 const f = fs.readdirSync(json.data.path);
                                 for (let i = 0; i < f.length; i++) {
-                                    if (fs.existsSync(json.data.path + (json.data.path.length === 4 ? "" : "\\") + f[i])) files.push({
+                                    if (fs.existsSync(json.data.path + (json.data.path.length === 4 ? "" : "/") + f[i])) files.push({
                                         name: f[i],
-                                        type: (await is_folder(json.data.path + "\\" + f[i])) ? "folder" : "file"
+                                        type: (await is_folder(json.data.path + "/" + f[i])) ? "folder" : "file"
                                     });
                                 }
                                 socket.sendPacket("get_folder", {
@@ -1191,7 +1191,7 @@ wss.on("connection", async socket => {
                         break;
                     case "create_project":
                         if (!fs.existsSync(CacheManager.getDefaultProjectFolder())) return socket.sendPacket("folder_invalid");
-                        const path = CacheManager.getDefaultProjectFolder() + "\\" + json.data.name;
+                        const path = CacheManager.getDefaultProjectFolder() + "/" + json.data.name;
                         if (fs.existsSync(path)) return socket.sendPacket("project_exists", {name: json.data.name});
                         CacheManager.openProject(socket, path);
                         break;

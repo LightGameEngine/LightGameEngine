@@ -1,9 +1,9 @@
 const fs = require("fs");
 const lightRoamingPath = require("./start").lightGlobPath;
-const defaultProjectFolder = process.env.HOME + "\\LightProjects";
+const defaultProjectFolder = process.env.HOME + "/LightProjects";
 if (!fs.existsSync(defaultProjectFolder)) fs.mkdirSync(defaultProjectFolder);
 if (!fs.existsSync(lightRoamingPath)) fs.mkdirSync(lightRoamingPath);
-const cachePath = lightRoamingPath + "\\.cache";
+const cachePath = lightRoamingPath + "/.cache";
 const is_folder = path => new Promise(r => fs.readFile(path, err => err ? r(true) : r(false)));
 const CAMERA_PROPERTY = (position = 0) => ({
     type: "camera",
