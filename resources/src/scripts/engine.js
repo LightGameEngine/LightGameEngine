@@ -1865,39 +1865,28 @@ class Scene {
             });
             addEventListener("mouseup", () => mouseDown = false);
             addEventListener("mousemove", ev => {
+                pointer.x = (ev.clientX / window.innerWidth) * 2 - 1;
+                pointer.y = -(ev.clientY / window.innerHeight) * 2 + 1;
                 if (!mouseDown) return;
                 mouseDown.xMove += ev.offsetX - mouseDown.x;
                 mouseDown.yMove += ev.offsetY - mouseDown.y;
                 mouseDown.x = ev.offsetX;
                 mouseDown.y = ev.offsetY;
             });
+            const rayCaster = new THREE.Raycaster();
+            const pointer = new THREE.Vector2();
             Scene.control = () => {
                 if (Scene.cameraSpeed < 0.1) Scene.cameraSpeed = 0.1;
                 if (Scene.cameraSpeed > 20) Scene.cameraSpeed = 20;
-                /*if (hK["w"]) controls.pn(-Scene.cameraSpeed);
-                if (hK["s"]) camera3d.translateZ(Scene.cameraSpeed);
-                if (scrollMove) camera3d.translateZ(scrollMove * 20);
-                if (hK["a"]) camera3d.translateX(-Scene.cameraSpeed);
-                if (hK["d"]) camera3d.translateX(Scene.cameraSpeed);*/
                 if (hK[" "]) camera3d.position.y += Scene.cameraSpeed;
                 if (hK["shift"]) camera3d.position.y -= Scene.cameraSpeed;
-                if (mouseDown) {
-                    switch (mouseDown.type) {
-                        case 0:
-                            /*if (mouseDown.yMove) {
-                                camera3d.lookAt(mouseDown.v);
-                                camera3d.translateX(-mouseDown.yMove * Scene.cameraSpeed);
-                            }*/
-                            //camera3d.rotation.x -= mouseDown.yMove / 100;
-                            //camera3d.rotation.y -= mouseDown.xMove / 100;
-
-                            //camera3d.position.x += v.x * Scene.cameraSpeed;
-                            break;
-                    }
-                    mouseDown.xMove = 0;
-                    mouseDown.yMove = 0;
-                }
                 scrollMove = 0;
+                rayCaster.setFromCamera(pointer, camera3d);
+                const intersects = rayCaster.intersectObjects(scene3d.children);
+                for (const i of scene3d.children) {
+                    if (i.type === "Mesh")
+                        i.material.color.set(intersects.some(a => a.object === i) ? 0xff0000 : 0xFFFFFF);
+                }
             };
         } else {
             Scene.control = r => r;

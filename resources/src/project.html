@@ -527,7 +527,7 @@
             if (!document._light.selected_node || !document._light.project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
             const node = document._light.project.json.nodes[document._light.selected_node];
             const props = node.properties;
-            console.log(node, props, document._light.selected_node);
+            //console.log(node, props, document._light.selected_node);
             document.getElementById("properties").innerHTML = Object.keys(props).filter(i => props[i].visible !== false).map(key => {
                 let input = `<input onchange="document._light.set_node_property('${document._light.selected_node}', '${key}', document.getElementById('node_property_${key}').value)" id="node_property_${key}" spellcheck="false" class="property_value" style="position: absolute; margin-left: -3px; margin-top: -10px; height: 19px" value="${props[key].value === null ? "" : props[key].value}" placeholder="<${languages[lang]["none"]}>">`;
                 switch (props[key].type) {
@@ -733,7 +733,6 @@ ${input}
                 const cls = document._light.project.json.nodes[m];
                 if (cls) tile.addCollision(collisionList[m]);
             });
-            tile.rotation = props.rotation.value;
             tile.visible = !props.invisible.value;
             Object.keys(props).filter(i => !props[i].isDefaultProperty).forEach(i => tile[i] = props[i].value);
             return tile;
@@ -999,19 +998,27 @@ ${input}
                     Scene.renderer3d.domElement.style.display = "block";
                     Scene.controlsEnabled = true;
                     Scene.scene3d.add(Scene.gridHelper);
-                    const cube = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20), new THREE.MeshStandardMaterial({
-                        color: 0xffffff
+
+                function addCube(x, y, z, w, h, l, color, opacity = 1.0, transparent = true, collision = true) {
+                    const cube = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), new THREE.MeshBasicMaterial({
+                        color, transparent, opacity
                     }));
-                    cube.position.set(0, 0, 0);
+                    cube.position.set(x, y, z);
                     Scene.scene3d.add(cube);
+                    if (collision) {
+                        const box = new THREE.Box3();
+                        box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(w, h, l));
+                        const helper = new THREE.Box3Helper(box, 0xffff00);
+                        helper.position.set(x, y, z);
+                        Scene.scene3d.add(helper);
+                    }
+                    return cube;
+                }
+
+                    addCube(0, 0, 0, 100, 100, 100, 0xffffff, 0.5, true, false);
                     const axesHelper = new THREE.AxesHelper(1000);
                     axesHelper.position.set(0, 0.1, 0);
                     Scene.scene3d.add(axesHelper);
-                    const box = new THREE.Box3();
-                    box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(20, 20, 20));
-                    const helper = new THREE.Box3Helper(box, 0xffff00);
-                    helper.position.set(0, 0, 0);
-                    Scene.scene3d.add(helper);
                     const light = new THREE.DirectionalLight(0xffffff, 1.0);
                     light.position.set(0, 1000, 0);
                     light.target.position.set(0, 0, 0);
