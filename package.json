@@ -20,7 +20,9 @@
   "devDependencies": {
     "electron": "^16.0.5",
     "express": "^4.17.2",
-    "git-files": "^0.3.0"
+    "git-files": "^0.3.0",
+    "jszip": "^3.9.1",
+    "unzipper": "^0.10.11"
   },
   "dependencies": {
     "chalk": "^4.1.2",

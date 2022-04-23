@@ -22,5 +22,6 @@
   ["resources/src/scripts/engine.js", "resources/src/scripts/lib/FirstPersonControls.js", "resources/src/project.html"],
   ["resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/scripts/lib/OrbitControls.js", "resources/src/scripts/lib/OrbitControls.min.js", "resources/src/scripts/lib/three.min.js"],
   ["resources/index.js", "CacheManager.js"],
-  ["resources/src/project.html", "resources/src/scripts/engine.js"]
+  ["resources/src/project.html", "resources/src/scripts/engine.js"],
+  ["test.txt"]
 ]
