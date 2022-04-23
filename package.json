@@ -22,6 +22,7 @@
     "express": "^4.17.2",
     "git-files": "^0.3.0",
     "jszip": "^3.9.1",
+    "uglify-js": "^3.15.4",
     "unzipper": "^0.10.11"
   },
   "dependencies": {
