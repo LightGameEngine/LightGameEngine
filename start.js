@@ -27,7 +27,7 @@ const cnv = map => c => {
  * @return {Promise<void>}
  */
 function unzip(file, to) {
-    if (fs.existsSync(to)) fs.rmdirSync(to, {recursive: true});
+    if (fs.existsSync(to)) fs.rmSync(to, {recursive: true});
     return new Promise(async (resolve, reject) => fs.createReadStream(file).pipe(require("unzipper").Extract({path: to})).on("error", reject).on("close", resolve));
 }
 
@@ -100,7 +100,7 @@ async function kill() {
     try {
         const currentVersion = oldChanges.length * 1;
         const response = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/.changes.json");
-        //const updateInfo = JSON.parse((await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/update_info.json")).raw);
+        const updateInfo = JSON.parse((await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/update_info.json")).raw);
         const body = response.raw;
         let bytes = 0;
         if (currentVersion < JSON.parse(body).length) {
@@ -155,8 +155,9 @@ async function kill() {
                     await kill();
                 });
                 const files = Array.from(new Set([].concat(...JSON.parse(body).slice(currentVersion))));
-                let totalBytes = 0;
-                //for (const file of files) totalBytes += (updateInfo[file] || {size: 0}).size;
+                const updateFile = "updates/update_setup.zip";
+                //" + (isFirstVersion ? "setup" : JSON.parse(body).length) + "
+                let totalBytes = updateInfo[updateFile].size;
                 setPromptTitle("Light - " + (isFirstVersion ? "Installing" : "Updating") + "...");
                 const sendFileMessage = () => {
                     const b = convertBytes(bytes);
@@ -164,9 +165,7 @@ async function kill() {
                         bytes,
                         byte_converted: b,
                         total_bytes: totalBytes,
-                        loaded: i,
-                        all: files.length,
-                        current: files[i]
+                        all: files.length
                     });
                 };
                 const download = (file, path = "./" + file) => new Promise(r => {
@@ -191,12 +190,11 @@ async function kill() {
                         });
                         res.on("end", () => {
                             const raw = chunks.map(i => i.toString()).join("").toString();
-                            if (raw === "404: Not Found" && fs.existsSync(path)) fs.unlinkSync(path);
                             r({data: raw, bytes: raw.length});
                         });
                     });
                 });
-                await download("updates/update_" + (isFirstVersion ? "setup" : JSON.parse(body).length) + ".json", "./temp.zip");
+                await download(updateFile, "./temp.zip");
                 await unzip("./temp.zip", "./"); // TODO: it wont delete files that have been deleted by update
                 fs.unlinkSync("./temp.zip");
                 console.clear();
