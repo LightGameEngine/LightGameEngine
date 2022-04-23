@@ -16,12 +16,11 @@
   ["resources/index.js", "resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/start.html", "resources/src/styles/project.css"],
   ["resources/src/styles/block.css", "resources/src/block.html", "resources/src/scripts/engine.js", "resources/assets/eraser.png", "resources/assets/icon.ico", "resources/index.js", "resources/assets/light.png", "resources/assets/line.png", "resources/assets/model_light.png", "resources/src/styles/project.css", "resources/src/project.html", "resources/assets/rect.png"],
   ["resources/assets/2d.png", "resources/assets/3d.png", "resources/src/block.html", "CacheManager.js", "resources/src/scripts/engine.js", "resources/src/styles/paint.css", "resources/src/paint.html", "resources/src/project.html"],
-  ["resources/assets/2d.png", "resources/assets/3d.png", "resources/src/scripts/connectionManager.js", "resources/src/scripts/engine.js", "resources/index.js", "resources/src/scripts/lib/OrbitControls.js", "package.json", "resources/src/project.html", "resources/src/scripts/lib/three.js"],
+  ["resources/assets/2d.png", "resources/assets/3d.png", "resources/src/scripts/connectionManager.js", "resources/src/scripts/engine.js", "resources/index.js", "resources/src/scripts/lib/OrbitControls.js", "resources/src/project.html", "resources/src/scripts/lib/three.js"],
   ["CacheManager.js"],
   ["CacheManager.js", "resources/src/scripts/connectionManager.js", "resources/src/scripts/engine.js", "resources/src/scripts/lib/FirstPersonControls.js", "resources/src/index.html", "resources/index.js", "resources/assets/model_cube.png", "resources/assets/model_circle.png", "resources/assets/model_ellipse.png", "resources/assets/model_sphere.png", "resources/src/styles/project.css", "resources/src/project.html", "resources/src/start.html", "resources/src/scripts/lib/three.js"],
   ["resources/src/scripts/engine.js", "resources/src/scripts/lib/FirstPersonControls.js", "resources/src/project.html"],
   ["resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/scripts/lib/OrbitControls.js", "resources/src/scripts/lib/OrbitControls.min.js", "resources/src/scripts/lib/three.min.js"],
   ["resources/index.js", "CacheManager.js"],
-  ["resources/src/project.html", "resources/src/scripts/engine.js"],
-  ["test.txt"]
+  ["resources/src/project.html", "resources/src/scripts/engine.js"]
 ]

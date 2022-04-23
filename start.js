@@ -21,6 +21,16 @@ const cnv = map => c => {
     return b || "0" + Object.keys(map)[0];
 };
 
+/**
+ * @param {string} file
+ * @param {string} to
+ * @return {Promise<void>}
+ */
+function unzip(file, to) {
+    if (fs.existsSync(to)) fs.rmdirSync(to, {recursive: true});
+    return new Promise(async (resolve, reject) => fs.createReadStream(file).pipe(require("unzipper").Extract({path: to})).on("error", reject).on("close", resolve));
+}
+
 const convertBytes = cnv({
     b: 1,
     B: 8,
@@ -90,7 +100,7 @@ async function kill() {
     try {
         const currentVersion = oldChanges.length * 1;
         const response = await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/.changes.json");
-        const updateInfo = JSON.parse((await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/update_info.json")).raw);
+        //const updateInfo = JSON.parse((await fetch("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/update_info.json")).raw);
         const body = response.raw;
         let bytes = 0;
         if (currentVersion < JSON.parse(body).length) {
@@ -146,7 +156,7 @@ async function kill() {
                 });
                 const files = Array.from(new Set([].concat(...JSON.parse(body).slice(currentVersion))));
                 let totalBytes = 0;
-                for (const file of files) totalBytes += (updateInfo[file] || {size: 0}).size;
+                //for (const file of files) totalBytes += (updateInfo[file] || {size: 0}).size;
                 setPromptTitle("Light - " + (isFirstVersion ? "Installing" : "Updating") + "...");
                 const sendFileMessage = () => {
                     const b = convertBytes(bytes);
@@ -159,14 +169,15 @@ async function kill() {
                         current: files[i]
                     });
                 };
-                const download = file => new Promise(r => {
-                    if (fs.existsSync("./" + file)) fs.unlinkSync("./" + file);
-                    const dirs = file.split("/").reverse().slice(1).reverse();
+                const download = (file, path = "./" + file) => new Promise(r => {
+                    if (fs.existsSync(path)) fs.unlinkSync(path);
+                    const ff = path.replace("./", "");
+                    const dirs = ff.split("/").reverse().slice(1).reverse();
                     dirs.forEach((j, d) => {
                         const dir = dirs.slice(0, d + 1).join("/");
                         if (!fs.existsSync("./" + dir)) fs.mkdirSync("./" + dir);
                     });
-                    const f = fs.createWriteStream("./" + file);
+                    const f = fs.createWriteStream(path);
                     https.get("https://raw.githubusercontent.com/LightGameEngine/LightGameEngine/main/" + file, res => {
                         res.pipe(f);
                         const chunks = [];
@@ -180,16 +191,14 @@ async function kill() {
                         });
                         res.on("end", () => {
                             const raw = chunks.map(i => i.toString()).join("").toString();
-                            if (raw === "404: Not Found" && fs.existsSync("./" + file)) fs.unlinkSync("./" + file);
+                            if (raw === "404: Not Found" && fs.existsSync(path)) fs.unlinkSync(path);
                             r({data: raw, bytes: raw.length});
                         });
                     });
                 });
-                let i = 0;
-                for (i = 0; i < files.length; i++) {
-                    sendFileMessage();
-                    await download(files[i]);
-                }
+                await download("updates/update_" + (isFirstVersion ? "setup" : JSON.parse(body).length) + ".json", "./temp.zip");
+                await unzip("./temp.zip", "./"); // TODO: it wont delete files that have been deleted by update
+                fs.unlinkSync("./temp.zip");
                 console.clear();
                 Logger.warning("[" + convertBytes(bytes) + "] [" + convertDate(Date.now() - start) + "] Light has been " + (isFirstVersion ? "installed" : "downloaded") + "!")
                 Logger.info(isFirstVersion ? "Light has been successfully installed." : "Update completed, please restart.");
