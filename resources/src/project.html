@@ -270,7 +270,7 @@
             document._light.project.json.nodes[name] = {
                 type: type,
                 locked: false,
-                properties: property_list[type],
+                properties: JSON.parse(JSON.stringify(property_list[type])),
                 position: (Object.values(document._light.project.json.nodes).sort((a, b) => b.position - a.position)[0] || {position: -1}).position + 1,
                 createdTimestamp: Date.now()
             };
@@ -571,7 +571,6 @@ ${input}
             if (r) toggle_group_node(key);
         }
 
-        addWSListener("get_language", () => setLanguage(lang, false));
         addWSListener("get_projects", a => {
             const {projects} = a;
             property_list = a.property_list;
@@ -800,18 +799,22 @@ ${input}
         canvas.addEventListener("mousemove", ev => {
             if (!canvasMouseDown) return;
             if (selectedEditorEntity) {
-                const pos = canvasMouseDown[2].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
                 const nodeId = selectedEditorEntity["__nodeId"];
-                document._light.project.json.nodes[nodeId].properties.x.value = pos.x;
-                document._light.project.json.nodes[nodeId].properties.y.value = pos.y;
-                refresh_properties();
-                selectedEditorEntity.x = pos.x;
-                selectedEditorEntity.y = pos.y;
-                (selectedEditorEntity.collisionTiles || []).forEach(t => {
-                    if (!t) return;
-                    t.x = pos.x;
-                    t.y = pos.y;
-                });
+                switch (mouseMode) {
+                    case 0:
+                        const pos = canvasMouseDown[2].subtract(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
+                        document._light.project.json.nodes[nodeId].properties.x.value = pos.x;
+                        document._light.project.json.nodes[nodeId].properties.y.value = pos.y;
+                        refresh_properties();
+                        selectedEditorEntity.x = pos.x;
+                        selectedEditorEntity.y = pos.y;
+                        (selectedEditorEntity.collisionTiles || []).forEach(t => {
+                            if (!t) return;
+                            t.x = pos.x;
+                            t.y = pos.y;
+                        });
+                        break;
+                }
             } else {
                 const newCamera = canvasMouseDown[1].add(canvasMouseDown[0].subtract(ev.offsetX, ev.offsetY));
                 sceneCamera.x = newCamera.x;
@@ -824,12 +827,22 @@ ${input}
             return Scene.getInstance().entities.filter(entity => entity instanceof Entity2D && (entity.collides(cmr))).filter(i => i["__nodeId"] ? !document._light.project.json.nodes[i["__nodeId"]].locked : true);
         };
 
+        let mouseMode = 0;
+
         canvas.addEventListener("mousedown", ev => {
             canvasMouseDown = [new Vector2(ev.offsetX, ev.offsetY), Scene.getInstance().camera.clone()];
             if (sceneType === "editor2d") {
-                selectedEditorEntity = getEntitiesByMouse(ev.offsetX, ev.offsetY);
-                selectedEditorEntity = document._light.selected_node ? (selectedEditorEntity.find(i => i && i["__nodeId"] === document._light.selected_node) || selectedEditorEntity[0]) : selectedEditorEntity[0];
-                if (selectedEditorEntity) canvasMouseDown[2] = selectedEditorEntity.clone();
+                mouseMode = ev.button;
+                switch (mouseMode) {
+                    case 0:
+                        selectedEditorEntity = getEntitiesByMouse(ev.offsetX, ev.offsetY);
+                        selectedEditorEntity = document._light.selected_node ? (selectedEditorEntity.find(i => i && i["__nodeId"] === document._light.selected_node) || selectedEditorEntity[0]) : selectedEditorEntity[0];
+                        if (selectedEditorEntity) canvasMouseDown[2] = selectedEditorEntity.clone();
+                        break;
+                    case 1:
+                        canvasMouseDown = null;
+                        break;
+                }
             }
         });
 

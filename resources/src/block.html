@@ -1,452 +1,111 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title id="title"></title>
-    <link href="styles/block.css" rel="stylesheet">
+    <title id="title">Light</title>
     <script src="scripts/connectionManager.js"></script>
     <script src="scripts/lang.js"></script>
     <script src="scripts/themeManager.js"></script>
+    <script src="scripts/lib/blockly.min.js"></script>
+    <script src="scripts/lib/blockly_lang.js"></script>
 </head>
-<body style="overflow: hidden; background: var(--body-background)">
-<a id="close-btn-id" onclick="backToProject()" class="close-hover">Back
-    <script>lU(() => document.getElementById("close-btn-id").innerHTML = m("back-button"))</script>
-</a>
-<br>
-<svg width="100%" height="100%" id="svg"></svg>
+<body>
+<div id="blocklyDiv" style="position: absolute; left: 0; top: 0; height: 480px; width: 600px;"></div>
+</body>
 <script>
-    const svg = document.getElementById("svg");
+    const toolbox = {
+        "kind": "categoryToolbox",
+        "contents": [
+            {
+                "kind": "category",
+                "name": "Kontrol",
+                "contents": [
+                    {
+                        "kind": "block",
+                        "type": "controls_if"
+                    },
+                ]
+            },
+            {
+                "kind": "category",
+                "name": "Mantık",
+                "contents": [
+                    {
+                        "kind": "block",
+                        "type": "logic_compare"
+                    },
+                    {
+                        "kind": "block",
+                        "type": "logic_operation"
+                    },
+                    {
+                        "kind": "block",
+                        "type": "logic_boolean"
+                    }
+                ]
+            }
+        ]
+    };
+    const blocklyDiv = document.getElementById("blocklyDiv");
+    const workspace = Blockly.inject(blocklyDiv,
+        {
+            toolbox,
+            grid: {
+                spacing: 25,
+                length: 3,
+                colour: '#ccc',
+                snap: false
+            },
+            zoom: {
+                controls: true,
+                wheel: true,
+                startScale: 1.0,
+                maxScale: 3,
+                minScale: 0.3,
+                scaleSpeed: 1.2
+            },
+            move: {
+                scrollbars: {
+                    horizontal: true,
+                    vertical: true
+                },
+                drag: true,
+                wheel: false,
+            },
+            trashcan: true
+        });
+    blocklyDiv.style.width = window.innerWidth + "px";
+    blocklyDiv.style.height = window.innerHeight + "px";
+    window.addEventListener("resize", () => {
+        blocklyDiv.style.width = window.innerWidth + "px";
+        blocklyDiv.style.height = window.innerHeight + "px";
+        Blockly.svgResize(workspace);
+    }, false);
+    Blockly.svgResize(workspace);
     const _query = decodeURI(window.location.href).toString().split("?").slice(1).join("").split("&").map(i => [i.split("=")[0], i.split("=").slice(1).join("")]);
     const query = {};
     _query.forEach(i => query[i[0]] = i[1]);
-    let projects;
-    let project;
-    let node;
-
-    ws.sendPacket("get_projects");
-    addWSListener("get_projects", p => {
-        projects = p.projects;
-        project = projects[query.path];
-        node = project.json.nodes[query.node];
-    });
-
-    let width;
-    let height;
-    let PROPERTY_PAGE_X;
-    let PROPERTY_TYPE_PAGE_X;
-    let GRID_WIDTH;
-    let GRID_HEIGHT;
-    let MAX_CAMERA_WIDTH;
-    let MAX_CAMERA_HEIGHT;
-    let MAX_WIDTH;
-    let MAX_HEIGHT;
-
-    function setConstants() {
-        width = window.innerWidth;
-        height = window.innerHeight - 27;
-        PROPERTY_PAGE_X = 300;
-        PROPERTY_TYPE_PAGE_X = Math.floor(PROPERTY_PAGE_X / 2.5);
-        GRID_WIDTH = Math.floor(width / 7);
-        GRID_HEIGHT = Math.floor(height / 5);
-        MAX_CAMERA_WIDTH = GRID_WIDTH * 20;
-        MAX_CAMERA_HEIGHT = GRID_HEIGHT * 20;
-        MAX_WIDTH = t => MAX_CAMERA_WIDTH + width - PROPERTY_PAGE_X - t.width;
-        MAX_HEIGHT = t => MAX_CAMERA_HEIGHT + height - PROPERTY_PAGE_X - t.height;
-    }
-
-    function backToProject() {
-        window.location.href = "./project.html?" + window.location.href.split("?")[1];
-    }
-
-    setConstants();
-    let f = Date.now();
-    let fp = 0;
-    let fps = 0;
-
-    function render() {
-        setConstants();
-        svg.innerHTML = "";
-        if (f < Date.now()) {
-            f = Date.now() + 1000;
-            fps = fp;
-            fp = 0;
-        }
-        fp++;
-        if (camera.x < -MAX_CAMERA_WIDTH) camera.x = -MAX_CAMERA_WIDTH;
-        if (camera.x > -18) camera.x = -18;
-        if (camera.y < -MAX_CAMERA_HEIGHT) camera.y = -MAX_CAMERA_HEIGHT;
-        if (camera.y > 0) camera.y = 0;
-        const simplifiedCamera = camera.subtract(camera.divide(GRID_WIDTH, GRID_HEIGHT).floor().multiply(GRID_WIDTH, GRID_HEIGHT));
-        for (let x = 0; x < width; x += GRID_WIDTH)
-            svg.innerHTML += `<rect x="${simplifiedCamera.x + x}" y="0" width="1" height="${height}" fill="${themes[theme].json["hr"]}"></rect>`;
-        for (let y = 0; y < height; y += GRID_HEIGHT)
-            svg.innerHTML += `<rect x="0" y="${simplifiedCamera.y + y}" width="${width}" height="1" fill="${themes[theme].json["hr"]}"></rect>`;
-        Object.values(entities).sort((a, b) => a.z - b.z).forEach(i => {
-            i.update();
-            svg.innerHTML += i.draw();
-        });
-        requestAnimationFrame(render);
-    }
-
-    addWSOnceListener("get_theme", () => render());
-
-    class Vector2 {
-        constructor(x, y) {
-            this.x = x;
-            this.y = y;
-        }
-
-        /**
-         * @param {number | Vector2} x
-         * @param {number?} y
-         * @returns {Vector2}
-         */
-        add(x, y) {
-            if (x instanceof Vector2) return this.add(x.x, x.y);
-            return new Vector2(this.x + x, this.y + y);
-        }
-
-        /**
-         * @param {number | Vector2} x
-         * @param {number?} y
-         * @returns {Vector2}
-         */
-        subtract(x, y) {
-            if (x instanceof Vector2) return this.subtract(x.x, x.y);
-            return new Vector2(this.x - x, this.y - y);
-        }
-
-        /**
-         * @param {number | Vector2} x
-         * @param {number?} y
-         * @returns {Vector2}
-         */
-        multiply(x, y) {
-            if (x instanceof Vector2) return this.multiply(x.x, x.y);
-            return new Vector2(this.x * x, this.y * y);
-        }
-
-        /**
-         * @param {number | Vector2} x
-         * @param {number?} y
-         * @returns {Vector2}
-         */
-        divide(x, y) {
-            if (x instanceof Vector2) return this.divide(x.x, x.y);
-            return new Vector2(this.x / x, this.y / y);
-        }
-
-        /*** @returns {Vector2} */
-        floor() {
-            return new Vector2(Math.floor(this.x), Math.floor(this.y));
-        }
-
-        /*** @returns {Vector2} */
-        round() {
-            return new Vector2(Math.round(this.x), Math.round(this.y));
-        }
-
-        copy() {
-            return this.add(0, 0);
-        }
-
-        /**
-         * @param {number | Vector2} x
-         * @param {number?} y
-         * @returns {Vector2}
-         */
-        set(x, y) {
-            if (x instanceof Vector2) return this.set(x.x, x.y);
-            this.x = x;
-            this.y = y;
-            return this;
-        }
-    }
-
-    const camera = new Vector2(0, 0);
-    const mouse = new Vector2(0, 0);
-    /*** @type {Object<number, Node>} */
-    let entities = {};
-    let eid = 0;
-    let p = 10;
-
-    class Node extends Vector2 {
-        /**
-         * @param {number} x
-         * @param {number} y
-         * @param {string} fill
-         * @param {string} stroke
-         * @param {number} width
-         * @param {number} height
-         */
-        constructor(x, y, fill, stroke, width, height) {
-            super(x, y);
-            this.fill = fill;
-            this.stroke = stroke;
-            this.width = width;
-            this.height = height;
-            this.eid = eid++;
-            this.z = p += 0.000000001;
-            /*** @type {Node[]} */
-            this.linked = [];
-            /*** @type {Node} */
-            this.linkedTo = null;
-            this.opacity = 1;
-            this.strokeWidth = 4;
-            this._stroke = this.stroke;
-        }
-
-        init() {
-            entities[this.eid] = this;
-        }
-
-        /**
-         * @param {Node} node
-         * @returns {boolean}
-         */
-        collides(node) {
-            return this.x <= node.x + node.width &&
-                this.y <= node.y + node.height &&
-                node.x <= this.x + this.width &&
-                node.y <= this.y + this.height;
-        }
-
-        /**
-         * @param {Vector2} vector2
-         * @returns {boolean}
-         */
-        collidesVector(vector2) {
-            return this.collides(new Node(vector2.x, vector2.y, "", "", 1, 1));
-        }
-
-        /**
-         * @param {Node} node
-         * @returns {number}
-         */
-        getNodeIndex(node) {
-            const index = Object.keys(this.linked).find(i => this.linked[i] === node) * 1;
-            return index === undefined ? -1 : index;
-        }
-
-        getLinkedHeight() {
-            if (!this.linkedTo) return this.height;
-            let h = this.height;
-            for (const a of this.linkedTo.linked) {
-                if (a === this) return h;
-                h += a.height;
-            }
-            return this.height;
-        }
-
-        /**
-         * @param {Node} node
-         * @param {number} index
-         * @returns {Node}
-         */
-        linkToIndex(node, index) {
-            this.linked = [...this.linked.slice(0, index + 1), node, ...this.linked.slice(index + 1)];
-        }
-
-        /**
-         * @param {Node} node
-         * @returns {Node}
-         */
-        linkTo(node) {
-            node.link(this);
-            return this;
-        }
-
-        /**
-         * @param {Node} node
-         * @returns {Node}
-         */
-        link(node) {
-            if (node.linkedTo) node.linkedTo.unlink(node);
-            this.linked.push(node);
-            node.linkedTo = this;
-            return this;
-        }
-
-        /**
-         * @param {Node} node
-         * @returns {Node}
-         */
-        unlink(node) {
-            this.linked = this.linked.filter(i => i !== node);
-            node.linkedTo = null;
-            return this;
-        }
-
-        update() {
-            if (!selectedEntity || selectedEntity[2] !== this) {
-                if (this.x < 0) this.x = 0;
-                if (this.y < 0) this.y = 0;
-                if (this.x > MAX_WIDTH(this)) this.x = MAX_WIDTH(this);
-                if (this.y > MAX_HEIGHT(this)) this.y = MAX_HEIGHT(this);
-            }
-            this.stroke = selectedEntity && selectedEntity[2] !== this && (selectedEntity[2].collides(this) && this.y < selectedEntity[2].y) ? "#ffffff" : this._stroke;
-            this.linked.forEach(i => i.set(this.x + 20, this.y + i.getLinkedHeight()));
-        }
-
-        draw() {
-            const pos = this.add(camera).add(18 + PROPERTY_PAGE_X, 0);
-            if (this instanceof CloneNode) pos.set(pos.subtract(camera.add(PROPERTY_PAGE_X, 0)));
-            return `<rect opacity="${this.opacity}" x="${pos.x}" y="${pos.y}" width="${this.width}" stroke-width="${this.strokeWidth}" height="${this.height}" fill="${this.fill}" stroke="${this.stroke}"></rect>`;
-        }
-
-        close() {
-            delete entities[this.eid];
-        }
-    }
-
-    class PropertyPage extends Node {
-        constructor() {
-            super(1, 1, "", "", 1, 1);
-        }
-
-        draw() {
-            return `<rect width="${PROPERTY_PAGE_X}" height="${window.innerHeight}" fill="${themes[theme].json["body-background"]}"></rect>
-<rect width="${PROPERTY_TYPE_PAGE_X}" height="${window.innerHeight}" fill="${themes[theme].json["node-menu-background"]}"></rect>`;
-        }
-    }
-
-    class CommentNode extends Node {
-        constructor(x, y, width) {
-            super(x, y, "#ffea63", "#ffdc00", width, 30);
-        }
-
-        init() {
-            super.init();
-            //document.body.appendChild(this.span = document.createElement("span"));
-            //this.span.style.position = "absolute";
-        }
-
-        draw() {
-            this.text = this.text || "Text";
-            this.size = 16;
-            this.font = "sans-serif";
-            const info = calculateTextSize(this.text, this.size, this.font, this.maxWidth);
-            this.width = info.width + 4;
-            if (this.maxWidth && this.maxWidth < this.width) this.width = this.maxWidth;
-            const pos = this.add(camera).add(18 + PROPERTY_PAGE_X, info.height);
-            if (this instanceof CloneNode) pos.set(pos.subtract(camera.add(PROPERTY_PAGE_X, 0)));
-            return super.draw() + `<text x="${pos.x}" y="${pos.y}" style="fill: var(--general-color); font: italic ${this.size}px ${this.font}; color: white">${this.text}</text>`;
-        }
-    }
-
-    class CloneNode extends CommentNode {
-        constructor(x, y, width) {
-            super(x, y, "#ffea63", "#ffdc00", width, 30);
-        }
-
-        getClonedNode() {
-            const node = new CommentNode(10, 10, 100);
-            node.init();
-            node.x = mouse.x - PROPERTY_PAGE_X;
-            node.y = mouse.y;
-            return node;
-        }
-
-        init() {
-            this.x = PROPERTY_TYPE_PAGE_X + 10;
-            this.z = 1000;
-            this.maxWidth = PROPERTY_TYPE_PAGE_X;
-            super.init();
-        }
-
-        collides(node) {
-            return false;
-        }
-
-        collidesVector(vector2) {
-            vector2 = vector2.add(camera).add(PROPERTY_PAGE_X + 2, 4);
-            console.log(this.x, this.y, vector2.x, vector2.y);
-            return super.collidesVector(vector2);
-        }
-
-        update() {
-        }
-    }
-
-    const propertyPage = new PropertyPage();
-    propertyPage.init();
-    propertyPage.z = 1000;
-    const myNode = new CommentNode(10, 10, 50);
-    myNode.init();
-    const myNode2 = new CommentNode(0, 0, 100);
-    myNode2.init();
-    const myNode3 = new CommentNode(0, 0, 100);
-    myNode3.init();
-    const myNode4 = new CommentNode(0, 0, 100);
-    myNode4.init();
-    const myNode5 = new CloneNode(0, 10, 100);
-    myNode5.init();
-    myNode5.text = "testssssssssssss";
-
-    let selectedEntity = null;
-    let selectedCamera = null;
-
-    function calculateTextSize(text, size, font, maxWidth = null) {
-        const div = document.createElement("span");
-        // noinspection JSValidateTypes
-        div.style = `font-family:${font};font-size:${size}px;position:absolute`;
-        div.innerHTML = text;
-        document.body.appendChild(div);
-        const width = maxWidth || div.clientWidth;
-        const height = div.clientHeight;
-        div.remove();
-        return {width, height};
-    }
-
-    svg.addEventListener("mousemove", ev => mouse.set(ev.offsetX, ev.offsetY));
-    addEventListener("mousemove", () => {
-        if (selectedEntity) {
-            selectedEntity[2].set(selectedEntity[0].add(mouse.subtract(selectedEntity[1])));
-        } else if (selectedCamera) camera.set(selectedCamera[1].add(mouse.subtract(selectedCamera[0])));
-    });
-    svg.addEventListener("mousedown", () => {
-        let ent = Object.values(entities).filter(i => !(i instanceof PropertyPage) && i.collidesVector(mouse.subtract(camera).subtract(PROPERTY_PAGE_X + 18, 0))).sort((a, b) => b.z - a.z)[0];
-        if (ent instanceof CloneNode) ent = ent.getClonedNode();
-        selectedEntity = ent ? [ent.copy(), mouse.copy(), ent] : null;
-        if (ent && ent.linkedTo) ent.linkedTo.unlink(ent);
-        if (!ent && mouse.x > 200) selectedCamera = [mouse.copy(), camera.copy()];
-        if (ent) {
-            Object.values(entities).forEach(i => i.z = i.z !== 13 ? i.z : 10);
-            ent.z = 1001;
-        }
-    });
-    svg.addEventListener("mouseup", () => {
-        if (selectedEntity && mouse.x < PROPERTY_PAGE_X)
-            if (mouse.x + Math.min(100, selectedEntity[2].width) < PROPERTY_PAGE_X) selectedEntity[2].close();
-            else selectedEntity[2].set(selectedEntity[0]);
-        if (selectedEntity) {
-            const ent = selectedEntity[2];
-            ent.z = 100;
-            const linkList = Object.values(entities).filter(i => i !== ent && ent.collides(i) && ent.y > i.y);
-            if (linkList.length === 1 && linkList[0]) {
-                const linking = linkList[0];
-                if (ent.y > linking.y + (linking.height / 2)) {
-                    if (linking.linkedTo) linking.linkedTo.link(ent);
-                    else linking.link(ent);
-                } else {
-                    if (ent.linkedTo) ent.linkedTo.link(linking);
-                    else ent.link(linking);
-                }
-            }
-        }
-        selectedCamera = null;
-        selectedEntity = null;
-    });
-    addEventListener("mouseup", () => {
-        selectedCamera = null;
-        selectedEntity = null;
-    });
-    addEventListener("blur", () => {
-        selectedCamera = null;
-        selectedEntity = null;
-    });
+    const codeDiv = document.createElement("codediv");
+    const code = document.createElement("code");
+    codeDiv.style.position = "absolute";
+    codeDiv.style.top = "0";
+    codeDiv.style.right = "0";
+    codeDiv.style.border = "1px solid #ccc";
+    codeDiv.style.background = "#fff";
+    codeDiv.style.padding = "10px";
+    codeDiv.style.zIndex = "1";
+    codeDiv.style.overflow = "auto";
+    codeDiv.style.width = "500px";
+    codeDiv.style.height = "35%";
+    document.body.appendChild(codeDiv);
+    const evalButton = document.createElement("button");
+    evalButton.innerText = "Eval";
+    evalButton.style.position = "absolute";
+    evalButton.style.bottom = "0";
+    evalButton.style.left = "0";
+    codeDiv.appendChild(evalButton);
+    codeDiv.appendChild(code);
+    evalButton.addEventListener("click", () => eval(code.innerText));
+    setInterval(() => code.innerText = Blockly.JavaScript.workspaceToCode(workspace), 100);
 </script>
-</body>
 </html>
