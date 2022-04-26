@@ -13,7 +13,7 @@ function setTheme(th, save = true) {
 ${Object.keys(t.json).map(key => `    --${key}: ${t.json[key]};`).join("\n")}
 }
 </style>`;
-    if (save) ws.sendPacket("set_theme", {theme});
+    if (save) ws.sendPacketForce("set_theme", {theme});
 }
 
 addWSListener("get_theme", res => {

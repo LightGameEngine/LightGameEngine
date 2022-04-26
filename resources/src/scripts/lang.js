@@ -7,13 +7,13 @@ const m = s => languages[lang][s];
 
 function setLanguage(l, save = true) {
     lang = l;
-    lUs.forEach(i => i());
-    if (save) ws.sendPacket("set_language", {language: lang})
+    setTimeout(() => lUs.forEach(i => i()), 10);
+    if (save) ws.sendPacketForce("set_language", {language: lang})
 }
 
 let languages = {};
 
 addWSListener("get_language", res => {
-    lang = res.id;
+    setLanguage(res.id, false);
     languages = res.languages;
 });

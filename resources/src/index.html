@@ -62,10 +62,6 @@
         if (theme) change_theme(theme);
     }
 
-    addWSListener("get_language", () => {
-        if (lang) change_language(lang, false);
-    });
-
     ch_l.addEventListener("mouseover", () => language_display.hidden = undefined);
     ch_l.addEventListener("mouseout", () => language_display.hidden = true);
 
