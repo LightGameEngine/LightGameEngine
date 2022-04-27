@@ -23,5 +23,6 @@
   ["resources/src/project.html", "resources/src/scripts/engine.js", "resources/src/scripts/lib/OrbitControls.js", "resources/src/scripts/lib/OrbitControls.min.js", "resources/src/scripts/lib/three.min.js"],
   ["resources/index.js", "CacheManager.js"],
   ["resources/src/project.html", "resources/src/scripts/engine.js"],
-  ["resources/src/block-old.html", "resources/src/block.html", "resources/src/index.html", "resources/src/project.html", "resources/src/scripts/lang.js", "resources/src/scripts/lib/blockly.min.js", "resources/src/scripts/lib/blockly_lang.js", "resources/src/scripts/themeManager.js", "resources/src/styles/block-old.css"]
+  ["resources/src/block-old.html", "resources/src/block.html", "resources/src/index.html", "resources/src/project.html", "resources/src/scripts/lang.js", "resources/src/scripts/lib/blockly.min.js", "resources/src/scripts/lib/blockly_lang.js", "resources/src/scripts/themeManager.js", "resources/src/styles/block-old.css"],
+  ["resources/src/block.html", "resources/src/project.html", "resources/src/scripts/lib/blockly.min.js", "resources/src/scripts/popup.js", "resources/src/scripts/lib/tr_lang.js"]
 ]
