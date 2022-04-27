@@ -1179,7 +1179,8 @@ ${input}
             property_delete_mode: false,
             block_code,
             open_paint,
-            loadedScriptList: []
+            loadedScriptList: [],
+            popUp: null
         };
     })();
     const loadProjectScript = async (file, addToList = true, cb = r => r) => {
@@ -1198,7 +1199,8 @@ ${input}
         const ____________c = console;
         const ____________e = eval;
         const ____________x = XMLHttpRequest;
-        console = null;
+        const ____________a = alert;
+        console = {log};
         eval = null;
         XMLHttpRequest = null;
         setInterval = (...args) => Scene.intervals.push(____________i(...args));
@@ -1214,6 +1216,7 @@ ${input}
                 log(e, file);
             }
         }
+        window.alert = ____________a;
         window.XMLHttpRequest = ____________x;
         window.eval = ____________e;
         window.setInterval = ____________i;
