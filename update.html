@@ -50,7 +50,7 @@
             ctx.fillStyle = "#c2af35";
             ctx.fillRect(0, 0, data.bytes / data.total_bytes * canvas.width, canvas.height);
             const speed = ((Date.now() - startTime) / 1000) / data.bytes;
-            document.getElementById("file_name").innerHTML = "Loading " + data.current + "...";
+            document.getElementById("file_name").innerHTML = "Loading " + data.current;
             let estimation = (data.total_bytes - data.bytes) * speed;
             if (estimation === Infinity) estimation = 0;
             if (estimation > 3600) estimation = (estimation / 3600).toFixed(1) + "h";
