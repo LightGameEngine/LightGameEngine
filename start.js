@@ -164,7 +164,7 @@ async function kill() {
                         bytes,
                         byte_converted: b,
                         total_bytes: totalBytes,
-                        current: "...",
+                        current: currentFile || "...",
                         all: files.length
                     });
                 };
