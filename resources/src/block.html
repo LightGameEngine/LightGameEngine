@@ -23,6 +23,9 @@
         color: var(--bar-a-hover);
     }
 </style>
+<div style="position: absolute; top: 0; right: 0; font-family: Calibri, serif; color: var(--general-color)"
+     id="save-text">Kaydedildi
+</div>
 <div onclick="backToProject()" style="position: absolute; top: 0; font-family: Calibri, serif" class="close-hover">
     Kapat
 </div>
@@ -329,84 +332,113 @@
     _query.forEach(i => query[i[0]] = i[1]);
     document.getElementById("title").innerHTML = "Light - " + query.name;
 
-    function saveWorkspace() {
-        const xmlDom = Blockly.Xml.workspaceToDom(Blockly.mainWorkspace);
-        const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
-        localStorage.setItem("blockly-" + query.name + ".xml", xmlText);
-    }
-
-    function loadWorkspace() {
-        const xmlText = localStorage.getItem("blockly" + query.name + ".xml");
-        if (xmlText) {
-            Blockly.mainWorkspace.clear();
-            Blockly.Xml.domToWorkspace(Blockly.mainWorkspace, Blockly.Xml.textToDom(xmlText));
-        }
-    }
-
     function backToProject() {
         window.location.href = "./project.html?" + window.location.href.split("?")[1];
     }
 
-    const options = {
-        toolbox: document.getElementById("toolbox"),
-        grid: {
-            spacing: 15,
-            length: 3,
-            colour: '#ccc',
-            snap: true
-        },
-        zoom: {
-            controls: true,
-            wheel: true,
-            startScale: 1,
-            maxScale: 3,
-            minScale: 0.3,
-            scaleSpeed: 1.1
-        },
-        move: {
-            scrollbars: {
-                horizontal: true,
-                vertical: true
-            },
-            drag: true,
-            wheel: false,
-        },
-        trashcan: true
-    };
-    const blocklyDiv = document.getElementById("blocklyDiv");
-    blocklyDiv.style.width = window.innerWidth + "px";
-    blocklyDiv.style.height = (window.innerHeight - 20) + "px";
-    Blockly.mainWorkspace = Blockly.inject(blocklyDiv, options);
-    if (localStorage.getItem("blockly.xml")) loadWorkspace();
-    const workspace = Blockly.mainWorkspace;
-    window.addEventListener("resize", () => {
-        blocklyDiv.style.width = window.innerWidth + "px";
-        blocklyDiv.style.height = (window.innerHeight - 20) + "px";
-        Blockly.svgResize(workspace);
-    }, false);
-    Blockly.svgResize(workspace);
-    const codeDiv = document.createElement("codediv");
-    const code = document.createElement("code");
-    codeDiv.style.position = "absolute";
-    codeDiv.style.top = "0";
-    codeDiv.style.right = "0";
-    codeDiv.style.border = "1px solid #ccc";
-    codeDiv.style.background = "#fff";
-    codeDiv.style.padding = "10px";
-    codeDiv.style.zIndex = "1";
-    codeDiv.style.overflow = "auto";
-    codeDiv.style.width = "500px";
-    codeDiv.style.height = "35%";
-    document.body.appendChild(codeDiv);
-    const evalButton = document.createElement("button");
-    evalButton.innerText = "Eval";
-    evalButton.style.position = "absolute";
-    evalButton.style.bottom = "0";
-    evalButton.style.left = "0";
-    codeDiv.appendChild(evalButton);
-    codeDiv.appendChild(code);
-    evalButton.addEventListener("click", () => eval(code.innerText));
-    setInterval(() => code.innerText = `(async () => {\n${Blockly.JavaScript.workspaceToCode(workspace)}\n})();`, 100);
-    setInterval(saveWorkspace, 1000);
+    addWSOnceListener("get_projects", data => {
+        const projects = data.projects;
+        const project = projects[query.path];
+        if (project) {
+            function saveWorkspace() {
+                const xmlDom = Blockly.Xml.workspaceToDom(Blockly.mainWorkspace);
+                const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
+                ws.sendPacketForce("blockly_save", {
+                    path: query.path,
+                    node: query.node,
+                    code: getCode(),
+                    xml: xmlText
+                });
+                document.getElementById("save-text").innerHTML = "Kaydedildi";
+            }
+
+            function loadWorkspace(xmlText) {
+                if (xmlText) {
+                    Blockly.mainWorkspace.clear();
+                    Blockly.Xml.domToWorkspace(Blockly.mainWorkspace, Blockly.Xml.textToDom(xmlText));
+                }
+            }
+
+            const options = {
+                toolbox: document.getElementById("toolbox"),
+                grid: {
+                    spacing: 15,
+                    length: 3,
+                    colour: '#ccc',
+                    snap: true
+                },
+                zoom: {
+                    controls: true,
+                    wheel: true,
+                    startScale: 1,
+                    maxScale: 3,
+                    minScale: 0.3,
+                    scaleSpeed: 1.1
+                },
+                move: {
+                    scrollbars: {
+                        horizontal: true,
+                        vertical: true
+                    },
+                    drag: true,
+                    wheel: false,
+                },
+                trashcan: true
+            };
+            const blocklyDiv = document.getElementById("blocklyDiv");
+            blocklyDiv.style.width = window.innerWidth + "px";
+            blocklyDiv.style.height = (window.innerHeight - 20) + "px";
+            Blockly.mainWorkspace = Blockly.inject(blocklyDiv, options);
+            try {
+                console.log(eval(project.json.nodes[query.node].code))
+            } catch (e) {
+                console.error(e);
+            }
+            if (project.json.nodes[query.node].xml) loadWorkspace(project.json.nodes[query.node].xml);
+            const workspace = Blockly.mainWorkspace;
+            workspace.addChangeListener(() => document.getElementById("save-text").innerHTML = "Kaydediliyor...");
+            window.addEventListener("resize", () => {
+                blocklyDiv.style.width = window.innerWidth + "px";
+                blocklyDiv.style.height = (window.innerHeight - 20) + "px";
+                Blockly.svgResize(workspace);
+            }, false);
+            Blockly.svgResize(workspace);
+            const IS_DEV = false;
+            if (IS_DEV) {
+                const codeDiv = document.createElement("codediv");
+                const code = document.createElement("code");
+                codeDiv.style.position = "absolute";
+                codeDiv.style.top = "0";
+                codeDiv.style.right = "0";
+                codeDiv.style.border = "1px solid #ccc";
+                codeDiv.style.background = "#fff";
+                codeDiv.style.padding = "10px";
+                codeDiv.style.zIndex = "1";
+                codeDiv.style.overflow = "auto";
+                codeDiv.style.width = "500px";
+                codeDiv.style.height = "35%";
+                document.body.appendChild(codeDiv);
+                const evalButton = document.createElement("button");
+                evalButton.innerText = "Eval";
+                evalButton.style.position = "absolute";
+                evalButton.style.bottom = "0";
+                evalButton.style.left = "0";
+                codeDiv.appendChild(evalButton);
+                codeDiv.appendChild(code);
+                evalButton.addEventListener("click", () => eval(code.innerText));
+                setInterval(() => code.innerText = getCode(), 100);
+            }
+            const funcList = {
+                "block-script-entity": ["update", "g_C3_BCncelle", "touchGround", "d_C3_BC_C5_9FmeBitir"]
+            }[project.json.nodes[query.node].type];
+            let getCode = () => `(async () => {
+${Blockly.JavaScript.workspaceToCode(workspace)}
+window.exports = {};
+(()=>{${funcList.map(_ => `try{window.exports[\`${_}\`]=${_}}catch(e){}`).join(";")}})()
+})();`;
+            setInterval(saveWorkspace, 1000);
+        }
+    });
+    ws.sendPacketForce("get_projects");
 </script>
 </html>

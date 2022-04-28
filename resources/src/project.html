@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!--suppress JSNonASCIINames -->
 <html lang="en">
 <head>
     <script>document._cc = console;</script>
@@ -8,6 +9,7 @@
     <script src="scripts/connectionManager.js"></script>
     <script src="scripts/lang.js"></script>
     <script src="scripts/themeManager.js"></script>
+    <script src="scripts/popup.js"></script>
     <script src="scripts/lib/three.js"></script>
     <script src="scripts/lib/OrbitControls.js"></script>
 </head>
@@ -130,7 +132,8 @@
 
         const node_types = [
             "entity", "model", "collision", "text", "tile", "light"/*, "tile-map"*/, "script", "group",
-            "entity3d", "model3d", "collision3d", "text3d", "tile3d", "light3d", "group3d"
+            "entity3d", "model3d", "collision3d", "text3d", "tile3d", "light3d", "group3d", "block-script-entity",
+            "block-script-entity3d"
         ];
 
         const start_btn = document.getElementById("start_btn");
@@ -455,6 +458,7 @@
         addEventListener("keydown", ev => {
             held[ev.key] = true;
             const node = document._light.selected_node;
+            if (!document._light.project) return;
             if (!document._light.project.json.nodes[node]) return;
             if (node && node !== "camera" && node !== "camera3d" && !_p_c && held["Delete"]) open_remove_node_menu(node);
             if (node && node !== "camera" && node !== "camera3d" && !_p_c && held["Control"] && (held["C"] || held["c"])) copy_node(node);
@@ -518,10 +522,12 @@
         }
 
         function refresh_properties() {
-            const prP = document._light.selected_node && document._light.project.json.nodes[document._light.selected_node].type !== "camera" && document._light.project.json.nodes[document._light.selected_node].type !== "camera3d" ? undefined : true;
+            const sN = document._light.selected_node;
+            const snN = sN ? document._light.project.json.nodes[sN] : null;
+            const prP = sN && snN.type !== "camera" && snN.type !== "camera3d" ? undefined : true;
             document.getElementById("property-remove").src = document._light.property_delete_mode ? '../assets/trash_closed_red.png' : '../assets/trash_closed.png';
             document.getElementById("property-remove").hidden = prP;
-            document.getElementById("node-block-script").hidden = prP;
+            document.getElementById("node-block-script").hidden = !(sN && snN.type === "block-script-entity");
             // TODO
             //document.getElementById("node-paint").hidden = prP;
             if (!document._light.selected_node || !document._light.project.json.nodes[document._light.selected_node]) return document.getElementById("properties").innerHTML = "";
@@ -883,12 +889,47 @@ ${input}
 
         setTimeout(refreshCameraTileSize, 1000);
 
+        async function registerBlockScriptEntity(j, code, properties) {
+            return await loadProjectScriptManually(j, code, true, r => `new Promise(async r=>{await ${r};r();})`, true, blockScript => {
+                try {
+                    return class extends Entity2D {
+                        constructor(...args) {
+                            // noinspection JSCheckFunctionSignatures
+                            super(...args);
+                            Object.keys(properties).forEach(i => this[i] = properties[i].value);
+                        }
+
+                        update() {
+                            super.update();
+                            const upd = blockScript["g_C3_BCncelle"] || blockScript.update;
+                            if (upd) upd();
+                        }
+
+                        onFall(fallDistance) {
+                            super.onFall(fallDistance);
+                            const fl = blockScript["d_C3_BC_C5_9FmeBitir"] || blockScript.touchGround;
+                            if (fl) fl();
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                    const f = properties.file.value;
+                    if (f) {
+                        console.info(`Script with node '${j}' gave error!`);
+                        log(e, f);
+                    }
+                }
+                return null;
+            })
+        }
+
         async function setSceneType(type) {
             document.getElementById("dmn_div").hidden = type.startsWith("editor") ? undefined : true;
             scene_process = _sid++;
             const cameraNode = document._light.project.json.nodes.camera;
             if (!cameraNode || !document._light.project.json.nodes.camera3d) return main_menu();
             document._light.loadedScriptList = {};
+            document._light.loadedNodeScriptList = {};
             cameraTile.model = new RectangleModel2D(0, 0, 0, canvas.width, canvas.height, null, themes[theme].json["general-color"]);
             cameraTile.models = [cameraTile.model];
             cameraTile.collision = new RectangleCollision2D(0, 0, canvas.width, canvas.height);
@@ -1069,7 +1110,7 @@ ${input}
                             case "script":
                                 if (!i1.properties.file.value) continue;
                                 const script = await loadProjectScript(i1.properties.file.value, false);
-                                if (script) continue;
+                                if (!script) continue;
                                 try {
                                     const scr = new script();
                                     Object.keys(i1.properties).forEach(i => scr[i] = i1.properties[i].value);
@@ -1179,14 +1220,23 @@ ${input}
             property_delete_mode: false,
             block_code,
             open_paint,
-            loadedScriptList: [],
-            popUp: null
+            loadedScriptList: {},
+            loadedNodeScriptList: {},
+            popUp: null,
+            rBSE: registerBlockScriptEntity
         };
     })();
     const loadProjectScript = async (file, addToList = true, cb = r => r) => {
         if (!file) return null;
         file = file.replaceAll("\\", "/");
-        if (document._light.loadedScriptList[file]) return document._light.loadedScriptList[file];
+        if (document._light.loadedScriptList[file] || document._light.loadedNodeScriptList[file]) return document._light.loadedScriptList[file] || document._light.loadedNodeScriptList[file];
+        const fN = document._light.project.json.nodes[file];
+        if (fN && fN.type === "block-script-entity") {
+            switch (fN.type) {
+                case "block-script-entity":
+                    return await document._light.rBSE(file, fN.code, fN.properties);
+            }
+        }
         file = /\w:\//i.test(file.substring(0, 3)) ? file : (file.startsWith(".") ? (file.startsWith("./") && /\w/i.test(file.charAt(2)) ? document._light.project.path + "/" + file.substring(2) : file) : document._light.project.path + "/" + file);
         const script = await loadScript(file);
         if (script.error) {
@@ -1194,6 +1244,9 @@ ${input}
             return console.info(`Script with file '${file}' not found or a folder!`);
         }
         const code = script.code;
+        return loadProjectScriptManually(file, code, addToList, cb, false);
+    }
+    const loadProjectScriptManually = async (node, code, addToList = true, cb = r => r, isNode = true, converter = r => r) => {
         const ____________i = setInterval;
         const ____________t = setTimeout;
         const ____________c = console;
@@ -1205,15 +1258,17 @@ ${input}
         XMLHttpRequest = null;
         setInterval = (...args) => Scene.intervals.push(____________i(...args));
         setTimeout = (...args) => Scene.intervals.push(____________t(...args));
-        exports = null;
+        window.exports = null;
+        let converted = null;
         try {
-            ____________e(cb(code.length === 0 ? "null" : code));
-            if (addToList) document._light.loadedScriptList[file] = exports;
+            await ____________e(cb(code.length === 0 ? "null" : code));
+            converted = converter(exports);
+            if (addToList && exports) document._light[isNode ? "loadedNodeScriptList" : "loadedScriptList"][node] = converted;
         } catch (e) {
             ____________c.error(e);
-            if (file) {
-                ____________c.info(`Script with file '${file}' gave error!`);
-                log(e, file);
+            if (node) {
+                ____________c.info(`Script with ${isNode ? "node" : "file"} '${node}' gave error!`);
+                log(e, node);
             }
         }
         window.alert = ____________a;
@@ -1222,7 +1277,7 @@ ${input}
         window.setInterval = ____________i;
         window.setTimeout = ____________t;
         window.console = ____________c;
-        return exports;
+        return converted;
     }
 </script>
 </html>
