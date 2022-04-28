@@ -1,5 +1,6 @@
 const ws = new WebSocket("ws://localhost:9009/");
 (() => {
+    const _c = console.log;
     let waitingPackets = [];
     ws.onopen = () => {
         ws.connected = true;
@@ -25,7 +26,7 @@ const ws = new WebSocket("ws://localhost:9009/");
     }
     ws.sendPacket = (action, data) => {
         if (ws.connected) {
-            console.log("[WS] Sending packet:", action, data);
+            _c("[WS] Sending packet:", action, data);
             waitingPackets.push({action, data});
             return;
         }

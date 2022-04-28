@@ -1204,7 +1204,7 @@ class Entity2D extends Vector2 {
             this.y -= this.gravityVelocity;
             this.gravityVelocity = 0;
             this.onGround = true;
-            if (this.fallDistance > 0) this.onFall(this.fallDistance);
+            if (this.fallDistance > 4.5) this.onFall(this.fallDistance);
             this.fallDistance = 0;
         } else this.fallDistance += this.gravityVelocity;
     }

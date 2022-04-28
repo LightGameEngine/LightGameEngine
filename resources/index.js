@@ -37,6 +37,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/en_US.json", JSON.stringify({
     "node-text": "Text",
     "node-light": "Light",
     "node-script": "Script",
+    "node-block-script-entity": "Entity Block Script",
     "enter-node-name": "Enter node name",
     "add-node-title": "Add Node",
     "add-node-button": "Add",
@@ -161,6 +162,7 @@ fs.writeFileSync(lightRoamingPath + "/languages/tr_TR.json", JSON.stringify({
     "node-text": "Yazı",
     "node-light": "Işık",
     "node-script": "Skript",
+    "node-block-script-entity": "Canlı Blok Skript",
     "enter-node-name": "Nesne adını girin",
     "add-node-title": "Nesne Ekle",
     "add-node-button": "Ekle",
@@ -730,6 +732,8 @@ const property_list = {
             isDefaultProperty: true
         }
     },
+    "block-script-entity": {
+    },
     light: {
         x: {
             type: "number",
@@ -1094,6 +1098,8 @@ const property_list = {
             default: 1,
             isDefaultProperty: true
         }
+    },
+    "block-script-entity3d": {
     }
 };
 
@@ -1356,6 +1362,15 @@ wss.on("connection", async socket => {
                     case "main_menu":
                         browser.unmaximize();
                         browser.setSize(700, 600);
+                        break;
+                    case "blockly_save":
+                        if (!CacheManager.existsProjectPath(json.data.path)) return;
+                        const nodeE = CacheManager.getNode(json.data.path, json.data.node);
+                        if(nodeE) {
+                            nodeE.xml = json.data.xml;
+                            nodeE.code = json.data.code;
+                            CacheManager.cache.projects[json.data.path].nodes[json.data.node] = nodeE;
+                        }
                         break;
                 }
             }
