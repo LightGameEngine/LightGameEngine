@@ -195,6 +195,7 @@ async function kill() {
                     });
                 });
                 let currentFile = "...";
+                console.log(updateFiles);
                 for (const updateFileIndex in updateFiles) {
                     currentFile = "Update #" + (updateFileIndex * 1 + 1) + "/" + updateFiles.length;
                     if (isFirstVersion) currentFile = "Setup...";
@@ -202,8 +203,9 @@ async function kill() {
                     try {
                         await unzip("./temp.zip", "./");
                     } catch (e) {
+                        console.error(e);
                     }
-                    await fs.promises.unlink("./temp.zip");
+                    //await fs.promises.unlink("./temp.zip");
                 }
                 console.clear();
                 Logger.warning("[" + convertBytes(bytes) + "] [" + convertDate(Date.now() - start) + "] Light has been " + (isFirstVersion ? "installed" : "downloaded") + "!")
