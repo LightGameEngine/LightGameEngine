@@ -155,9 +155,8 @@ async function kill() {
                     await kill();
                 });
                 const files = Array.from(new Set([].concat(...JSON.parse(body).slice(currentVersion))));
-                const updateFile = "updates/update_setup.zip";
-                //" + (isFirstVersion ? "setup" : JSON.parse(body).length) + "
-                let totalBytes = updateInfo[updateFile].size;
+                const updateFiles = isFirstVersion ? ["updates/update_setup.zip"] : JSON.parse(body).map((a, b) => "updates/update_" + (b * 1 + 1) + ".zip").slice(currentVersion);
+                let totalBytes = updateFiles.map(updateFile => updateInfo[updateFile].size).reduce((a, b) => a + b, 0);
                 setPromptTitle("Light - " + (isFirstVersion ? "Installing" : "Updating") + "...");
                 const sendFileMessage = () => {
                     const b = convertBytes(bytes);
@@ -165,6 +164,7 @@ async function kill() {
                         bytes,
                         byte_converted: b,
                         total_bytes: totalBytes,
+                        current: "...",
                         all: files.length
                     });
                 };
@@ -194,9 +194,17 @@ async function kill() {
                         });
                     });
                 });
-                await download(updateFile, "./temp.zip");
-                await unzip("./temp.zip", "./"); // TODO: it wont delete files that have been deleted by update
-                fs.unlinkSync("./temp.zip");
+                let currentFile = "...";
+                for (const updateFileIndex in updateFiles) {
+                    currentFile = "Update #" + (updateFileIndex * 1 + 1) + "/" + updateFiles.length;
+                    if (isFirstVersion) currentFile = "Setup...";
+                    await download(updateFiles[updateFileIndex], "./temp.zip");
+                    try {
+                        await unzip("./temp.zip", "./");
+                    } catch (e) {
+                    }
+                    await fs.promises.unlink("./temp.zip");
+                }
                 console.clear();
                 Logger.warning("[" + convertBytes(bytes) + "] [" + convertDate(Date.now() - start) + "] Light has been " + (isFirstVersion ? "installed" : "downloaded") + "!")
                 Logger.info(isFirstVersion ? "Light has been successfully installed." : "Update completed, please restart.");
