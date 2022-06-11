@@ -30,7 +30,7 @@
         <img draggable="false" onclick="document._light.setSceneType('editor2d')" id="stop_btn" src="../assets/stop.png"
              style="position: absolute; cursor: pointer" hidden>
     </div>
-    <div id="dmn_div"
+    <!-- TODO: <div id="dmn_div"
          style="position: absolute; cursor: pointer; left: 44%; width: 11%; height: 3%; background: var(--console-background)">
         <div onclick="document._light.setSceneType('editor2d')" style="position: absolute; width: 50%; height: 100%">
             <img draggable="false" src="../assets/2d.png"
@@ -43,7 +43,7 @@
                  style="width: 25px; border-left: 3px solid var(--canvas-background)">
             <span style="position: absolute; top: 2px; left: 55%; color: var(--general-color)">3D</span>
         </div>
-    </div>
+    </div>-->
     <div class="left_container_nav">
         <img draggable="false" onclick="document._light.open_node_menu()" id="left_nav_add" class="left_nav_add"
              src="../assets/add.png">
@@ -924,7 +924,7 @@ ${input}
         }
 
         async function setSceneType(type) {
-            document.getElementById("dmn_div").hidden = type.startsWith("editor") ? undefined : true;
+            // TODO: document.getElementById("dmn_div").hidden = type.startsWith("editor") ? undefined : true;
             scene_process = _sid++;
             const cameraNode = document._light.project.json.nodes.camera;
             if (!cameraNode || !document._light.project.json.nodes.camera3d) return main_menu();
