@@ -343,6 +343,7 @@
             function saveWorkspace() {
                 const xmlDom = Blockly.Xml.workspaceToDom(Blockly.mainWorkspace);
                 const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
+                console.log(getCode());
                 ws.sendPacketForce("blockly_save", {
                     path: query.path,
                     node: query.node,
